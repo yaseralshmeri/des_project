@@ -1,0 +1,65 @@
+{% extends 'web/dashboard.html' %}
+
+{% block title %}لوحة تحكم الطالب - نظام إدارة الجامعة{% endblock %}
+
+{% block content %}
+<!-- Student-specific dashboard content -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-primary" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            مرحباً {{ student.user.get_full_name }}، رقم الطالب: <strong>{{ student.student_id }}</strong>
+        </div>
+    </div>
+</div>
+
+<!-- Academic Info Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-primary mb-2">
+                    <i class="fas fa-graduation-cap fa-2x"></i>
+                </div>
+                <h5 class="card-title">المعدل التراكمي</h5>
+                <h3 class="text-primary">{{ student.gpa }}/4.00</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-success mb-2">
+                    <i class="fas fa-book fa-2x"></i>
+                </div>
+                <h5 class="card-title">الفصل الحالي</h5>
+                <h3 class="text-success">{{ student.current_semester }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-info mb-2">
+                    <i class="fas fa-user-graduate fa-2x"></i>
+                </div>
+                <h5 class="card-title">التخصص</h5>
+                <h6 class="text-info">{{ student.major }}</h6>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-warning mb-2">
+                    <i class="fas fa-calendar fa-2x"></i>
+                </div>
+                <h5 class="card-title">تاريخ التسجيل</h5>
+                <h6 class="text-warning">{{ student.enrollment_date }}</h6>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ block.super }}
+{% endblock %}

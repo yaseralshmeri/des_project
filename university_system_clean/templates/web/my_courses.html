@@ -1,0 +1,208 @@
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block title %}My Courses - University System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-0">My Courses</h1>
+                <p class="text-muted">{{ current_semester }} - {{ enrollments.count }} courses enrolled</p>
+            </div>
+            <div>
+                <a href="{% url 'web:enrollment' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Enroll in More Courses
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Course Cards -->
+<div class="row">
+    {% for enrollment in enrollments %}
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ enrollment.course.code }}</h5>
+                <span class="badge bg-{% if enrollment.status == 'ENROLLED' %}success{% elif enrollment.status == 'COMPLETED' %}primary{% else %}warning{% endif %}">
+                    {{ enrollment.get_status_display }}
+                </span>
+            </div>
+            <div class="card-body">
+                <h6 class="card-title">{{ enrollment.course.name }}</h6>
+                <p class="card-text text-muted">{{ enrollment.course.description|truncatewords:15 }}</p>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="text-muted">Credits</small>
+                        <div class="fw-bold">{{ enrollment.course.credits }}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Department</small>
+                        <div class="fw-bold">{{ enrollment.course.department.code }}</div>
+                    </div>
+                </div>
+                
+                {% if enrollment.final_grade %}
+                <div class="mb-3">
+                    <small class="text-muted">Final Grade</small>
+                    <div class="d-flex align-items-center">
+                        <span class="badge grade-badge bg-{% if enrollment.final_grade >= 80 %}success{% elif enrollment.final_grade >= 70 %}warning{% else %}danger{% endif %} me-2">
+                            {{ enrollment.final_grade|floatformat:1 }}%
+                        </span>
+                        <small class="text-muted">A-</small>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Progress Bar for Current Grade -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-muted">Current Progress</small>
+                        <small class="text-muted">85.5%</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 85.5%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'web:my_grades' %}?course={{ enrollment.course.id }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-chart-line me-1"></i>Grades
+                    </a>
+                    <a href="{% url 'web:schedule' %}?course={{ enrollment.course.id }}" class="btn btn-sm btn-outline-info">
+                        <i class="fas fa-calendar me-1"></i>Schedule
+                    </a>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="showCourseDetails({{ enrollment.course.id }})">
+                        <i class="fas fa-info-circle me-1"></i>Details
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-book fa-3x text-muted mb-3"></i>
+                <h4>No Courses Enrolled</h4>
+                <p class="text-muted mb-4">You haven't enrolled in any courses for this semester yet.</p>
+                <a href="{% url 'web:enrollment' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Browse Available Courses
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Course Statistics -->
+{% if enrollments %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Semester Overview
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <div class="h2 text-primary mb-0">{{ enrollments.count }}</div>
+                        <small class="text-muted">Total Courses</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="h2 text-success mb-0">{{ total_credits|default:"0" }}</div>
+                        <small class="text-muted">Credit Hours</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="h2 text-info mb-0">{{ current_gpa|floatformat:2|default:"N/A" }}</div>
+                        <small class="text-muted">Current GPA</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="h2 text-warning mb-0">{{ attendance_rate|floatformat:1|default:"0" }}%</div>
+                        <small class="text-muted">Avg Attendance</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Course Details Modal -->
+<div class="modal fade" id="courseDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Course Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="courseDetailsContent">
+                <!-- Content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showCourseDetails(courseId) {
+    // Load course details via AJAX
+    fetch(`/api/v1/courses/${courseId}/`)
+        .then(response => response.json())
+        .then(data => {
+            const content = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Course Information</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Code:</strong></td><td>${data.code}</td></tr>
+                            <tr><td><strong>Name:</strong></td><td>${data.name}</td></tr>
+                            <tr><td><strong>Credits:</strong></td><td>${data.credits}</td></tr>
+                            <tr><td><strong>Department:</strong></td><td>${data.department_name}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Description</h6>
+                        <p>${data.description}</p>
+                        
+                        <h6>Prerequisites</h6>
+                        <p>${data.prerequisites || 'None'}</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('courseDetailsContent').innerHTML = content;
+            new bootstrap.Modal(document.getElementById('courseDetailsModal')).show();
+        })
+        .catch(error => {
+            console.error('Error loading course details:', error);
+            showToast('Failed to load course details', 'danger');
+        });
+}
+
+// Update progress bars with real data (would come from backend)
+document.addEventListener('DOMContentLoaded', function() {
+    // This would typically be populated by the backend with real grade data
+    const progressBars = document.querySelectorAll('.progress-bar');
+    progressBars.forEach(bar => {
+        // Animate progress bar
+        const width = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => {
+            bar.style.width = width;
+        }, 500);
+    });
+});
+</script>
+{% endblock %}

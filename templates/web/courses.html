@@ -1,0 +1,204 @@
+{% extends 'web/base.html' %}
+
+{% block title %}إدارة المقررات - نظام إدارة الجامعة{% endblock %}
+
+{% block breadcrumb_items %}
+    <li class="breadcrumb-item active">المقررات</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">إدارة المقررات</h1>
+    {% if user.is_admin or user.is_staff_member %}
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+        <i class="fas fa-plus me-2"></i>
+        إضافة مقرر جديد
+    </button>
+    {% endif %}
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">البحث</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       placeholder="اسم المقرر أو الكود..." value="{{ search_query|default:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="department" class="form-label">القسم</label>
+                <select class="form-select" id="department" name="department">
+                    <option value="">جميع الأقسام</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if current_department == dept.id|stringformat:"s" %}selected{% endif %}>
+                        {{ dept.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-search me-2"></i>
+                    بحث
+                </button>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <a href="{% url 'web:courses' %}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-times me-2"></i>
+                    إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Courses List -->
+<div class="row">
+    {% for course in courses %}
+    <div class="col-lg-6 col-xl-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0">{{ course.code }}</h6>
+                <span class="badge bg-{% if course.is_active %}success{% else %}secondary{% endif %}">
+                    {% if course.is_active %}نشط{% else %}غير نشط{% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <h6 class="card-title">{{ course.name }}</h6>
+                <p class="text-muted small mb-2">
+                    <i class="fas fa-building me-1"></i>
+                    {{ course.department.name }}
+                </p>
+                <p class="card-text">{{ course.description|truncatewords:15 }}</p>
+                
+                <div class="row text-center mt-3">
+                    <div class="col-4">
+                        <small class="text-muted">الساعات</small>
+                        <div class="fw-bold text-primary">{{ course.credits }}</div>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted">الفصل</small>
+                        <div class="fw-bold text-success">{{ course.semester_offered }}</div>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted">السعة</small>
+                        <div class="fw-bold text-info">{{ course.max_capacity }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary flex-fill">
+                        <i class="fas fa-eye me-1"></i>
+                        عرض
+                    </button>
+                    {% if user.is_admin or user.is_staff_member %}
+                    <button class="btn btn-sm btn-outline-warning">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="fas fa-book fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">لا توجد مقررات متاحة</h5>
+            <p class="text-muted">{% if search_query %}لم يتم العثور على مقررات تطابق البحث{% else %}لم يتم إضافة أي مقررات بعد{% endif %}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Add Course Modal -->
+{% if user.is_admin or user.is_staff_member %}
+<div class="modal fade" id="addCourseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة مقرر جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCourseForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="course_code" class="form-label">كود المقرر</label>
+                            <input type="text" class="form-control" id="course_code" name="code" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="course_name" class="form-label">اسم المقرر</label>
+                            <input type="text" class="form-control" id="course_name" name="name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="course_department" class="form-label">القسم</label>
+                            <select class="form-select" id="course_department" name="department" required>
+                                <option value="">اختر القسم</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="course_credits" class="form-label">عدد الساعات</label>
+                            <input type="number" class="form-control" id="course_credits" name="credits" min="1" max="6" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="course_semester" class="form-label">الفصل المقترح</label>
+                            <input type="number" class="form-control" id="course_semester" name="semester_offered" min="1" max="8" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="course_capacity" class="form-label">السعة القصوى</label>
+                            <input type="number" class="form-control" id="course_capacity" name="max_capacity" value="30" min="1" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="course_description" class="form-label">وصف المقرر</label>
+                        <textarea class="form-control" id="course_description" name="description" rows="3" required></textarea>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="course_active" name="is_active" checked>
+                        <label class="form-check-label" for="course_active">
+                            المقرر نشط
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="saveCourse()">حفظ المقرر</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function saveCourse() {
+    // This would typically submit the form via AJAX
+    // For now, just show a message
+    alert('تم حفظ المقرر بنجاح! (هذه رسالة تجريبية)');
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addCourseModal'));
+    modal.hide();
+}
+</script>
+{% endblock %}

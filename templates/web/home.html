@@ -1,0 +1,254 @@
+{% extends 'web/base.html' %}
+
+{% block title %}الرئيسية - نظام إدارة الجامعة{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <div class="row min-vh-100 align-items-center">
+            <div class="col-lg-6">
+                <div class="hero-content">
+                    <h1 class="display-4 fw-bold text-primary mb-4">
+                        نظام إدارة الجامعة الشامل
+                    </h1>
+                    <p class="lead mb-4">
+                        منصة متكاملة لإدارة جميع العمليات الأكاديمية والإدارية في الجامعة
+                        بسهولة وكفاءة عالية
+                    </p>
+                    
+                    <div class="d-flex gap-3 mb-5">
+                        <a href="{% url 'web:login' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>
+                            تسجيل الدخول
+                        </a>
+                        <a href="#features" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-info-circle me-2"></i>
+                            تعرف أكثر
+                        </a>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="stat-number text-primary">500+</div>
+                            <p class="text-muted">طالب مسجل</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="stat-number text-primary">50+</div>
+                            <p class="text-muted">مقرر دراسي</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="stat-number text-primary">25+</div>
+                            <p class="text-muted">عضو هيئة تدريس</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="hero-image text-center">
+                    <div class="position-relative">
+                        <div class="bg-gradient rounded-circle mx-auto mb-4" style="width: 400px; height: 400px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-university text-white" style="font-size: 8rem;"></i>
+                        </div>
+                        
+                        <!-- Floating cards -->
+                        <div class="position-absolute top-0 start-0">
+                            <div class="card border-0 shadow-sm" style="width: 120px;">
+                                <div class="card-body text-center p-3">
+                                    <i class="fas fa-user-graduate text-primary mb-2"></i>
+                                    <h6 class="card-title">الطلاب</h6>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="position-absolute top-0 end-0">
+                            <div class="card border-0 shadow-sm" style="width: 120px;">
+                                <div class="card-body text-center p-3">
+                                    <i class="fas fa-chalkboard-teacher text-success mb-2"></i>
+                                    <h6 class="card-title">الأساتذة</h6>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="position-absolute bottom-0 start-0">
+                            <div class="card border-0 shadow-sm" style="width: 120px;">
+                                <div class="card-body text-center p-3">
+                                    <i class="fas fa-book text-info mb-2"></i>
+                                    <h6 class="card-title">المقررات</h6>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="position-absolute bottom-0 end-0">
+                            <div class="card border-0 shadow-sm" style="width: 120px;">
+                                <div class="card-body text-center p-3">
+                                    <i class="fas fa-chart-bar text-warning mb-2"></i>
+                                    <h6 class="card-title">التقارير</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<section id="features" class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2 class="fw-bold">الميزات الرئيسية</h2>
+                <p class="lead text-muted">نظام شامل يوفر جميع الأدوات اللازمة لإدارة الجامعة بكفاءة</p>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-user-graduate text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title">إدارة الطلاب</h5>
+                        <p class="card-text text-muted">
+                            نظام شامل لإدارة بيانات الطلاب، التسجيل، والمتابعة الأكاديمية
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-book-open text-success" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title">إدارة المقررات</h5>
+                        <p class="card-text text-muted">
+                            تنظيم المقررات الدراسية، الجداول، والمتطلبات الأكاديمية
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-chart-line text-info" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title">الدرجات والتقييم</h5>
+                        <p class="card-text text-muted">
+                            نظام متقدم لإدارة الدرجات، التقييمات، والتقارير الأكاديمية
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-money-bill-wave text-warning" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title">الإدارة المالية</h5>
+                        <p class="card-text text-muted">
+                            إدارة الرسوم الدراسية، المدفوعات، والمنح الدراسية
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-bell text-danger" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title">نظام الإشعارات</h5>
+                        <p class="card-text text-muted">
+                            إشعارات فورية للطلاب والموظفين عبر البريد الإلكتروني والرسائل النصية
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-chart-bar text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title">التقارير والتحليلات</h5>
+                        <p class="card-text text-muted">
+                            تقارير مفصلة وتحليلات ذكية لمساعدة في اتخاذ القرارات
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="card-body text-center py-5">
+                        <h3 class="fw-bold mb-3">ابدأ رحلتك التعليمية معنا</h3>
+                        <p class="mb-4">انضم إلى آلاف الطلاب والموظفين الذين يستخدمون نظامنا يومياً</p>
+                        <a href="{% url 'web:login' %}" class="btn btn-light btn-lg">
+                            <i class="fas fa-rocket me-2"></i>
+                            ابدأ الآن
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        min-height: 100vh;
+    }
+    
+    .hero-content .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #667eea;
+    }
+    
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+    }
+    
+    .position-absolute .card {
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    .position-absolute:nth-child(2) .card {
+        animation-delay: 0.5s;
+    }
+    
+    .position-absolute:nth-child(3) .card {
+        animation-delay: 1s;
+    }
+    
+    .position-absolute:nth-child(4) .card {
+        animation-delay: 1.5s;
+    }
+</style>
+{% endblock %}
