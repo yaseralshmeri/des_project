@@ -1,0 +1,608 @@
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - University System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-0">Welcome back, {{ user.get_full_name|default:user.username }}!</h1>
+                <p class="text-muted">{{ user.get_role_display }} Dashboard</p>
+            </div>
+            <div class="text-end">
+                <small class="text-muted">Today: {{ today|date:"F d, Y" }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats Cards -->
+<div class="row mb-4">
+    {% if user.is_student %}
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ enrolled_courses_count }}</h4>
+                            <p class="mb-0">Enrolled Courses</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-book fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{% url 'web:my_courses' %}" class="small text-white stretched-link">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ current_gpa|floatformat:2 }}</h4>
+                            <p class="mb-0">Current GPA</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{% url 'web:my_grades' %}" class="small text-white stretched-link">View Grades</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">${{ outstanding_balance|floatformat:2 }}</h4>
+                            <p class="mb-0">Outstanding Balance</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-credit-card fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{% url 'web:finances' %}" class="small text-white stretched-link">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ attendance_percentage|floatformat:1 }}%</h4>
+                            <p class="mb-0">Attendance Rate</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-check fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{% url 'web:attendance' %}" class="small text-white stretched-link">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+    {% elif user.is_teacher %}
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ teaching_courses_count }}</h4>
+                            <p class="mb-0">Teaching Courses</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chalkboard-teacher fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{% url 'web:my_classes' %}" class="small text-white stretched-link">View Classes</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ total_students }}</h4>
+                            <p class="mb-0">Total Students</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{% url 'web:my_classes' %}" class="small text-white stretched-link">View Students</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ pending_grades }}</h4>
+                            <p class="mb-0">Pending Grades</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clipboard-list fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{% url 'web:grade_book' %}" class="small text-white stretched-link">Grade Book</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ classes_today }}</h4>
+                            <p class="mb-0">Classes Today</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-day fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{% url 'web:schedule' %}" class="small text-white stretched-link">View Schedule</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- Admin/Staff Stats -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ total_students_count }}</h4>
+                            <p class="mb-0">Total Students</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-graduation-cap fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{% url 'web:users' %}" class="small text-white stretched-link">Manage Students</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ total_courses_count }}</h4>
+                            <p class="mb-0">Total Courses</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-book fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{% url 'admin:courses_course_changelist' %}" class="small text-white stretched-link">Manage Courses</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">${{ total_revenue|floatformat:0 }}</h4>
+                            <p class="mb-0">Total Revenue</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-dollar-sign fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{% url 'web:reports' %}" class="small text-white stretched-link">Financial Reports</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ active_users_count }}</h4>
+                            <p class="mb-0">Active Users</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{% url 'web:analytics' %}" class="small text-white stretched-link">View Analytics</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Main Content Row -->
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Recent Activity / Schedule -->
+        {% if user.is_student %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>Today's Schedule
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if todays_schedule %}
+                        <div class="list-group list-group-flush">
+                            {% for schedule in todays_schedule %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ schedule.course.name }}</h6>
+                                        <p class="mb-1 text-muted">{{ schedule.course.code }} - {{ schedule.instructor.get_full_name }}</p>
+                                        <small class="text-muted">{{ schedule.room }} {{ schedule.building }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-primary">{{ schedule.start_time }} - {{ schedule.end_time }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No classes scheduled for today.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% elif user.is_teacher %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chalkboard-teacher me-2"></i>My Classes Today
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if my_classes_today %}
+                        <div class="list-group list-group-flush">
+                            {% for schedule in my_classes_today %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ schedule.course.name }}</h6>
+                                        <p class="mb-1 text-muted">{{ schedule.course.code }}</p>
+                                        <small class="text-muted">{{ schedule.room }} {{ schedule.building }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-success">{{ schedule.start_time }} - {{ schedule.end_time }}</span>
+                                        <br>
+                                        <small class="text-muted">{{ schedule.course.enrollments.count }} students</small>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-chalkboard fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No classes scheduled for today.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <!-- Recent System Activity for Admins -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>System Overview
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <canvas id="enrollmentChart" height="200"></canvas>
+                        </div>
+                        <div class="col-md-6">
+                            <canvas id="revenueChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Recent Grades / Announcements -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    {% if user.is_student %}
+                        <i class="fas fa-star me-2"></i>Recent Grades
+                    {% else %}
+                        <i class="fas fa-bullhorn me-2"></i>Recent Announcements
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if user.is_student and recent_grades %}
+                    <div class="list-group list-group-flush">
+                        {% for grade in recent_grades %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ grade.title }}</h6>
+                                    <p class="mb-1 text-muted">{{ grade.enrollment.course.name }}</p>
+                                    <small class="text-muted">{{ grade.date_graded|date:"M d, Y" }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-{% if grade.percentage >= 80 %}success{% elif grade.percentage >= 70 %}warning{% else %}danger{% endif %}">
+                                        {{ grade.percentage|floatformat:1 }}%
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% elif announcements %}
+                    <div class="list-group list-group-flush">
+                        {% for announcement in announcements %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">
+                                        {% if announcement.priority == 'URGENT' %}
+                                            <span class="badge bg-danger me-2">URGENT</span>
+                                        {% elif announcement.priority == 'HIGH' %}
+                                            <span class="badge bg-warning me-2">HIGH</span>
+                                        {% endif %}
+                                        {{ announcement.title }}
+                                    </h6>
+                                    <small class="text-muted">{{ announcement.created_at|timesince }} ago</small>
+                                </div>
+                                <p class="mb-1">{{ announcement.content|truncatewords:20 }}</p>
+                                <small class="text-muted">By {{ announcement.created_by.get_full_name }}</small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No recent activity to display.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if user.is_student %}
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'web:enrollment' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Register for Courses
+                        </a>
+                        <a href="{% url 'web:my_grades' %}" class="btn btn-success">
+                            <i class="fas fa-chart-line me-2"></i>View Grades
+                        </a>
+                        <a href="{% url 'web:finances' %}" class="btn btn-warning">
+                            <i class="fas fa-credit-card me-2"></i>Pay Fees
+                        </a>
+                        <a href="{% url 'web:profile' %}" class="btn btn-info">
+                            <i class="fas fa-user-edit me-2"></i>Update Profile
+                        </a>
+                    </div>
+                {% elif user.is_teacher %}
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'web:grade_book' %}" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Enter Grades
+                        </a>
+                        <a href="{% url 'web:attendance' %}" class="btn btn-success">
+                            <i class="fas fa-check me-2"></i>Take Attendance
+                        </a>
+                        <a href="{% url 'web:my_classes' %}" class="btn btn-info">
+                            <i class="fas fa-users me-2"></i>View Classes
+                        </a>
+                        <a href="{% url 'web:schedule' %}" class="btn btn-warning">
+                            <i class="fas fa-calendar me-2"></i>View Schedule
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'web:users' %}" class="btn btn-primary">
+                            <i class="fas fa-users me-2"></i>Manage Users
+                        </a>
+                        <a href="{% url 'web:reports' %}" class="btn btn-success">
+                            <i class="fas fa-chart-bar me-2"></i>Generate Reports
+                        </a>
+                        <a href="{% url 'web:analytics' %}" class="btn btn-info">
+                            <i class="fas fa-brain me-2"></i>AI Analytics
+                        </a>
+                        <a href="{% url 'admin:index' %}" class="btn btn-warning">
+                            <i class="fas fa-cog me-2"></i>System Admin
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Upcoming Events -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-check me-2"></i>Upcoming Events
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if upcoming_events %}
+                    <div class="list-group list-group-flush">
+                        {% for event in upcoming_events %}
+                            <div class="list-group-item px-0">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="mb-1">{{ event.title }}</h6>
+                                        <small class="text-muted">{{ event.date|date:"M d, Y" }}</small>
+                                    </div>
+                                    <span class="badge bg-{% if event.event_type == 'EXAM_PERIOD_START' %}danger{% elif event.event_type == 'REGISTRATION_START' %}success{% else %}primary{% endif %}">
+                                        {{ event.get_event_type_display }}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No upcoming events.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- System Status (for admins) -->
+        {% if user.is_admin %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-server me-2"></i>System Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Database</span>
+                    <span class="badge bg-success">Online</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>API Services</span>
+                    <span class="badge bg-success">Operational</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Email Service</span>
+                    <span class="badge bg-warning">Limited</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>Backup Status</span>
+                    <span class="badge bg-success">Up to date</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if user.is_admin or user.is_staff_member %}
+<script>
+// Sample data for charts (in real app, this would come from backend)
+const enrollmentData = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    datasets: [{
+        label: 'New Enrollments',
+        data: [65, 78, 90, 85, 95, 102],
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        tension: 0.1
+    }]
+};
+
+const revenueData = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    datasets: [{
+        label: 'Revenue ($)',
+        data: [12000, 19000, 15000, 25000, 22000, 30000],
+        borderColor: 'rgb(255, 99, 132)',
+        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+        tension: 0.1
+    }]
+};
+
+// Create charts
+const enrollmentCtx = document.getElementById('enrollmentChart');
+if (enrollmentCtx) {
+    new Chart(enrollmentCtx, {
+        type: 'line',
+        data: enrollmentData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Monthly Enrollments'
+                }
+            }
+        }
+    });
+}
+
+const revenueCtx = document.getElementById('revenueChart');
+if (revenueCtx) {
+    new Chart(revenueCtx, {
+        type: 'bar',
+        data: revenueData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Monthly Revenue'
+                }
+            }
+        }
+    });
+}
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,510 @@
+{% extends 'base.html' %}
+
+{% block title %}لوحة تحكم الإدارة - {{ user.get_full_name }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">لوحة التحكم الإدارية</li>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="welcome-card">
+            <h1 class="h3 mb-2">مرحباً، {{ user.get_full_name }}</h1>
+            <p class="text-muted mb-0">
+                {% if user.is_admin %}
+                    مدير النظام
+                {% else %}
+                    موظف إداري
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Main Statistics -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card bg-primary">
+            <div class="stats-number">{{ stats.total_students }}</div>
+            <div class="stats-label">إجمالي الطلاب</div>
+            <div class="stats-icon">
+                <i class="bi bi-people"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card bg-success">
+            <div class="stats-number">{{ stats.total_courses }}</div>
+            <div class="stats-label">إجمالي المقررات</div>
+            <div class="stats-icon">
+                <i class="bi bi-book"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card bg-info">
+            <div class="stats-number">{{ stats.total_departments }}</div>
+            <div class="stats-label">الأقسام الأكاديمية</div>
+            <div class="stats-icon">
+                <i class="bi bi-building"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card bg-warning">
+            <div class="stats-number">{{ stats.active_enrollments }}</div>
+            <div class="stats-label">التسجيلات النشطة</div>
+            <div class="stats-icon">
+                <i class="bi bi-check-circle"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Statistics -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center border-left-primary">
+            <div class="card-body py-3">
+                <div class="text-primary fw-bold h4">15</div>
+                <div class="text-muted small">أعضاء هيئة التدريس</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center border-left-success">
+            <div class="card-body py-3">
+                <div class="text-success fw-bold h4">{{ pending_fees }}</div>
+                <div class="text-muted small">الرسوم المعلقة</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center border-left-info">
+            <div class="card-body py-3">
+                <div class="text-info fw-bold h4">8</div>
+                <div class="text-muted small">طلبات القبول الجديدة</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center border-left-warning">
+            <div class="card-body py-3">
+                <div class="text-warning fw-bold h4">3</div>
+                <div class="text-muted small">المهام المعلقة</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Enrollments -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-plus me-2"></i>
+                    التسجيلات الحديثة
+                </h5>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        عرض الكل
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">جميع التسجيلات</a></li>
+                        <li><a class="dropdown-item" href="#">التسجيلات المعلقة</a></li>
+                        <li><a class="dropdown-item" href="#">التسجيلات المكتملة</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if recent_enrollments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>الطالب</th>
+                                <th>المقرر</th>
+                                <th>تاريخ التسجيل</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for enrollment in recent_enrollments %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-2">
+                                            {{ enrollment.student.user.first_name|first }}{{ enrollment.student.user.last_name|first }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ enrollment.student.user.get_full_name }}</div>
+                                            <div class="text-muted small">{{ enrollment.student.student_id }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <div class="fw-bold">{{ enrollment.course.code }}</div>
+                                        <div class="text-muted small">{{ enrollment.course.name|truncatechars:30 }}</div>
+                                    </div>
+                                </td>
+                                <td>{{ enrollment.enrollment_date|date:"d/m/Y" }}</td>
+                                <td>
+                                    {% if enrollment.status == 'ENROLLED' %}
+                                        <span class="badge bg-success">مسجل</span>
+                                    {% elif enrollment.status == 'PENDING' %}
+                                        <span class="badge bg-warning">معلق</span>
+                                    {% elif enrollment.status == 'DROPPED' %}
+                                        <span class="badge bg-danger">منسحب</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ enrollment.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" title="عرض التفاصيل">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success btn-sm" title="الموافقة">
+                                            <i class="bi bi-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" title="الرفض">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-person-plus text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-3">لا توجد تسجيلات حديثة</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions & System Status -->
+    <div class="col-lg-4">
+        <!-- System Status -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-speedometer2 me-2"></i>
+                    حالة النظام
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="system-status">
+                    <div class="status-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>خادم قاعدة البيانات</span>
+                            <span class="badge bg-success">متصل</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 4px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 95%"></div>
+                        </div>
+                    </div>
+                    <div class="status-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>النسخ الاحتياطي</span>
+                            <span class="badge bg-success">مُحدث</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 4px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="status-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>مساحة التخزين</span>
+                            <span class="badge bg-warning">78%</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 4px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: 78%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning me-2"></i>
+                    إجراءات سريعة
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                        <i class="bi bi-person-plus me-2"></i>
+                        إضافة طالب جديد
+                    </button>
+                    <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                        <i class="bi bi-book-half me-2"></i>
+                        إضافة مقرر جديد
+                    </button>
+                    <a href="#" class="btn btn-info btn-sm">
+                        <i class="bi bi-file-earmark-spreadsheet me-2"></i>
+                        تصدير التقارير
+                    </a>
+                    <a href="/admin/" class="btn btn-warning btn-sm">
+                        <i class="bi bi-gear me-2"></i>
+                        لوحة الإدارة
+                    </a>
+                    <a href="#" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-shield-check me-2"></i>
+                        إعدادات الأمان
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mt-4">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-bar-chart me-2"></i>
+                    إحصائيات التسجيل الشهرية
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="enrollmentChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pie-chart me-2"></i>
+                    توزيع الطلاب حسب التخصص
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="studentsChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activities -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>
+                    سجل الأنشطة الحديثة
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="activity-feed">
+                    <div class="activity-item">
+                        <div class="activity-icon bg-primary">
+                            <i class="bi bi-person-plus"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">تم تسجيل طالب جديد</div>
+                            <div class="activity-description">أحمد محمد علي - قسم علوم الحاسوب</div>
+                            <div class="activity-time">منذ 10 دقائق</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-icon bg-success">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">تم الموافقة على طلب تسجيل</div>
+                            <div class="activity-description">فاطمة أحمد - مقرر الرياضيات 101</div>
+                            <div class="activity-time">منذ 25 دقيقة</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-icon bg-info">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">تم إنشاء تقرير مالي جديد</div>
+                            <div class="activity-description">تقرير الرسوم الدراسية - الفصل الأول</div>
+                            <div class="activity-time">منذ ساعة واحدة</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-icon bg-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">تحذير: رسوم متأخرة</div>
+                            <div class="activity-description">15 طالب لديهم رسوم متأخرة</div>
+                            <div class="activity-time">منذ ساعتين</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.welcome-card {
+    background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 0;
+}
+
+.stats-card {
+    position: relative;
+    color: white;
+    padding: 1.5rem;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.stats-icon {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 2rem;
+    opacity: 0.3;
+}
+
+.border-left-primary { border-left: 4px solid #007bff; }
+.border-left-success { border-left: 4px solid #28a745; }
+.border-left-info { border-left: 4px solid #17a2b8; }
+.border-left-warning { border-left: 4px solid #ffc107; }
+
+.avatar-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+
+.activity-feed {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-left: 1rem;
+    flex-shrink: 0;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-title {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.activity-description {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 2px;
+}
+
+.activity-time {
+    color: #9ca3af;
+    font-size: 0.75rem;
+}
+</style>
+
+<!-- Chart.js for statistics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Sample data for charts
+document.addEventListener('DOMContentLoaded', function() {
+    // Enrollment Chart
+    const enrollmentCtx = document.getElementById('enrollmentChart').getContext('2d');
+    new Chart(enrollmentCtx, {
+        type: 'line',
+        data: {
+            labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
+            datasets: [{
+                label: 'التسجيلات',
+                data: [120, 150, 180, 200, 250, 300],
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // Students Distribution Chart
+    const studentsCtx = document.getElementById('studentsChart').getContext('2d');
+    new Chart(studentsCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['علوم الحاسوب', 'الهندسة', 'الطب', 'إدارة الأعمال', 'الآداب'],
+            datasets: [{
+                data: [300, 250, 180, 150, 120],
+                backgroundColor: [
+                    'rgb(255, 99, 132)',
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 205, 86)',
+                    'rgb(75, 192, 192)',
+                    'rgb(153, 102, 255)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+});
+</script>
+{% endblock %}

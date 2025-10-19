@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+
+{% block title %}نظام إدارة الجامعة - الرئيسية{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">الرئيسية</li>
+{% endblock %}
+
+{% block content %}
+<div class="hero-section py-5 mb-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold text-primary mb-4">
+                    <i class="bi bi-mortarboard-fill me-3"></i>
+                    نظام إدارة الجامعة
+                </h1>
+                <p class="lead mb-4">
+                    نظام شامل ومتطور لإدارة جميع العمليات الأكاديمية والإدارية في الجامعة.
+                    يوفر واجهات سهلة الاستخدام للطلاب والأساتذة والموظفين الإداريين.
+                </p>
+                <div class="d-flex gap-3">
+                    <a href="{% url 'web:login' %}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>
+                        تسجيل الدخول
+                    </a>
+                    <a href="#features" class="btn btn-outline-primary btn-lg">
+                        <i class="bi bi-info-circle me-2"></i>
+                        المزيد من التفاصيل
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="text-center">
+                    <div class="stats-card mb-4">
+                        <div class="stats-number">15,000+</div>
+                        <div class="stats-label">سطر من الكود</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="stats-card mb-3">
+                                <div class="stats-number">9</div>
+                                <div class="stats-label">تطبيقات</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="stats-card mb-3">
+                                <div class="stats-number">50+</div>
+                                <div class="stats-label">API Endpoint</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section id="features" class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3">مميزات النظام</h2>
+                <p class="lead text-muted">نظام متكامل يلبي جميع احتياجات الجامعة الإدارية والأكاديمية</p>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-people-fill me-2"></i>
+                        إدارة الطلاب
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success me-2"></i>تسجيل وقبول الطلاب</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>إدارة الملفات الأكاديمية</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>تتبع الدرجات والمعدلات</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>إدارة التسجيل والإنسحاب</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-book-fill me-2"></i>
+                        إدارة المقررات
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success me-2"></i>تصميم المناهج الدراسية</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>جدولة المحاضرات</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>توزيع الأساتذة</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>إدارة الامتحانات</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-cash-stack me-2"></i>
+                        الشؤون المالية
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success me-2"></i>إدارة الرسوم الدراسية</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>معالجة المدفوعات</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>إدارة المنح الدراسية</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>التقارير المالية</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-person-badge me-2"></i>
+                        الموارد البشرية
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success me-2"></i>إدارة بيانات الموظفين</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>معالجة الرواتب</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>إدارة الإجازات</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>تقييم الأداء</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-bar-chart me-2"></i>
+                        التقارير والإحصائيات
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success me-2"></i>تقارير أكاديمية شاملة</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>إحصائيات الطلاب</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>تحليلات مالية</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>رسوم بيانية تفاعلية</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-robot me-2"></i>
+                        الذكاء الاصطناعي
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success me-2"></i>تحليل البيانات التعليمية</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>توقع الأداء الأكاديمي</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>توصيات شخصية</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>تحسين تجربة التعلم</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3">المميزات التقنية</h2>
+                <p class="lead text-muted">بُني باستخدام أحدث التقنيات والمعايير العالمية</p>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="text-center">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-shield-check text-success" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5>أمان عالي</h5>
+                    <p class="text-muted">حماية البيانات باستخدام أحدث معايير الأمان</p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="text-center">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-phone text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5>تصميم متجاوب</h5>
+                    <p class="text-muted">يعمل بكفاءة على جميع الأجهزة والشاشات</p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="text-center">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-lightning text-warning" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5>أداء سريع</h5>
+                    <p class="text-muted">استجابة سريعة ومعالجة فعالة للبيانات</p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="text-center">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-cloud text-info" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5>نشر سحابي</h5>
+                    <p class="text-muted">يمكن نشره على السحابة بسهولة</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h2 class="display-5 fw-bold mb-4">جاهز للبدء؟</h2>
+                <p class="lead mb-4">
+                    ابدأ في استخدام نظام إدارة الجامعة المتطور وجرب جميع المميزات المتاحة
+                </p>
+                <a href="{% url 'web:login' %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>
+                    تسجيل الدخول الآن
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

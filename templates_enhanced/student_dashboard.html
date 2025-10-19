@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+
+{% block title %}لوحة تحكم الطالب - {{ student.user.get_full_name }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">لوحة التحكم</li>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="welcome-card">
+            <h1 class="h3 mb-2">مرحباً، {{ student.user.get_full_name }}</h1>
+            <p class="text-muted mb-0">رقم الطالب: {{ student.student_id }} | التخصص: {{ student.major }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card">
+            <div class="stats-number">{{ student.current_semester }}</div>
+            <div class="stats-label">الفصل الحالي</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card">
+            <div class="stats-number">{{ student.gpa|floatformat:2 }}</div>
+            <div class="stats-label">المعدل التراكمي</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card">
+            <div class="stats-number">{{ enrollments|length }}</div>
+            <div class="stats-label">المقررات المسجلة</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card">
+            <div class="stats-number">{{ fees|length }}</div>
+            <div class="stats-label">الرسوم المعلقة</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Current Courses -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-book me-2"></i>
+                    المقررات الحالية
+                </h5>
+                <a href="{% url 'web:courses' %}" class="btn btn-sm btn-outline-primary">
+                    عرض الكل
+                </a>
+            </div>
+            <div class="card-body">
+                {% if enrollments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>رمز المقرر</th>
+                                <th>اسم المقرر</th>
+                                <th>الأستاذ</th>
+                                <th>الحالة</th>
+                                <th>الدرجة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for enrollment in enrollments %}
+                            <tr>
+                                <td><strong>{{ enrollment.course.code }}</strong></td>
+                                <td>{{ enrollment.course.name }}</td>
+                                <td>
+                                    {% if enrollment.course.instructor %}
+                                        {{ enrollment.course.instructor.get_full_name }}
+                                    {% else %}
+                                        <span class="text-muted">لم يحدد بعد</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if enrollment.status == 'ENROLLED' %}
+                                        <span class="badge bg-success">مسجل</span>
+                                    {% elif enrollment.status == 'COMPLETED' %}
+                                        <span class="badge bg-primary">مكتمل</span>
+                                    {% elif enrollment.status == 'DROPPED' %}
+                                        <span class="badge bg-danger">منسحب</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">{{ enrollment.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if enrollment.final_grade %}
+                                        <strong>{{ enrollment.final_grade }}</strong>
+                                    {% else %}
+                                        <span class="text-muted">لم تحدد</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-book text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-3">لا توجد مقررات مسجلة حالياً</p>
+                    <a href="{% url 'web:courses' %}" class="btn btn-primary btn-sm">
+                        استعراض المقررات المتاحة
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications & Quick Actions -->
+    <div class="col-lg-4">
+        <!-- Recent Notifications -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-bell me-2"></i>
+                    الإشعارات الحديثة
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if notifications %}
+                <div class="list-group list-group-flush">
+                    {% for notification in notifications %}
+                    <div class="list-group-item border-0 px-0 {% if not notification.is_read %}fw-bold{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="me-auto">
+                                <h6 class="mb-1">{{ notification.title }}</h6>
+                                <p class="mb-1 small text-muted">{{ notification.message|truncatewords:10 }}</p>
+                                <small class="text-muted">{{ notification.created_at|timesince }}</small>
+                            </div>
+                            {% if not notification.is_read %}
+                            <span class="badge bg-primary">جديد</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="bi bi-bell-slash text-muted" style="font-size: 2rem;"></i>
+                    <p class="text-muted mt-2 mb-0">لا توجد إشعارات</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning me-2"></i>
+                    إجراءات سريعة
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'web:profile' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-person me-2"></i>
+                        تحديث الملف الشخصي
+                    </a>
+                    <a href="{% url 'web:courses' %}" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        تسجيل مقرر جديد
+                    </a>
+                    <a href="#" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>
+                        طباعة كشف الدرجات
+                    </a>
+                    <a href="#" class="btn btn-outline-warning btn-sm">
+                        <i class="bi bi-cash-stack me-2"></i>
+                        عرض الرسوم المالية
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Overview -->
+{% if fees %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-cash-stack me-2"></i>
+                    الرسوم المالية
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for fee in fees %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-left-{{ fee.status|lower }}">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="card-title mb-1">{{ fee.fee_type }}</h6>
+                                        <p class="card-text">
+                                            <strong>{{ fee.amount }} ريال</strong>
+                                        </p>
+                                        <small class="text-muted">{{ fee.due_date|date:"d/m/Y" }}</small>
+                                    </div>
+                                    <div>
+                                        {% if fee.status == 'PAID' %}
+                                            <span class="badge bg-success">مدفوع</span>
+                                        {% elif fee.status == 'PENDING' %}
+                                            <span class="badge bg-warning">معلق</span>
+                                        {% elif fee.status == 'OVERDUE' %}
+                                            <span class="badge bg-danger">متأخر</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.welcome-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 0;
+}
+
+.border-left-paid {
+    border-left: 4px solid #28a745;
+}
+
+.border-left-pending {
+    border-left: 4px solid #ffc107;
+}
+
+.border-left-overdue {
+    border-left: 4px solid #dc3545;
+}
+</style>
+{% endblock %}
