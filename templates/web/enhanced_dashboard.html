@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - نظام إدارة الجامعة</title>
+    
+    <!-- Bootstrap 5 RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts Arabic -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #16a34a;
+            --warning-color: #ea580c;
+            --danger-color: #dc2626;
+            --info-color: #0ea5e9;
+            --dark-color: #1e293b;
+            --light-color: #f8fafc;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            font-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--light-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(135deg, var(--dark-color), #334155);
+            color: white;
+            transform: translateX(0);
+            transition: var(--transition);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(100%);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .sidebar-brand {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+        }
+
+        .sidebar-menu {
+            padding: 1rem 0;
+        }
+
+        .sidebar-menu-item {
+            margin: 0.25rem 0;
+        }
+
+        .sidebar-menu-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .sidebar-menu-link:hover,
+        .sidebar-menu-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .sidebar-menu-link i {
+            width: 20px;
+            margin-left: 0.75rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-right: var(--sidebar-width);
+            min-height: 100vh;
+            transition: var(--transition);
+        }
+
+        .main-content.expanded {
+            margin-right: 0;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            height: var(--header-height);
+            box-shadow: var(--box-shadow);
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: var(--dark-color);
+            cursor: pointer;
+            margin-left: 1rem;
+        }
+
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin: 0;
+        }
+
+        .header-actions {
+            margin-right: auto;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-content {
+            padding: 2rem;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--box-shadow);
+            border: none;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-color);
+        }
+
+        .stats-card.success::before {
+            background: var(--success-color);
+        }
+
+        .stats-card.warning::before {
+            background: var(--warning-color);
+        }
+
+        .stats-card.danger::before {
+            background: var(--danger-color);
+        }
+
+        .stats-card.info::before {
+            background: var(--info-color);
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stats-label {
+            color: var(--secondary-color);
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+        }
+
+        .stats-change {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .stats-change.positive {
+            color: var(--success-color);
+        }
+
+        .stats-change.negative {
+            color: var(--danger-color);
+        }
+
+        /* Charts */
+        .chart-container {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--box-shadow);
+            margin-bottom: 2rem;
+        }
+
+        .chart-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 1rem;
+        }
+
+        /* Recent Activities */
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            transition: var(--transition);
+        }
+
+        .activity-item:hover {
+            background: var(--light-color);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--light-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 1rem;
+            color: var(--primary-color);
+        }
+
+        .activity-content h6 {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-content p {
+            color: var(--secondary-color);
+            font-size: 0.875rem;
+            margin-bottom: 0;
+        }
+
+        .activity-time {
+            margin-right: auto;
+            font-size: 0.75rem;
+            color: var(--secondary-color);
+        }
+
+        /* Notifications */
+        .notification-badge {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .notification-badge .badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(100%);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-right: 0;
+            }
+            
+            .dashboard-content {
+                padding: 1rem;
+            }
+            
+            .header {
+                padding: 0 1rem;
+            }
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Welcome Animation */
+        .welcome-message {
+            background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+            color: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            animation: slideInDown 0.8s ease-out;
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Quick Action Buttons */
+        .quick-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .quick-action-btn {
+            background: white;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .quick-action-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="{% url 'web:dashboard' %}" class="sidebar-brand">
+                <i class="fas fa-university me-2"></i>
+                نظام إدارة الجامعة
+            </a>
+        </div>
+        
+        <nav class="sidebar-menu">
+            <div class="sidebar-menu-item">
+                <a href="{% url 'web:dashboard' %}" class="sidebar-menu-link active">
+                    <i class="fas fa-tachometer-alt"></i>
+                    لوحة التحكم
+                </a>
+            </div>
+            
+            {% if user.is_student %}
+            <div class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link">
+                    <i class="fas fa-book"></i>
+                    موادي الدراسية
+                </a>
+            </div>
+            <div class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link">
+                    <i class="fas fa-chart-line"></i>
+                    الدرجات والتقييم
+                </a>
+            </div>
+            <div class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link">
+                    <i class="fas fa-calendar-alt"></i>
+                    الجدول الدراسي
+                </a>
+            </div>
+            <div class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link">
+                    <i class="fas fa-money-bill-wave"></i>
+                    الرسوم والمدفوعات
+                </a>
+            </div>
+            {% elif user.is_teacher %}
+            <div class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    المواد التي أدرسها
+                </a>
+            </div>
+            <div class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link">
+                    <i class="fas fa-users"></i>
+                    طلابي
+                </a>
+            </div>
+            <div class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link">
+                    <i class="fas fa-clipboard-list"></i>
+                    الدرجات والتقييم
+                </a>
+            </div>
+            {% else %}
+            <div class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link">
+                    <i class="fas fa-user-graduate"></i>
+                    إدارة الطلاب
+                </a>
+            </div>
+            <div class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link">
+                    <i class="fas fa-book-open"></i>
+                    إدارة المقررات
+                </a>
+            </div>
+            <div class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link">
+                    <i class="fas fa-users-cog"></i>
+                    الموارد البشرية
+                </a>
+            </div>
+            <div class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link">
+                    <i class="fas fa-chart-bar"></i>
+                    التقارير والإحصائيات
+                </a>
+            </div>
+            {% endif %}
+            
+            <div class="sidebar-menu-item">
+                <a href="{% url 'web:profile' %}" class="sidebar-menu-link">
+                    <i class="fas fa-user-circle"></i>
+                    الملف الشخصي
+                </a>
+            </div>
+            
+            <div class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link">
+                    <i class="fas fa-bell"></i>
+                    الإشعارات
+                </a>
+            </div>
+            
+            <div class="sidebar-menu-item">
+                <a href="{% url 'web:logout' %}" class="sidebar-menu-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    تسجيل الخروج
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Header -->
+        <header class="header">
+            <button class="sidebar-toggle d-lg-none" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <h1 class="header-title">لوحة التحكم</h1>
+            
+            <div class="header-actions">
+                <!-- Search -->
+                <div class="search-box d-none d-md-block">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="البحث...">
+                        <button class="btn btn-outline-secondary" type="button">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Notifications -->
+                <div class="notification-badge">
+                    <i class="fas fa-bell fa-lg text-muted"></i>
+                    <span class="badge bg-danger rounded-pill">3</span>
+                </div>
+                
+                <!-- User Profile -->
+                <div class="dropdown">
+                    <a class="dropdown-toggle text-decoration-none" href="#" role="button" data-bs-toggle="dropdown">
+                        <img src="https://ui-avatars.com/api/?name={{ user.get_full_name|urlencode }}&background=2563eb&color=fff&size=32" 
+                             class="rounded-circle" width="32" height="32" alt="Profile">
+                        <span class="ms-2 d-none d-md-inline">{{ user.get_full_name }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'web:profile' %}">الملف الشخصي</a></li>
+                        <li><a class="dropdown-item" href="#">الإعدادات</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'web:logout' %}">تسجيل الخروج</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <main class="dashboard-content">
+            <!-- Welcome Message -->
+            <div class="welcome-message">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h2 class="mb-2">مرحباً، {{ user.get_full_name }}! 👋</h2>
+                        <p class="mb-0 opacity-75">
+                            {% if user.is_student %}
+                                مرحباً بك في نظام إدارة الجامعة. يمكنك من هنا متابعة موادك الدراسية ودرجاتك
+                            {% elif user.is_teacher %}
+                                مرحباً بك في نظام إدارة الجامعة. يمكنك من هنا إدارة موادك وطلابك
+                            {% else %}
+                                مرحباً بك في نظام إدارة الجامعة. يمكنك من هنا إدارة جميع العمليات الأكاديمية والإدارية
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end d-none d-md-block">
+                        <i class="fas fa-graduation-cap fa-4x opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            {% if user.is_student %}
+            <div class="quick-actions">
+                <a href="#" class="quick-action-btn">
+                    <i class="fas fa-plus"></i>
+                    تسجيل مقرر جديد
+                </a>
+                <a href="#" class="quick-action-btn">
+                    <i class="fas fa-calendar"></i>
+                    عرض الجدول
+                </a>
+                <a href="#" class="quick-action-btn">
+                    <i class="fas fa-file-alt"></i>
+                    كشف الدرجات
+                </a>
+                <a href="#" class="quick-action-btn">
+                    <i class="fas fa-credit-card"></i>
+                    دفع الرسوم
+                </a>
+            </div>
+            {% elif user.is_teacher %}
+            <div class="quick-actions">
+                <a href="#" class="quick-action-btn">
+                    <i class="fas fa-plus"></i>
+                    إضافة درجات
+                </a>
+                <a href="#" class="quick-action-btn">
+                    <i class="fas fa-users"></i>
+                    عرض الطلاب
+                </a>
+                <a href="#" class="quick-action-btn">
+                    <i class="fas fa-calendar-check"></i>
+                    تسجيل الحضور
+                </a>
+                <a href="#" class="quick-action-btn">
+                    <i class="fas fa-chart-line"></i>
+                    تحليل الأداء
+                </a>
+            </div>
+            {% else %}
+            <div class="quick-actions">
+                <a href="#" class="quick-action-btn">
+                    <i class="fas fa-user-plus"></i>
+                    إضافة طالب جديد
+                </a>
+                <a href="#" class="quick-action-btn">
+                    <i class="fas fa-book-open"></i>
+                    إضافة مقرر
+                </a>
+                <a href="#" class="quick-action-btn">
+                    <i class="fas fa-file-export"></i>
+                    تصدير تقرير
+                </a>
+                <a href="#" class="quick-action-btn">
+                    <i class="fas fa-cogs"></i>
+                    إعدادات النظام
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                {% if user.is_student %}
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card">
+                        <div class="stats-number">{{ enrollments.count|default:0 }}</div>
+                        <div class="stats-label">المواد المسجلة</div>
+                        <div class="stats-change positive">
+                            <i class="fas fa-arrow-up"></i> +2 هذا الفصل
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card success">
+                        <div class="stats-number">3.7</div>
+                        <div class="stats-label">المعدل التراكمي</div>
+                        <div class="stats-change positive">
+                            <i class="fas fa-arrow-up"></i> +0.2
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card warning">
+                        <div class="stats-number">85%</div>
+                        <div class="stats-label">نسبة الحضور</div>
+                        <div class="stats-change negative">
+                            <i class="fas fa-arrow-down"></i> -3%
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card info">
+                        <div class="stats-number">2,500</div>
+                        <div class="stats-label">الرسوم المتبقية</div>
+                        <div class="stats-change">
+                            <i class="fas fa-clock"></i> موعد الدفع قريب
+                        </div>
+                    </div>
+                </div>
+                {% elif user.is_teacher %}
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card">
+                        <div class="stats-number">{{ courses.count|default:0 }}</div>
+                        <div class="stats-label">المواد التي أدرسها</div>
+                        <div class="stats-change">
+                            <i class="fas fa-book"></i> هذا الفصل
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card success">
+                        <div class="stats-number">{{ total_students|default:0 }}</div>
+                        <div class="stats-label">إجمالي الطلاب</div>
+                        <div class="stats-change positive">
+                            <i class="fas fa-users"></i> نشط
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card warning">
+                        <div class="stats-number">12</div>
+                        <div class="stats-label">الواجبات المعلقة</div>
+                        <div class="stats-change">
+                            <i class="fas fa-tasks"></i> يحتاج مراجعة
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card info">
+                        <div class="stats-number">4.2</div>
+                        <div class="stats-label">تقييم التدريس</div>
+                        <div class="stats-change positive">
+                            <i class="fas fa-star"></i> ممتاز
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card">
+                        <div class="stats-number">{{ stats.total_students|default:0 }}</div>
+                        <div class="stats-label">إجمالي الطلاب</div>
+                        <div class="stats-change positive">
+                            <i class="fas fa-arrow-up"></i> +15 هذا الشهر
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card success">
+                        <div class="stats-number">{{ stats.total_courses|default:0 }}</div>
+                        <div class="stats-label">المقررات الدراسية</div>
+                        <div class="stats-change positive">
+                            <i class="fas fa-book"></i> +3 جديد
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card warning">
+                        <div class="stats-number">{{ stats.active_enrollments|default:0 }}</div>
+                        <div class="stats-label">التسجيلات النشطة</div>
+                        <div class="stats-change positive">
+                            <i class="fas fa-users"></i> هذا الفصل
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card info">
+                        <div class="stats-number">{{ pending_fees|default:0 }}</div>
+                        <div class="stats-label">الرسوم المعلقة</div>
+                        <div class="stats-change">
+                            <i class="fas fa-money-bill-wave"></i> تحتاج متابعة
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Charts and Recent Activities -->
+            <div class="row">
+                <!-- Performance Chart -->
+                <div class="col-lg-8 mb-4">
+                    <div class="chart-container">
+                        <h3 class="chart-title">
+                            {% if user.is_student %}
+                                أداء الدرجات خلال الفصل
+                            {% elif user.is_teacher %}
+                                أداء الطلاب في موادي
+                            {% else %}
+                                إحصائيات التسجيل الشهرية
+                            {% endif %}
+                        </h3>
+                        <canvas id="performanceChart" height="100"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Activities -->
+                <div class="col-lg-4 mb-4">
+                    <div class="chart-container">
+                        <h3 class="chart-title">الأنشطة الأخيرة</h3>
+                        <div class="activities-list">
+                            {% if user.is_student %}
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-book"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <h6>تم تسجيل مقرر جديد</h6>
+                                    <p>البرمجة المتقدمة - CS301</p>
+                                </div>
+                                <div class="activity-time">منذ ساعتين</div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <h6>درجة جديدة</h6>
+                                    <p>امتحان قواعد البيانات - 95/100</p>
+                                </div>
+                                <div class="activity-time">أمس</div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-credit-card"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <h6>تم دفع الرسوم</h6>
+                                    <p>رسوم الفصل الأول - 5000 ريال</p>
+                                </div>
+                                <div class="activity-time">منذ 3 أيام</div>
+                            </div>
+                            {% elif user.is_teacher %}
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-plus"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <h6>درجات جديدة</h6>
+                                    <p>تم إضافة درجات الواجب الثاني</p>
+                                </div>
+                                <div class="activity-time">منذ ساعة</div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <h6>طالب جديد</h6>
+                                    <p>انضم أحمد محمد إلى مقرر البرمجة</p>
+                                </div>
+                                <div class="activity-time">منذ ساعتين</div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <h6>تم تسجيل الحضور</h6>
+                                    <p>محاضرة اليوم - 25 طالب حاضر</p>
+                                </div>
+                                <div class="activity-time">منذ 4 ساعات</div>
+                            </div>
+                            {% else %}
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <h6>طالب جديد</h6>
+                                    <p>سارة أحمد - كلية الحاسب</p>
+                                </div>
+                                <div class="activity-time">منذ 30 دقيقة</div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-book-open"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <h6>مقرر جديد</h6>
+                                    <p>تم إضافة مقرر الذكاء الاصطناعي</p>
+                                </div>
+                                <div class="activity-time">منذ ساعة</div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <h6>دفعة جديدة</h6>
+                                    <p>تم استلام رسوم من 15 طالب</p>
+                                </div>
+                                <div class="activity-time">منذ ساعتين</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Dashboard Content Based on Role -->
+            {% if user.is_student %}
+            <!-- Student-specific content -->
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="chart-container">
+                        <h3 class="chart-title">موادي هذا الفصل</h3>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>المقرر</th>
+                                        <th>الدرجة</th>
+                                        <th>الحضور</th>
+                                        <th>الحالة</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>البرمجة المتقدمة</td>
+                                        <td><span class="badge bg-success">A</span></td>
+                                        <td>95%</td>
+                                        <td><span class="badge bg-primary">مستمر</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>قواعد البيانات</td>
+                                        <td><span class="badge bg-success">A-</span></td>
+                                        <td>90%</td>
+                                        <td><span class="badge bg-primary">مستمر</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>الذكاء الاصطناعي</td>
+                                        <td><span class="badge bg-warning">B+</span></td>
+                                        <td>85%</td>
+                                        <td><span class="badge bg-primary">مستمر</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6 mb-4">
+                    <div class="chart-container">
+                        <h3 class="chart-title">الجدول الأسبوعي</h3>
+                        <div class="schedule-grid">
+                            <!-- Schedule content here -->
+                            <p class="text-muted text-center py-4">
+                                <i class="fas fa-calendar-alt fa-2x mb-2"></i><br>
+                                سيتم عرض الجدول الدراسي هنا
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </main>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Sidebar Toggle
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('show');
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            if (window.innerWidth <= 768) {
+                if (!sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) {
+                    sidebar.classList.remove('show');
+                }
+            }
+        });
+
+        // Chart.js Configuration
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        const performanceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
+                datasets: [{
+                    label: '{% if user.is_student %}المعدل{% elif user.is_teacher %}متوسط الطلاب{% else %}التسجيلات{% endif %}',
+                    data: [{% if user.is_student %}3.2, 3.4, 3.6, 3.5, 3.7, 3.8{% elif user.is_teacher %}85, 87, 89, 86, 90, 88{% else %}120, 150, 180, 200, 220, 250{% endif %}],
+                    borderColor: 'rgb(37, 99, 235)',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Auto-refresh notifications every 30 seconds
+        setInterval(function() {
+            // Fetch new notifications via AJAX
+            // Implementation would go here
+        }, 30000);
+
+        // Welcome message auto-hide after 10 seconds
+        setTimeout(function() {
+            const welcomeMessage = document.querySelector('.welcome-message');
+            if (welcomeMessage) {
+                welcomeMessage.style.transition = 'opacity 0.5s';
+                welcomeMessage.style.opacity = '0.8';
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

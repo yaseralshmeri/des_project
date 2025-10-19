@@ -51,8 +51,8 @@ def root_redirect(request):
     Redirect root URL to appropriate page based on user authentication status
     """
     if request.user.is_authenticated:
-        return HttpResponseRedirect('/dashboard/')
-    return HttpResponseRedirect('/login/')
+        return HttpResponseRedirect('/web/enhanced/dashboard/')
+    return HttpResponseRedirect('/web/enhanced/')
 
 
 # Core URL patterns
@@ -71,8 +71,8 @@ urlpatterns = [
     path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/v1/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     
-    # Web Interface (if exists)
-    # path('', include('web.urls')),  # Uncomment when web app is available
+    # Web Interface
+    path('', include('web.urls')),
     
     # API Endpoints
     path('api/v1/students/', include('students.urls')),

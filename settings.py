@@ -23,8 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent
 # Generate secure SECRET_KEY - never use hardcoded keys
 SECRET_KEY = config('SECRET_KEY', default=secrets.token_urlsafe(50))
 
-# Debug settings - False by default for security
-DEBUG = config('DEBUG', default=False, cast=bool)
+# Debug settings - True for development
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 # Allowed hosts with secure defaults
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
@@ -87,6 +87,7 @@ LOCAL_APPS = [
     'academic.apps.AcademicConfig',
     'notifications.apps.NotificationsConfig',
     'ai.apps.AiConfig',
+    'web.apps.WebConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
