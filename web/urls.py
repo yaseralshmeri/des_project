@@ -11,7 +11,7 @@ app_name = 'web'
 
 urlpatterns = [
     # Main pages
-    path('', views.home_view, name='home'),
+    path('', enhanced_views.enhanced_home_view, name='home'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.dashboard_view, name='dashboard'),

@@ -1,0 +1,579 @@
+{% extends 'enhanced_base.html' %}
+{% load static %}
+
+{% block title %}لوحة التحكم - نظام إدارة الجامعة{% endblock %}
+
+{% block extra_css %}
+<style>
+    .welcome-banner {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 3rem 2rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .welcome-banner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('{% static "images/pattern.svg" %}') repeat;
+        opacity: 0.1;
+    }
+    
+    .welcome-banner .content {
+        position: relative;
+        z-index: 2;
+    }
+    
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+    
+    .quick-action-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        cursor: pointer;
+    }
+    
+    .quick-action-card:hover {
+        transform: translateY(-5px);
+        border-color: #667eea;
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.15);
+    }
+    
+    .quick-action-card .icon {
+        font-size: 3rem;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 1rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+    
+    .recent-activity {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-top: 2rem;
+    }
+    
+    .activity-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid #eee;
+        transition: all 0.3s ease;
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .activity-item:hover {
+        background: rgba(102, 126, 234, 0.05);
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 0 -1rem;
+    }
+    
+    .activity-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 1rem;
+        font-size: 1.2rem;
+        color: white;
+    }
+    
+    .activity-icon.success { background: linear-gradient(45deg, #28a745, #20c997); }
+    .activity-icon.info { background: linear-gradient(45deg, #17a2b8, #3498db); }
+    .activity-icon.warning { background: linear-gradient(45deg, #ffc107, #f39c12); }
+    .activity-icon.danger { background: linear-gradient(45deg, #dc3545, #e74c3c); }
+    
+    .progress-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: conic-gradient(#667eea 0deg, #667eea var(--progress), #e9ecef var(--progress), #e9ecef 360deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        margin: 0 auto 1rem;
+    }
+    
+    .progress-circle::before {
+        content: '';
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: white;
+    }
+    
+    .progress-circle .percentage {
+        position: relative;
+        z-index: 2;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #667eea;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Welcome Banner -->
+    <div class="welcome-banner fade-in">
+        <div class="content">
+            <h1 class="mb-3">
+                {% if user.role == 'STUDENT' %}
+                    أهلاً وسهلاً {{ user.get_full_name|default:user.username }}!
+                {% elif user.role == 'TEACHER' %}
+                    مرحباً بك دكتور {{ user.get_full_name|default:user.username }}
+                {% elif user.role == 'ADMIN' %}
+                    مرحباً بك في لوحة الإدارة، {{ user.get_full_name|default:user.username }}
+                {% elif user.role == 'STAFF' %}
+                    أهلاً بك في النظام، {{ user.get_full_name|default:user.username }}
+                {% endif %}
+            </h1>
+            <p class="lead">
+                {% if user.role == 'STUDENT' %}
+                    تابع تقدمك الأكاديمي وإدارة مقرراتك بسهولة
+                {% elif user.role == 'TEACHER' %}
+                    إدارة الصفوف والطلاب والدرجات بكفاءة عالية
+                {% elif user.role == 'ADMIN' %}
+                    إدارة شاملة لجميع عمليات الجامعة والمستخدمين
+                {% elif user.role == 'STAFF' %}
+                    دعم العمليات الإدارية والأكاديمية للجامعة
+                {% endif %}
+            </p>
+            <small class="d-block mt-2 opacity-75">
+                آخر تسجيل دخول: {{ user.last_login|date:"d M Y - H:i" }}
+            </small>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Dashboard Content -->
+        <div class="col-lg-8">
+            <!-- Statistics Cards -->
+            <div class="stats-grid slide-in-left">
+                {% if user.role == 'STUDENT' %}
+                    <div class="dashboard-stat">
+                        <div class="icon mb-3">
+                            <i class="fas fa-book-open fa-2x"></i>
+                        </div>
+                        <h3 id="enrolled-courses">6</h3>
+                        <p>المقررات المسجلة</p>
+                    </div>
+                    
+                    <div class="dashboard-stat">
+                        <div class="icon mb-3">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                        <h3 id="current-gpa">3.85</h3>
+                        <p>المعدل التراكمي</p>
+                    </div>
+                    
+                    <div class="dashboard-stat">
+                        <div class="icon mb-3">
+                            <i class="fas fa-calendar-check fa-2x"></i>
+                        </div>
+                        <h3 id="attendance-rate">
+                            <div class="progress-circle" style="--progress: 288deg;">
+                                <span class="percentage">92%</span>
+                            </div>
+                        </h3>
+                        <p>نسبة الحضور</p>
+                    </div>
+                    
+                    <div class="dashboard-stat">
+                        <div class="icon mb-3">
+                            <i class="fas fa-credit-card fa-2x"></i>
+                        </div>
+                        <h3 id="pending-fees">15,000</h3>
+                        <p>الرسوم المستحقة (ريال)</p>
+                    </div>
+                    
+                {% elif user.role == 'TEACHER' %}
+                    <div class="dashboard-stat">
+                        <div class="icon mb-3">
+                            <i class="fas fa-chalkboard-teacher fa-2x"></i>
+                        </div>
+                        <h3 id="teaching-courses">4</h3>
+                        <p>المقررات التي أدرسها</p>
+                    </div>
+                    
+                    <div class="dashboard-stat">
+                        <div class="icon mb-3">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                        <h3 id="total-students">127</h3>
+                        <p>إجمالي الطلاب</p>
+                    </div>
+                    
+                    <div class="dashboard-stat">
+                        <div class="icon mb-3">
+                            <i class="fas fa-clipboard-check fa-2x"></i>
+                        </div>
+                        <h3 id="pending-grades">23</h3>
+                        <p>الدرجات المعلقة</p>
+                    </div>
+                    
+                    <div class="dashboard-stat">
+                        <div class="icon mb-3">
+                            <i class="fas fa-calendar-week fa-2x"></i>
+                        </div>
+                        <h3 id="weekly-hours">18</h3>
+                        <p>ساعات التدريس الأسبوعية</p>
+                    </div>
+                    
+                {% elif user.role == 'ADMIN' or user.role == 'STAFF' %}
+                    <div class="dashboard-stat">
+                        <div class="icon mb-3">
+                            <i class="fas fa-user-graduate fa-2x"></i>
+                        </div>
+                        <h3 id="total-students-admin">2,456</h3>
+                        <p>إجمالي الطلاب</p>
+                    </div>
+                    
+                    <div class="dashboard-stat">
+                        <div class="icon mb-3">
+                            <i class="fas fa-user-tie fa-2x"></i>
+                        </div>
+                        <h3 id="total-faculty">89</h3>
+                        <p>أعضاء هيئة التدريس</p>
+                    </div>
+                    
+                    <div class="dashboard-stat">
+                        <div class="icon mb-3">
+                            <i class="fas fa-book fa-2x"></i>
+                        </div>
+                        <h3 id="total-courses">156</h3>
+                        <p>إجمالي المقررات</p>
+                    </div>
+                    
+                    <div class="dashboard-stat">
+                        <div class="icon mb-3">
+                            <i class="fas fa-building fa-2x"></i>
+                        </div>
+                        <h3 id="total-departments">12</h3>
+                        <p>الأقسام الأكاديمية</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions slide-in-left">
+                {% if user.role == 'STUDENT' %}
+                    <div class="quick-action-card" onclick="location.href='{% url 'web:my_courses' %}'">
+                        <div class="icon">
+                            <i class="fas fa-book-reader"></i>
+                        </div>
+                        <h5>مقرراتي</h5>
+                        <p>عرض المقررات المسجلة والجداول</p>
+                    </div>
+                    
+                    <div class="quick-action-card" onclick="location.href='{% url 'web:my_grades' %}'">
+                        <div class="icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <h5>درجاتي</h5>
+                        <p>مراجعة الدرجات والتقدم الأكاديمي</p>
+                    </div>
+                    
+                    <div class="quick-action-card" onclick="location.href='{% url 'web:my_schedule' %}'">
+                        <div class="icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <h5>جدولي الدراسي</h5>
+                        <p>عرض الجدول الأسبوعي والمحاضرات</p>
+                    </div>
+                    
+                    <div class="quick-action-card" onclick="location.href='{% url 'web:my_fees' %}'">
+                        <div class="icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <h5>الشؤون المالية</h5>
+                        <p>إدارة الرسوم والمدفوعات</p>
+                    </div>
+                    
+                {% elif user.role == 'TEACHER' %}
+                    <div class="quick-action-card" onclick="location.href='{% url 'web:teaching' %}'">
+                        <div class="icon">
+                            <i class="fas fa-chalkboard"></i>
+                        </div>
+                        <h5>صفوفي</h5>
+                        <p>إدارة الصفوف والمحاضرات</p>
+                    </div>
+                    
+                    <div class="quick-action-card" onclick="location.href='{% url 'web:students' %}'">
+                        <div class="icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <h5>الطلاب</h5>
+                        <p>عرض قوائم الطلاب والحضور</p>
+                    </div>
+                    
+                    <div class="quick-action-card" onclick="location.href='{% url 'web:grade_management' %}'">
+                        <div class="icon">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <h5>إدارة الدرجات</h5>
+                        <p>إدخال وتعديل درجات الطلاب</p>
+                    </div>
+                    
+                {% elif user.role == 'ADMIN' or user.role == 'STAFF' %}
+                    <div class="quick-action-card" onclick="location.href='{% url 'web:user_management' %}'">
+                        <div class="icon">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <h5>إدارة المستخدمين</h5>
+                        <p>إضافة وتعديل حسابات المستخدمين</p>
+                    </div>
+                    
+                    <div class="quick-action-card" onclick="location.href='{% url 'web:system_stats' %}'">
+                        <div class="icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <h5>إحصائيات النظام</h5>
+                        <p>تقارير شاملة وتحليلات</p>
+                    </div>
+                    
+                    <div class="quick-action-card" onclick="location.href='/admin/'">
+                        <div class="icon">
+                            <i class="fas fa-cogs"></i>
+                        </div>
+                        <h5>لوحة الإدارة</h5>
+                        <p>إعدادات النظام المتقدمة</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="sidebar slide-in-right">
+                <!-- Recent Activity -->
+                <div class="mb-4">
+                    <h5 class="mb-3">
+                        <i class="fas fa-history me-2"></i>
+                        النشاطات الأخيرة
+                    </h5>
+                    
+                    <div class="recent-activity">
+                        <div class="activity-item">
+                            <div class="activity-icon success">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">تم تحديث الدرجات</h6>
+                                <small class="text-muted">مقرر الرياضيات - منذ ساعتين</small>
+                            </div>
+                        </div>
+                        
+                        <div class="activity-item">
+                            <div class="activity-icon info">
+                                <i class="fas fa-info"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">إشعار جديد</h6>
+                                <small class="text-muted">تذكير بموعد الامتحان - منذ 3 ساعات</small>
+                            </div>
+                        </div>
+                        
+                        <div class="activity-item">
+                            <div class="activity-icon warning">
+                                <i class="fas fa-exclamation"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">رسوم مستحقة</h6>
+                                <small class="text-muted">يرجى مراجعة الشؤون المالية - أمس</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Events -->
+                <div class="mb-4">
+                    <h5 class="mb-3">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        الأحداث القادمة
+                    </h5>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-primary text-white rounded p-2 me-3">
+                                    <i class="fas fa-graduation-cap"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">امتحان الرياضيات</h6>
+                                    <small class="text-muted">غداً - 10:00 صباحاً</small>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-success text-white rounded p-2 me-3">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">اجتماع أعضاء هيئة التدريس</h6>
+                                    <small class="text-muted">الأحد - 2:00 مساءً</small>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex align-items-center">
+                                <div class="bg-info text-white rounded p-2 me-3">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">بداية فترة التسجيل</h6>
+                                    <small class="text-muted">الاثنين القادم</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                {% if user.role == 'ADMIN' or user.role == 'STAFF' %}
+                <div>
+                    <h5 class="mb-3">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        إحصائيات سريعة
+                    </h5>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>المستخدمين النشطين</span>
+                                <span class="badge bg-success">1,247</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 5px;">
+                                <div class="progress-bar bg-success" style="width: 85%"></div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>الطلاب المسجلين</span>
+                                <span class="badge bg-info">2,156</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 5px;">
+                                <div class="progress-bar bg-info" style="width: 92%"></div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>المقررات النشطة</span>
+                                <span class="badge bg-warning text-dark">142</span>
+                            </div>
+                            <div class="progress" style="height: 5px;">
+                                <div class="progress-bar bg-warning" style="width: 78%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Animate numbers
+    function animateNumber(element, finalNumber, duration = 2000) {
+        let startNumber = 0;
+        let startTime = null;
+        
+        function updateNumber(currentTime) {
+            if (startTime === null) startTime = currentTime;
+            const progress = Math.min((currentTime - startTime) / duration, 1);
+            const currentNumber = Math.floor(progress * finalNumber);
+            element.textContent = currentNumber.toLocaleString('ar-SA');
+            
+            if (progress < 1) {
+                requestAnimationFrame(updateNumber);
+            }
+        }
+        
+        requestAnimationFrame(updateNumber);
+    }
+    
+    // Load dashboard stats dynamically
+    setTimeout(() => {
+        {% if user.role == 'STUDENT' %}
+            animateNumber(document.getElementById('enrolled-courses'), 6);
+            // GPA animation
+            let gpaElement = document.getElementById('current-gpa');
+            let targetGPA = 3.85;
+            let currentGPA = 0;
+            let gpaInterval = setInterval(() => {
+                currentGPA += 0.05;
+                gpaElement.textContent = currentGPA.toFixed(2);
+                if (currentGPA >= targetGPA) {
+                    clearInterval(gpaInterval);
+                    gpaElement.textContent = targetGPA.toFixed(2);
+                }
+            }, 50);
+            
+            animateNumber(document.getElementById('pending-fees'), 15000);
+            
+        {% elif user.role == 'TEACHER' %}
+            animateNumber(document.getElementById('teaching-courses'), 4);
+            animateNumber(document.getElementById('total-students'), 127);
+            animateNumber(document.getElementById('pending-grades'), 23);
+            animateNumber(document.getElementById('weekly-hours'), 18);
+            
+        {% elif user.role == 'ADMIN' or user.role == 'STAFF' %}
+            animateNumber(document.getElementById('total-students-admin'), 2456);
+            animateNumber(document.getElementById('total-faculty'), 89);
+            animateNumber(document.getElementById('total-courses'), 156);
+            animateNumber(document.getElementById('total-departments'), 12);
+        {% endif %}
+    }, 500);
+    
+    // Add hover effects to dashboard stats
+    $('.dashboard-stat').hover(
+        function() {
+            $(this).addClass('shadow-strong');
+        },
+        function() {
+            $(this).removeClass('shadow-strong');
+        }
+    );
+    
+    // Auto-refresh activity feed every 5 minutes
+    setInterval(function() {
+        // This would typically make an AJAX call to refresh activities
+        console.log('Refreshing activity feed...');
+    }, 300000);
+});
+</script>
+{% endblock %}

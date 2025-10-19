@@ -1,0 +1,550 @@
+{% extends 'enhanced_base.html' %}
+{% load static %}
+
+{% block title %}مقرراتي - نظام إدارة الجامعة{% endblock %}
+
+{% block extra_css %}
+<style>
+    .course-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        border-left: 5px solid var(--primary-color);
+    }
+    
+    .course-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.15);
+    }
+    
+    .course-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+    }
+    
+    .course-code {
+        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .course-status {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    
+    .status-active { background: rgba(40, 167, 69, 0.1); color: #28a745; }
+    .status-completed { background: rgba(23, 162, 184, 0.1); color: #17a2b8; }
+    .status-pending { background: rgba(255, 193, 7, 0.1); color: #ffc107; }
+    
+    .instructor-info {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .instructor-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-left: 1rem;
+        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+    }
+    
+    .course-progress {
+        margin-top: 1.5rem;
+    }
+    
+    .progress-bar-custom {
+        height: 8px;
+        border-radius: 10px;
+        background: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+        border-radius: 10px;
+        transition: width 0.8s ease;
+    }
+    
+    .course-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(102, 126, 234, 0.05);
+        border-radius: 10px;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+    
+    .course-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .semester-filter {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .credit-hours-summary {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .credit-hours-summary h3 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: white;
+    }
+    
+    @media (max-width: 768px) {
+        .course-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .course-actions {
+            flex-direction: column;
+        }
+        
+        .course-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="text-gradient mb-2">مقرراتي الدراسية</h1>
+                    <p class="text-muted">إدارة ومتابعة جميع المقررات المسجلة</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#enrollModal">
+                        <i class="fas fa-plus me-2"></i>تسجيل مقرر جديد
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Credit Hours Summary -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="credit-hours-summary fade-in">
+                <h3>{{ total_credit_hours }}</h3>
+                <p class="mb-0">إجمالي الساعات المعتمدة</p>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="semester-filter fade-in">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <label class="form-label">فلترة حسب الفصل الدراسي:</label>
+                        <select class="form-select" id="semesterFilter">
+                            <option value="">جميع الفصول</option>
+                            <option value="current">الفصل الحالي</option>
+                            <option value="previous">الفصول السابقة</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">البحث في المقررات:</label>
+                        <input type="text" class="form-control" placeholder="اسم المقرر أو الكود..." id="courseSearch">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Courses Grid -->
+    <div class="row" id="coursesContainer">
+        {% for enrollment in enrollments %}
+        <div class="col-lg-6 col-xl-4 course-item slide-in-left" data-course-name="{{ enrollment.course.name|lower }}" data-course-code="{{ enrollment.course.code|lower }}">
+            <div class="course-card">
+                <!-- Course Header -->
+                <div class="course-header">
+                    <div>
+                        <h4 class="mb-1">{{ enrollment.course.name }}</h4>
+                        <div class="course-code">{{ enrollment.course.code }}</div>
+                    </div>
+                    <div class="course-status status-active">
+                        نشط
+                    </div>
+                </div>
+
+                <!-- Instructor Info -->
+                <div class="instructor-info">
+                    <div class="instructor-avatar">
+                        {{ enrollment.course.instructor.first_name|first }}{{ enrollment.course.instructor.last_name|first }}
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ enrollment.course.instructor.get_full_name }}</h6>
+                        <small class="text-muted">أستاذ المقرر</small>
+                    </div>
+                </div>
+
+                <!-- Course Stats -->
+                <div class="course-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ enrollment.course.credit_hours }}</div>
+                        <div class="stat-label">ساعة معتمدة</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">85%</div>
+                        <div class="stat-label">نسبة الحضور</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">B+</div>
+                        <div class="stat-label">الدرجة الحالية</div>
+                    </div>
+                </div>
+
+                <!-- Course Progress -->
+                <div class="course-progress">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>تقدم المقرر</span>
+                        <span>75%</span>
+                    </div>
+                    <div class="progress-bar-custom">
+                        <div class="progress-fill" style="width: 75%"></div>
+                    </div>
+                </div>
+
+                <!-- Course Description -->
+                <p class="text-muted mt-3 mb-3">
+                    {{ enrollment.course.description|truncatewords:15|default:"وصف المقرر غير متوفر حالياً." }}
+                </p>
+
+                <!-- Course Actions -->
+                <div class="course-actions">
+                    <button class="btn btn-primary btn-sm flex-fill" onclick="viewCourseDetails('{{ enrollment.course.id }}')">
+                        <i class="fas fa-eye me-1"></i>تفاصيل المقرر
+                    </button>
+                    <button class="btn btn-outline-success btn-sm flex-fill" onclick="viewGrades('{{ enrollment.course.id }}')">
+                        <i class="fas fa-chart-bar me-1"></i>الدرجات
+                    </button>
+                    <button class="btn btn-outline-info btn-sm flex-fill" onclick="viewSchedule('{{ enrollment.course.id }}')">
+                        <i class="fas fa-calendar me-1"></i>الجدول
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-book-open fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">لم يتم تسجيل أي مقررات بعد</h4>
+                <p class="text-muted">يمكنك تسجيل مقررات جديدة من خلال الضغط على زر "تسجيل مقرر جديد"</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#enrollModal">
+                    <i class="fas fa-plus me-2"></i>تسجيل مقرر جديد
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if enrollments.has_other_pages %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav aria-label="Course pagination">
+                <ul class="pagination justify-content-center">
+                    {% if enrollments.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ enrollments.previous_page_number }}">السابق</a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in enrollments.paginator.page_range %}
+                        {% if enrollments.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if enrollments.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ enrollments.next_page_number }}">التالي</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Course Enrollment Modal -->
+<div class="modal fade" id="enrollModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تسجيل مقرر جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    يرجى مراجعة الخطة الدراسية والمتطلبات السابقة قبل التسجيل
+                </div>
+                
+                <form id="enrollmentForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">القسم الأكاديمي</label>
+                        <select class="form-select" id="departmentSelect" required>
+                            <option value="">اختر القسم</option>
+                            <option value="cs">علوم الحاسب</option>
+                            <option value="it">تقنية المعلومات</option>
+                            <option value="math">الرياضيات</option>
+                            <option value="physics">الفيزياء</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">المقرر</label>
+                        <select class="form-select" id="courseSelect" required disabled>
+                            <option value="">اختر المقرر</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">الشعبة</label>
+                        <select class="form-select" id="sectionSelect" required disabled>
+                            <option value="">اختر الشعبة</option>
+                        </select>
+                    </div>
+                    
+                    <div class="course-details" id="courseDetails" style="display: none;">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">تفاصيل المقرر</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>الساعات المعتمدة:</strong> <span id="creditHours">-</span></p>
+                                        <p><strong>أستاذ المقرر:</strong> <span id="instructor">-</span></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>وقت المحاضرة:</strong> <span id="classTime">-</span></p>
+                                        <p><strong>القاعة:</strong> <span id="classroom">-</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="confirmEnrollment">
+                    <i class="fas fa-check me-2"></i>تأكيد التسجيل
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Course search functionality
+    $('#courseSearch').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        filterCourses();
+    });
+    
+    // Semester filter
+    $('#semesterFilter').on('change', function() {
+        filterCourses();
+    });
+    
+    // Filter courses based on search and semester
+    function filterCourses() {
+        const searchTerm = $('#courseSearch').val().toLowerCase();
+        const semesterFilter = $('#semesterFilter').val();
+        
+        $('.course-item').each(function() {
+            const courseName = $(this).data('course-name') || '';
+            const courseCode = $(this).data('course-code') || '';
+            let show = true;
+            
+            // Search filter
+            if (searchTerm && !courseName.includes(searchTerm) && !courseCode.includes(searchTerm)) {
+                show = false;
+            }
+            
+            // Semester filter (would need actual semester data)
+            // This is a placeholder for actual semester filtering logic
+            
+            if (show) {
+                $(this).show().addClass('fade-in');
+            } else {
+                $(this).hide().removeClass('fade-in');
+            }
+        });
+    }
+    
+    // Department selection handler
+    $('#departmentSelect').on('change', function() {
+        const department = $(this).val();
+        const courseSelect = $('#courseSelect');
+        
+        courseSelect.prop('disabled', !department).html('<option value="">اختر المقرر</option>');
+        $('#sectionSelect').prop('disabled', true).html('<option value="">اختر الشعبة</option>');
+        $('#courseDetails').hide();
+        
+        if (department) {
+            // Mock course data - would come from API
+            const courses = {
+                'cs': [
+                    {value: 'cs101', text: 'مقدمة في علوم الحاسب', credits: 3, instructor: 'د. أحمد محمد'},
+                    {value: 'cs201', text: 'البرمجة المتقدمة', credits: 4, instructor: 'د. فاطمة أحمد'},
+                    {value: 'cs301', text: 'قواعد البيانات', credits: 3, instructor: 'د. محمد علي'}
+                ],
+                'it': [
+                    {value: 'it101', text: 'أساسيات تقنية المعلومات', credits: 3, instructor: 'د. سارة أحمد'},
+                    {value: 'it201', text: 'شبكات الحاسوب', credits: 4, instructor: 'د. خالد محمد'}
+                ]
+            };
+            
+            if (courses[department]) {
+                courses[department].forEach(course => {
+                    courseSelect.append(`<option value="${course.value}" data-credits="${course.credits}" data-instructor="${course.instructor}">${course.text}</option>`);
+                });
+            }
+        }
+    });
+    
+    // Course selection handler
+    $('#courseSelect').on('change', function() {
+        const course = $(this).val();
+        const selectedOption = $(this).find(':selected');
+        const sectionSelect = $('#sectionSelect');
+        
+        sectionSelect.prop('disabled', !course).html('<option value="">اختر الشعبة</option>');
+        
+        if (course) {
+            // Mock section data
+            sectionSelect.append('<option value="001">الشعبة 001 - الأحد والثلاثاء 10:00-11:30</option>');
+            sectionSelect.append('<option value="002">الشعبة 002 - الاثنين والأربعاء 14:00-15:30</option>');
+            
+            // Show course details
+            $('#creditHours').text(selectedOption.data('credits'));
+            $('#instructor').text(selectedOption.data('instructor'));
+            $('#classTime').text('يُحدد عند اختيار الشعبة');
+            $('#classroom').text('يُحدد عند اختيار الشعبة');
+            $('#courseDetails').show();
+        } else {
+            $('#courseDetails').hide();
+        }
+    });
+    
+    // Section selection handler
+    $('#sectionSelect').on('change', function() {
+        const section = $(this).val();
+        if (section) {
+            const sectionText = $(this).find(':selected').text();
+            const timeMatch = sectionText.match(/(\d{2}:\d{2}-\d{2}:\d{2})/);
+            if (timeMatch) {
+                $('#classTime').text(timeMatch[1]);
+                $('#classroom').text('قاعة ' + Math.floor(Math.random() * 200 + 100));
+            }
+        }
+    });
+    
+    // Confirm enrollment
+    $('#confirmEnrollment').on('click', function() {
+        const form = $('#enrollmentForm')[0];
+        if (form.checkValidity()) {
+            // Mock enrollment process
+            $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>جاري التسجيل...');
+            
+            setTimeout(() => {
+                UniversitySystem.utils.showToast('تم تسجيل المقرر بنجاح!', 'success');
+                $('#enrollModal').modal('hide');
+                $(this).prop('disabled', false).html('<i class="fas fa-check me-2"></i>تأكيد التسجيل');
+                
+                // Reload page to show new course
+                setTimeout(() => location.reload(), 1500);
+            }, 2000);
+        } else {
+            form.reportValidity();
+        }
+    });
+});
+
+// Global functions for course actions
+function viewCourseDetails(courseId) {
+    UniversitySystem.utils.showToast('سيتم توجيهك لصفحة تفاصيل المقرر', 'info');
+    // Redirect to course details page
+    // window.location.href = `/courses/${courseId}/`;
+}
+
+function viewGrades(courseId) {
+    UniversitySystem.utils.showToast('سيتم توجيهك لصفحة الدرجات', 'info');
+    // Redirect to grades page
+    // window.location.href = `/grades/course/${courseId}/`;
+}
+
+function viewSchedule(courseId) {
+    UniversitySystem.utils.showToast('سيتم توجيهك للجدول الدراسي', 'info');
+    // Redirect to schedule page
+    // window.location.href = `/schedule/course/${courseId}/`;
+}
+</script>
+{% endblock %}

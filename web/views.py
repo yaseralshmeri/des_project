@@ -1,241 +1,306 @@
 """
-Web interface views for University Management System
-واجهات الويب لنظام إدارة الجامعة
+Basic Views for University Management System
+ملفات العرض الأساسية لنظام إدارة الجامعة
+
+This file contains basic views with improved functionality and error handling.
 """
 
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponseForbidden
-from django.db.models import Count, Q, Sum, Avg
-from django.utils import timezone
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
-from datetime import datetime, timedelta
-import json
+from django.db.models import Q
+import logging
 
-from students.models import User, Student, Department
-from courses.models import Course, CourseOffering
-from academic.models import Enrollment, AcademicYear, Semester
-from finance.models import StudentFee, Payment
+# Import models
+from students.models import User, Student
 from notifications.models import Notification
+
+logger = logging.getLogger(__name__)
 
 
 def home_view(request):
-    """Home page - redirect based on user role"""
-    if request.user.is_authenticated:
-        return redirect('web:dashboard')
-    return render(request, 'web/home.html')
+    """
+    Basic home page view
+    الصفحة الرئيسية الأساسية
+    """
+    try:
+        # Redirect authenticated users to dashboard
+        if request.user.is_authenticated:
+            return redirect('web:enhanced_dashboard')
+        
+        return render(request, 'home.html')
+        
+    except Exception as e:
+        logger.error(f"Error in home_view: {str(e)}")
+        return render(request, 'home.html')
 
 
 def login_view(request):
-    """User login page"""
+    """
+    Enhanced login view with better error handling
+    صفحة تسجيل الدخول المحسنة
+    """
     if request.user.is_authenticated:
-        return redirect('web:dashboard')
+        return redirect('web:enhanced_dashboard')
     
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
         
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            messages.success(request, f'مرحباً بك، {user.get_full_name()}!')
-            return redirect('web:dashboard')
-        else:
-            messages.error(request, 'اسم المستخدم أو كلمة المرور غير صحيحة')
+        if not username or not password:
+            messages.error(request, 'يرجى إدخال اسم المستخدم وكلمة المرور')
+            return render(request, 'enhanced_login.html')
+        
+        try:
+            user = authenticate(request, username=username, password=password)
+            
+            if user is not None:
+                if user.is_active:
+                    login(request, user)
+                    
+                    # Log successful login
+                    logger.info(f"User {username} logged in successfully")
+                    
+                    # Redirect based on user role
+                    next_url = request.GET.get('next', 'web:enhanced_dashboard')
+                    messages.success(request, f'مرحباً بك {user.get_full_name() or user.username}!')
+                    
+                    return redirect(next_url)
+                else:
+                    messages.error(request, 'حسابك غير مفعل. يرجى التواصل مع الإدارة')
+            else:
+                messages.error(request, 'اسم المستخدم أو كلمة المرور غير صحيحة')
+                logger.warning(f"Failed login attempt for username: {username}")
+                
+        except Exception as e:
+            logger.error(f"Login error for user {username}: {str(e)}")
+            messages.error(request, 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى')
     
-    return render(request, 'web/login.html')
+    return render(request, 'enhanced_login.html')
 
 
+@login_required
 def logout_view(request):
-    """User logout"""
-    logout(request)
-    messages.success(request, 'تم تسجيل الخروج بنجاح')
-    return redirect('web:home')
+    """
+    Enhanced logout view
+    صفحة تسجيل الخروج المحسنة
+    """
+    try:
+        username = request.user.username
+        logout(request)
+        
+        logger.info(f"User {username} logged out successfully")
+        messages.success(request, 'تم تسجيل الخروج بنجاح')
+        
+        return redirect('web:home')
+        
+    except Exception as e:
+        logger.error(f"Logout error: {str(e)}")
+        return redirect('web:home')
 
 
 @login_required
 def dashboard_view(request):
-    """Main dashboard - role-based content"""
-    user = request.user
-    context = {
-        'user': user,
-        'current_date': timezone.now(),
-    }
-    
-    # Get current academic year and semester
-    try:
-        current_year = AcademicYear.objects.get(is_current=True)
-        current_semester = Semester.objects.get(is_current=True)
-        context.update({
-            'current_year': current_year,
-            'current_semester': current_semester,
-        })
-    except:
-        pass
-    
-    if user.is_student:
-        return student_dashboard(request, context)
-    elif user.is_teacher:
-        return teacher_dashboard(request, context)
-    elif user.is_staff_member or user.is_admin:
-        return admin_dashboard(request, context)
-    
-    return render(request, 'web/dashboard.html', context)
-
-
-def student_dashboard(request, context):
-    """Student-specific dashboard"""
-    try:
-        student = Student.objects.get(user=request.user)
-        context['student'] = student
-        
-        # Get student enrollments
-        enrollments = Enrollment.objects.filter(student=student).select_related('course', 'semester')
-        context['enrollments'] = enrollments[:5]  # Latest 5
-        
-        # Get student fees
-        fees = StudentFee.objects.filter(student=student).order_by('-created_at')
-        context['fees'] = fees[:3]  # Latest 3
-        
-        # Get recent notifications
-        notifications = Notification.objects.filter(
-            recipient=request.user
-        ).order_by('-created_at')[:5]
-        context['notifications'] = notifications
-        
-    except Student.DoesNotExist:
-        messages.warning(request, 'لم يتم العثور على ملف الطالب')
-    
-    return render(request, 'web/student_dashboard.html', context)
-
-
-def teacher_dashboard(request, context):
-    """Teacher-specific dashboard"""
-    # Get courses taught by this teacher
-    courses = CourseOffering.objects.filter(instructor=request.user)
-    context['courses'] = courses
-    
-    # Get students count
-    total_students = sum(course.current_enrollment for course in courses)
-    context['total_students'] = total_students
-    
-    return render(request, 'web/teacher_dashboard.html', context)
-
-
-def admin_dashboard(request, context):
-    """Admin/Staff dashboard with statistics"""
-    # Get statistics
-    stats = {
-        'total_students': Student.objects.count(),
-        'total_courses': Course.objects.count(),
-        'total_departments': Department.objects.count(),
-        'active_enrollments': Enrollment.objects.filter(status='ENROLLED').count(),
-    }
-    context['stats'] = stats
-    
-    # Recent activities
-    recent_enrollments = Enrollment.objects.select_related(
-        'student__user', 'course'
-    ).order_by('-enrollment_date')[:5]
-    context['recent_enrollments'] = recent_enrollments
-    
-    # Financial overview
-    pending_fees = StudentFee.objects.filter(status='PENDING').aggregate(
-        total=Count('id')
-    )['total']
-    context['pending_fees'] = pending_fees
-    
-    return render(request, 'web/admin_dashboard.html', context)
+    """
+    Basic dashboard view - redirects to enhanced version
+    لوحة التحكم الأساسية - تحويل للنسخة المحسنة
+    """
+    return redirect('web:enhanced_dashboard')
 
 
 @login_required
 def profile_view(request):
-    """User profile page"""
-    if request.method == 'POST':
+    """
+    User profile view with update functionality
+    عرض الملف الشخصي مع إمكانية التحديث
+    """
+    try:
         user = request.user
-        user.first_name = request.POST.get('first_name', user.first_name)
-        user.last_name = request.POST.get('last_name', user.last_name)
-        user.email = request.POST.get('email', user.email)
-        user.phone = request.POST.get('phone', user.phone)
-        user.address = request.POST.get('address', user.address)
-        user.save()
         
-        messages.success(request, 'تم تحديث الملف الشخصي بنجاح')
-        return redirect('web:profile')
-    
-    context = {'user': request.user}
-    if hasattr(request.user, 'student_profile'):
-        context['student'] = request.user.student_profile
-    
-    return render(request, 'web/profile.html', context)
+        if request.method == 'POST':
+            # Update user profile
+            first_name = request.POST.get('first_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            email = request.POST.get('email', '').strip()
+            phone = request.POST.get('phone', '').strip()
+            address = request.POST.get('address', '').strip()
+            
+            # Basic validation
+            if not first_name or not last_name:
+                messages.error(request, 'الاسم الأول والأخير مطلوبان')
+                return render(request, 'profile.html', {'user': user})
+            
+            # Update user fields
+            user.first_name = first_name
+            user.last_name = last_name
+            user.email = email
+            user.phone = phone
+            user.address = address
+            
+            # Handle profile picture upload
+            if 'profile_picture' in request.FILES:
+                user.profile_picture = request.FILES['profile_picture']
+            
+            user.save()
+            
+            logger.info(f"Profile updated for user {user.username}")
+            messages.success(request, 'تم تحديث الملف الشخصي بنجاح')
+            
+            return redirect('web:profile')
+        
+        context = {
+            'user': user,
+        }
+        
+        # Add student-specific data if user is a student
+        if user.role == 'STUDENT' and hasattr(user, 'student_profile'):
+            context['student'] = user.student_profile
+        
+        return render(request, 'profile.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error in profile_view for user {request.user.id}: {str(e)}")
+        messages.error(request, 'حدث خطأ في تحميل الملف الشخصي')
+        return render(request, 'profile.html', {'user': request.user})
 
 
 @login_required
 def courses_view(request):
-    """Courses listing page"""
-    courses = Course.objects.all()
-    
-    # Filter by department if specified
-    department_id = request.GET.get('department')
-    if department_id:
-        courses = courses.filter(department_id=department_id)
-    
-    # Search functionality
-    search = request.GET.get('search')
-    if search:
-        courses = courses.filter(
-            Q(name__icontains=search) | 
-            Q(code__icontains=search) |
-            Q(description__icontains=search)
-        )
-    
-    departments = Department.objects.all()
-    
-    context = {
-        'courses': courses,
-        'departments': departments,
-        'current_department': department_id,
-        'search_query': search,
-    }
-    
-    return render(request, 'web/courses.html', context)
+    """
+    Basic courses view - redirects based on user role
+    عرض المقررات الأساسي - يحول حسب دور المستخدم
+    """
+    if request.user.role == 'STUDENT':
+        return redirect('web:my_courses')
+    elif request.user.role == 'TEACHER':
+        return redirect('web:teaching')
+    else:
+        return redirect('web:enhanced_dashboard')
 
 
-# API endpoint for AJAX requests
 @login_required
+@require_http_methods(["GET"])
 def api_notifications(request):
-    """Get user notifications via AJAX"""
-    notifications = Notification.objects.filter(
-        recipient=request.user
-    ).order_by('-created_at')[:10]
-    
-    data = []
-    for notification in notifications:
-        data.append({
-            'id': notification.id,
-            'title': notification.title,
-            'message': notification.message,
-            'is_read': notification.is_read,
-            'created_at': notification.created_at.strftime('%Y-%m-%d %H:%M'),
+    """
+    API endpoint to get user notifications
+    نقطة API للحصول على إشعارات المستخدم
+    """
+    try:
+        notifications = Notification.objects.filter(
+            recipient=request.user,
+            is_read=False
+        ).order_by('-created_at')[:10]
+        
+        notifications_data = []
+        for notification in notifications:
+            notifications_data.append({
+                'id': notification.id,
+                'title': notification.title,
+                'message': notification.message,
+                'type': notification.notification_type,
+                'created_at': notification.created_at.isoformat(),
+                'is_read': notification.is_read,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'notifications': notifications_data,
+            'count': notifications.count()
         })
-    
-    return JsonResponse({'notifications': data})
+        
+    except Exception as e:
+        logger.error(f"Error in api_notifications for user {request.user.id}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'حدث خطأ في تحميل الإشعارات'
+        }, status=500)
 
 
 @login_required
+@require_http_methods(["POST"])
 def mark_notification_read(request, notification_id):
-    """Mark notification as read"""
+    """
+    Mark a notification as read
+    تعيين الإشعار كمقروء
+    """
     try:
         notification = Notification.objects.get(
-            id=notification_id, 
+            id=notification_id,
             recipient=request.user
         )
+        
         notification.is_read = True
         notification.save()
-        return JsonResponse({'success': True})
+        
+        logger.info(f"Notification {notification_id} marked as read by user {request.user.id}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'تم تعيين الإشعار كمقروء'
+        })
+        
     except Notification.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Notification not found'})
+        return JsonResponse({
+            'success': False,
+            'error': 'الإشعار غير موجود'
+        }, status=404)
+        
+    except Exception as e:
+        logger.error(f"Error marking notification {notification_id} as read: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'حدث خطأ في تحديث الإشعار'
+        }, status=500)
+
+
+def handler403(request, exception):
+    """
+    Custom 403 error handler
+    معالج خطأ 403 المخصص
+    """
+    return render(request, 'errors/403.html', status=403)
+
+
+def handler404(request, exception):
+    """
+    Custom 404 error handler
+    معالج خطأ 404 المخصص
+    """
+    return render(request, 'errors/404.html', status=404)
+
+
+def handler500(request):
+    """
+    Custom 500 error handler
+    معالج خطأ 500 المخصص
+    """
+    return render(request, 'errors/500.html', status=500)
+
+
+# Context processor for global template variables
+def global_context(request):
+    """
+    Global context processor to add common variables to all templates
+    معالج السياق العام لإضافة متغيرات مشتركة لجميع القوالب
+    """
+    context = {}
+    
+    if request.user.is_authenticated:
+        try:
+            # Get unread notifications count
+            unread_count = Notification.objects.filter(
+                recipient=request.user,
+                is_read=False
+            ).count()
+            
+            context['unread_notifications_count'] = unread_count
+            
+        except Exception as e:
+            logger.error(f"Error in global_context for user {request.user.id}: {str(e)}")
+            context['unread_notifications_count'] = 0
+    
+    return context

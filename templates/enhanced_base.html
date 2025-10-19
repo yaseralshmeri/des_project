@@ -1,484 +1,393 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" data-theme="light">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="نظام إدارة الجامعة - University Management System">
-    <meta name="author" content="University Management System">
-    <meta name="robots" content="index, follow">
+    <title>{% block title %}نظام إدارة الجامعة الشامل{% endblock %}</title>
     
-    <!-- Security Headers -->
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="X-Frame-Options" content="DENY">
-    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
-    
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#2563eb">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    
-    <title>{% block title %}نظام إدارة الجامعة{% endblock %}</title>
-    
-    <!-- Favicon -->
-    <link rel="shortcut icon" href="{% load static %}{% static 'images/favicon.ico' %}" type="image/x-icon">
-    <link rel="apple-touch-icon" href="{% load static %}{% static 'images/apple-touch-icon.png' %}">
-    
-    <!-- CSS Dependencies -->
-    {% load static %}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap 5 RTL CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts Arabic -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    {% load static %}
+    <link href="{% static 'css/enhanced-style.css' %}" rel="stylesheet">
     
-    <!-- Custom Enhanced Styles -->
-    <link href="{% static 'css/enhanced_style.css' %}" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            color: #333 !important;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .nav-link {
+            color: #555 !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover,
+        .nav-link.active {
+            color: #667eea !important;
+            transform: translateY(-2px);
+        }
+        
+        .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            margin: 2rem auto;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+        
+        .btn {
+            border-radius: 10px;
+            font-weight: 600;
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .alert {
+            border: none;
+            border-radius: 10px;
+            border-left: 4px solid;
+        }
+        
+        .alert-success {
+            background: rgba(40, 167, 69, 0.1);
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        
+        .alert-danger {
+            background: rgba(220, 53, 69, 0.1);
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .alert-info {
+            background: rgba(23, 162, 184, 0.1);
+            border-left-color: #17a2b8;
+            color: #0c5460;
+        }
+        
+        .alert-warning {
+            background: rgba(255, 193, 7, 0.1);
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+        
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            margin-top: auto;
+        }
+        
+        .notification-badge {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-left: 1rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .dashboard-stat {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .dashboard-stat h3 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
     
-    <!-- Additional CSS -->
     {% block extra_css %}{% endblock %}
-    
-    <!-- JSON-LD Structured Data -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "{{ UNIVERSITY_NAME|default:'University Management System' }}",
-        "url": "{{ request.build_absolute_uri }}",
-        "logo": "{{ request.build_absolute_uri }}{% static 'images/logo.png' %}",
-        "sameAs": []
-    }
-    </script>
 </head>
-
-<body class="{% block body_class %}{% endblock %}">
-    <!-- Skip Link for Accessibility -->
-    <a href="#main-content" class="skip-link">الانتقال إلى المحتوى الرئيسي</a>
-    
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="d-none">
-        <div class="loading-spinner-large">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">جاري التحميل...</span>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Enhanced Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-enhanced fixed-top">
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container-fluid">
-            <!-- Brand -->
-            <a class="navbar-brand d-flex align-items-center" href="{% url 'dashboard' %}">
-                <img src="{% static 'images/logo.png' %}" alt="Logo" width="32" height="32" class="me-2">
-                <span class="fw-bold">{{ UNIVERSITY_SHORT_NAME|default:'UMS' }}</span>
+            <a class="navbar-brand" href="{% url 'web:enhanced_dashboard' %}">
+                <i class="fas fa-university me-2"></i>
+                نظام إدارة الجامعة
             </a>
             
-            <!-- Mobile Toggle -->
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             
-            <!-- Navigation Links -->
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     {% if user.is_authenticated %}
-                        <!-- Dashboard Link -->
                         <li class="nav-item">
-                            <a class="nav-link {% if 'dashboard' in request.resolver_match.url_name %}active{% endif %}" 
-                               href="{% url 'dashboard' %}">
-                                <i class="fas fa-tachometer-alt me-1"></i>
-                                لوحة التحكم
+                            <a class="nav-link" href="{% url 'web:enhanced_dashboard' %}">
+                                <i class="fas fa-tachometer-alt me-1"></i>لوحة التحكم
                             </a>
                         </li>
                         
-                        <!-- Role-based Navigation -->
-                        {% if user.profile.role == 'STUDENT' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'my_courses' %}">
-                                    <i class="fas fa-book me-1"></i>
-                                    موادي
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'my_grades' %}">
-                                    <i class="fas fa-chart-line me-1"></i>
-                                    درجاتي
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'my_schedule' %}">
-                                    <i class="fas fa-calendar-alt me-1"></i>
-                                    جدولي
-                                </a>
-                            </li>
-                        {% elif user.profile.role == 'TEACHER' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'my_classes' %}">
-                                    <i class="fas fa-chalkboard-teacher me-1"></i>
-                                    صفوفي
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'grade_management' %}">
-                                    <i class="fas fa-tasks me-1"></i>
-                                    إدارة الدرجات
-                                </a>
-                            </li>
-                        {% elif user.profile.role == 'ADMIN' or user.is_staff %}
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-users-cog me-1"></i>
-                                    الإدارة
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{% url 'user_management' %}">إدارة المستخدمين</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'course_management' %}">إدارة المواد</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'reports' %}">التقارير</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{% url 'admin:index' %}">لوحة الإدارة</a></li>
-                                </ul>
-                            </li>
+                        {% if user.role == 'STUDENT' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-graduation-cap me-1"></i>الشؤون الأكاديمية
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'web:my_courses' %}">مقرراتي</a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:my_grades' %}">درجاتي</a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:my_schedule' %}">جدولي الدراسي</a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:my_fees' %}">الرسوم المالية</a></li>
+                            </ul>
+                        </li>
                         {% endif %}
                         
-                        <!-- Finance (if applicable) -->
-                        {% if user.profile.role == 'STUDENT' or user.profile.role == 'ADMIN' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'finance_dashboard' %}">
-                                    <i class="fas fa-money-bill-wave me-1"></i>
-                                    المالية
-                                </a>
-                            </li>
+                        {% if user.role == 'TEACHER' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-chalkboard-teacher me-1"></i>التدريس
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'web:teaching' %}">صفوفي</a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:students' %}">الطلاب</a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:grade_management' %}">إدارة الدرجات</a></li>
+                            </ul>
+                        </li>
+                        {% endif %}
+                        
+                        {% if user.role == 'ADMIN' or user.role == 'STAFF' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-cogs me-1"></i>الإدارة
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'web:admin_panel' %}">لوحة الإدارة</a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:user_management' %}">إدارة المستخدمين</a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:system_stats' %}">إحصائيات النظام</a></li>
+                                <li><a class="dropdown-item" href="/admin/">لوحة Django</a></li>
+                            </ul>
+                        </li>
                         {% endif %}
                     {% endif %}
                 </ul>
                 
-                <!-- Right Side Navigation -->
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
                         <!-- Notifications -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle position-relative" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-bell"></i>
-                                <span class="notification-badge" id="notification-count" style="display: none;">0</span>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill notification-badge" id="notification-count">
+                                    3
+                                </span>
                             </a>
-                            <div class="dropdown-menu dropdown-menu-end notification-dropdown" style="width: 320px;">
-                                <div class="dropdown-header d-flex justify-content-between align-items-center py-3">
-                                    <h6 class="mb-0">الإشعارات</h6>
-                                    <a href="#" class="text-primary small" id="mark-all-read">قراءة الكل</a>
-                                </div>
-                                <div id="notification-list" class="notification-list">
-                                    <!-- Notifications will be loaded here -->
-                                    <div class="text-center py-3">
-                                        <i class="fas fa-bell-slash text-muted mb-2"></i>
-                                        <p class="text-muted small mb-0">لا توجد إشعارات جديدة</p>
+                            <div class="dropdown-menu dropdown-menu-end" style="width: 350px;">
+                                <h6 class="dropdown-header">الإشعارات الحديثة</h6>
+                                <div id="notifications-list" class="px-3">
+                                    <div class="d-flex justify-content-center py-3">
+                                        <div class="loading"></div>
                                     </div>
                                 </div>
-                                <div class="dropdown-footer">
-                                    <a href="{% url 'all_notifications' %}" class="btn btn-link btn-sm w-100">
-                                        عرض جميع الإشعارات
-                                    </a>
-                                </div>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item text-center" href="#">عرض جميع الإشعارات</a>
                             </div>
-                        </li>
-                        
-                        <!-- Theme Toggle -->
-                        <li class="nav-item">
-                            <button class="nav-link btn btn-link" id="theme-toggle" title="تغيير المظهر">
-                                <i class="fas fa-moon"></i>
-                            </button>
                         </li>
                         
                         <!-- User Menu -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
-                                {% if user.profile.profile_picture %}
-                                    <img src="{{ user.profile.profile_picture.url }}" alt="Profile" 
-                                         class="rounded-circle me-2" width="32" height="32">
-                                {% else %}
-                                    <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center me-2" 
-                                         style="width: 32px; height: 32px;">
-                                        <span class="text-white fw-bold">{{ user.first_name|first|default:user.username|first }}</span>
-                                    </div>
-                                {% endif %}
-                                <span class="d-none d-md-inline">{{ user.get_full_name|default:user.username }}</span>
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <img src="{% if user.profile_picture %}{{ user.profile_picture.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}" 
+                                     class="rounded-circle me-2" width="30" height="30" alt="الملف الشخصي">
+                                {{ user.get_full_name|default:user.username }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li class="dropdown-header">
-                                    <strong>{{ user.get_full_name|default:user.username }}</strong><br>
-                                    <small class="text-muted">{{ user.profile.get_role_display|default:'مستخدم' }}</small>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'profile' %}">
+                                <li><a class="dropdown-item" href="{% url 'web:profile' %}">
                                     <i class="fas fa-user me-2"></i>الملف الشخصي
                                 </a></li>
-                                <li><a class="dropdown-item" href="{% url 'settings' %}">
+                                <li><a class="dropdown-item" href="#">
                                     <i class="fas fa-cog me-2"></i>الإعدادات
                                 </a></li>
-                                <li><a class="dropdown-item" href="{% url 'help' %}">
-                                    <i class="fas fa-question-circle me-2"></i>المساعدة
-                                </a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                <li><a class="dropdown-item" href="{% url 'web:logout' %}">
                                     <i class="fas fa-sign-out-alt me-2"></i>تسجيل الخروج
                                 </a></li>
                             </ul>
                         </li>
                     {% else %}
-                        <!-- Login/Register Links -->
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'login' %}">
-                                <i class="fas fa-sign-in-alt me-1"></i>تسجيل الدخول
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'register' %}">
-                                <i class="fas fa-user-plus me-1"></i>إنشاء حساب
-                            </a>
+                            <a class="nav-link" href="{% url 'web:login' %}">تسجيل الدخول</a>
                         </li>
                     {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
-    
-    <!-- Main Content Area -->
-    <main id="main-content" class="main-content" style="margin-top: 80px;">
-        {% if user.is_authenticated %}
-            <div class="container-fluid">
-                <div class="row">
-                    <!-- Enhanced Sidebar -->
-                    <div class="col-md-3 col-lg-2 d-none d-md-block">
-                        <div class="sidebar-enhanced">
-                            {% block sidebar %}
-                                <div class="sidebar-header mb-4">
-                                    <h6 class="text-muted text-uppercase fw-bold mb-3">القائمة الرئيسية</h6>
-                                </div>
-                                
-                                <nav class="nav nav-pills flex-column">
-                                    <a class="nav-link {% if 'dashboard' in request.resolver_match.url_name %}active{% endif %}" 
-                                       href="{% url 'dashboard' %}">
-                                        <i class="fas fa-tachometer-alt"></i>
-                                        لوحة التحكم
-                                    </a>
-                                    
-                                    {% if user.profile.role == 'STUDENT' %}
-                                        <a class="nav-link" href="{% url 'my_courses' %}">
-                                            <i class="fas fa-book"></i>
-                                            موادي
-                                        </a>
-                                        <a class="nav-link" href="{% url 'enrollment' %}">
-                                            <i class="fas fa-plus-circle"></i>
-                                            تسجيل المواد
-                                        </a>
-                                        <a class="nav-link" href="{% url 'my_grades' %}">
-                                            <i class="fas fa-chart-line"></i>
-                                            درجاتي
-                                        </a>
-                                        <a class="nav-link" href="{% url 'my_attendance' %}">
-                                            <i class="fas fa-calendar-check"></i>
-                                            حضوري
-                                        </a>
-                                        <a class="nav-link" href="{% url 'my_schedule' %}">
-                                            <i class="fas fa-calendar-alt"></i>
-                                            الجدول الدراسي
-                                        </a>
-                                        <a class="nav-link" href="{% url 'finance_dashboard' %}">
-                                            <i class="fas fa-money-bill-wave"></i>
-                                            الشؤون المالية
-                                        </a>
-                                    {% elif user.profile.role == 'TEACHER' %}
-                                        <a class="nav-link" href="{% url 'my_classes' %}">
-                                            <i class="fas fa-chalkboard-teacher"></i>
-                                            صفوفي
-                                        </a>
-                                        <a class="nav-link" href="{% url 'grade_management' %}">
-                                            <i class="fas fa-tasks"></i>
-                                            إدارة الدرجات
-                                        </a>
-                                        <a class="nav-link" href="{% url 'attendance_management' %}">
-                                            <i class="fas fa-user-check"></i>
-                                            إدارة الحضور
-                                        </a>
-                                        <a class="nav-link" href="{% url 'course_materials' %}">
-                                            <i class="fas fa-folder-open"></i>
-                                            المواد الدراسية
-                                        </a>
-                                    {% elif user.profile.role == 'ADMIN' or user.is_staff %}
-                                        <div class="sidebar-section">
-                                            <h6 class="text-muted text-uppercase fw-bold mt-4 mb-3">الإدارة</h6>
-                                            <a class="nav-link" href="{% url 'user_management' %}">
-                                                <i class="fas fa-users"></i>
-                                                إدارة المستخدمين
-                                            </a>
-                                            <a class="nav-link" href="{% url 'course_management' %}">
-                                                <i class="fas fa-book-open"></i>
-                                                إدارة المواد
-                                            </a>
-                                            <a class="nav-link" href="{% url 'department_management' %}">
-                                                <i class="fas fa-building"></i>
-                                                إدارة الأقسام
-                                            </a>
-                                            <a class="nav-link" href="{% url 'semester_management' %}">
-                                                <i class="fas fa-calendar"></i>
-                                                إدارة الفصول
-                                            </a>
-                                        </div>
-                                        
-                                        <div class="sidebar-section">
-                                            <h6 class="text-muted text-uppercase fw-bold mt-4 mb-3">التقارير والتحليلات</h6>
-                                            <a class="nav-link" href="{% url 'reports' %}">
-                                                <i class="fas fa-chart-bar"></i>
-                                                التقارير
-                                            </a>
-                                            <a class="nav-link" href="{% url 'analytics' %}">
-                                                <i class="fas fa-analytics"></i>
-                                                التحليلات
-                                            </a>
-                                        </div>
-                                        
-                                        <div class="sidebar-section">
-                                            <h6 class="text-muted text-uppercase fw-bold mt-4 mb-3">النظام</h6>
-                                            <a class="nav-link" href="{% url 'system_settings' %}">
-                                                <i class="fas fa-cogs"></i>
-                                                إعدادات النظام
-                                            </a>
-                                            <a class="nav-link" href="{% url 'admin:index' %}">
-                                                <i class="fas fa-tools"></i>
-                                                لوحة الإدارة
-                                            </a>
-                                        </div>
-                                    {% endif %}
-                                </nav>
-                            {% endblock %}
-                        </div>
-                    </div>
-                    
-                    <!-- Main Content Column -->
-                    <div class="col-md-9 col-lg-10">
-                        <div class="content-wrapper p-4">
-                            <!-- Breadcrumb Navigation -->
-                            {% block breadcrumb %}
-                                <nav aria-label="breadcrumb" class="mb-4">
-                                    <ol class="breadcrumb">
-                                        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">الرئيسية</a></li>
-                                        {% block breadcrumb_items %}{% endblock %}
-                                    </ol>
-                                </nav>
-                            {% endblock %}
-                            
-                            <!-- Page Header -->
-                            {% if not hide_page_header %}
-                                <div class="page-header mb-4">
-                                    <div class="row align-items-center">
-                                        <div class="col">
-                                            <h1 class="page-title h2 mb-0 text-gradient">
-                                                {% block page_title %}{% endblock %}
-                                            </h1>
-                                            {% block page_subtitle %}{% endblock %}
-                                        </div>
-                                        <div class="col-auto">
-                                            {% block page_actions %}{% endblock %}
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endif %}
-                            
-                            <!-- Alerts and Messages -->
-                            {% if messages %}
-                                <div class="alerts-container mb-4">
-                                    {% for message in messages %}
-                                        <div class="alert alert-{{ message.tags }} alert-enhanced alert-dismissible fade show" role="alert">
-                                            {% if message.tags == 'error' %}
-                                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                            {% elif message.tags == 'success' %}
-                                                <i class="fas fa-check-circle me-2"></i>
-                                            {% elif message.tags == 'warning' %}
-                                                <i class="fas fa-exclamation-circle me-2"></i>
-                                            {% else %}
-                                                <i class="fas fa-info-circle me-2"></i>
-                                            {% endif %}
-                                            {{ message }}
-                                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                            
-                            <!-- Main Content -->
-                            {% block content %}{% endblock %}
-                        </div>
-                    </div>
+
+    <!-- Main Content -->
+    <main class="container-fluid" style="margin-top: 100px; padding-bottom: 2rem;">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-            </div>
-        {% else %}
-            <!-- Non-authenticated Content -->
-            <div class="container-fluid h-100">
-                {% block unauthenticated_content %}
-                    {% block content %}{% endblock %}
-                {% endblock %}
-            </div>
+            {% endfor %}
         {% endif %}
+        
+        <div class="main-content">
+            {% block content %}{% endblock %}
+        </div>
     </main>
-    
+
     <!-- Footer -->
-    <footer class="footer bg-dark text-light py-4 mt-5">
+    <footer class="footer text-light py-4">
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <h6 class="fw-bold">{{ UNIVERSITY_NAME|default:'University Management System' }}</h6>
-                    <p class="text-muted small mb-0">
-                        نظام إدارة شامل للجامعات والمؤسسات التعليمية
-                    </p>
+                    <h5>نظام إدارة الجامعة الشامل</h5>
+                    <p>نظام حديث وفعال لإدارة جميع العمليات الأكاديمية والإدارية</p>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <div class="footer-links">
-                        <a href="{% url 'about' %}" class="text-light me-3">حول النظام</a>
-                        <a href="{% url 'contact' %}" class="text-light me-3">اتصل بنا</a>
-                        <a href="{% url 'privacy' %}" class="text-light me-3">سياسة الخصوصية</a>
-                        <a href="{% url 'help' %}" class="text-light">المساعدة</a>
-                    </div>
-                    <p class="text-muted small mt-2 mb-0">
-                        © {% now "Y" %} جميع الحقوق محفوظة
+                    <p>&copy; 2024 نظام إدارة الجامعة. جميع الحقوق محفوظة.</p>
+                    <p>
+                        <a href="#" class="text-light me-3">المساعدة</a>
+                        <a href="#" class="text-light me-3">الخصوصية</a>
+                        <a href="#" class="text-light">الشروط</a>
                     </p>
                 </div>
             </div>
         </div>
     </footer>
-    
-    <!-- Urgent Notification Modal -->
-    <div class="modal fade modal-enhanced" id="urgent-notification-modal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        إشعار عاجل
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <!-- Content will be populated by JavaScript -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">تم</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- JavaScript Dependencies -->
+
+    <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Chart.js for analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Custom Enhanced JavaScript -->
-    <script src="{% static 'js/enhanced_app.js' %}"></script>
+    <!-- Custom JavaScript -->
+    <script>
+        // Load notifications
+        function loadNotifications() {
+            $('#notifications-list').html('<div class="d-flex justify-content-center py-3"><div class="loading"></div></div>');
+            
+            // Simulate API call
+            setTimeout(() => {
+                $('#notifications-list').html(`
+                    <div class="notification-item border-bottom py-2">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-info-circle text-primary"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-2">
+                                <small class="text-muted">منذ 5 دقائق</small>
+                                <p class="mb-1">تم تحديث نتائج الفصل الدراسي الأول</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="notification-item py-2">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-calendar text-warning"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-2">
+                                <small class="text-muted">منذ ساعة</small>
+                                <p class="mb-1">تذكير: امتحان الرياضيات غداً الساعة 10 صباحاً</p>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            }, 1000);
+        }
+        
+        // Initialize notifications when dropdown is shown
+        $(document).on('show.bs.dropdown', '[data-bs-toggle="dropdown"]', function() {
+            if ($(this).find('.fa-bell').length > 0) {
+                loadNotifications();
+            }
+        });
+        
+        // Add smooth transitions
+        $(document).ready(function() {
+            // Fade in effect for main content
+            $('.main-content').css('opacity', '0').animate({'opacity': '1'}, 800);
+            
+            // Hover effects for cards
+            $('.card').hover(
+                function() { $(this).addClass('shadow-lg'); },
+                function() { $(this).removeClass('shadow-lg'); }
+            );
+        });
+    </script>
     
-    <!-- Additional JavaScript -->
     {% block extra_js %}{% endblock %}
-    
-    <!-- CSRF Token for AJAX -->
-    {% csrf_token %}
-    
-    <!-- Analytics and Tracking -->
-    {% if not DEBUG and ENABLE_ANALYTICS %}
-        <!-- Add your analytics code here -->
-    {% endif %}
 </body>
 </html>

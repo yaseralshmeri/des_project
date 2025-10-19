@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent
 # =============================================================================
 
 # Generate secure SECRET_KEY - never use hardcoded keys
-SECRET_KEY = config('SECRET_KEY', default=secrets.token_urlsafe(50))
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-for-development-only-change-in-production')
 
 # Debug settings - True for development
 DEBUG = config('DEBUG', default=True, cast=bool)

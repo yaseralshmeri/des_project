@@ -1,5 +1,5 @@
 from django.db import models
-from students.models import User, Department
+from students.models import User, Department, Student
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Course(models.Model):
@@ -17,6 +17,9 @@ class Course(models.Model):
     description = models.TextField()
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='courses')
     credits = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(6)])
+    credit_hours = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(6)])  # Alias for credits
+    instructor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, 
+                                 limit_choices_to={'role': 'TEACHER'}, related_name='courses_taught')
     semester_offered = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(8)])
     max_capacity = models.IntegerField(default=30)
     is_active = models.BooleanField(default=True)  # Changed from status
@@ -30,6 +33,12 @@ class Course(models.Model):
     
     def __str__(self):
         return f"{self.code} - {self.name}"
+    
+    def save(self, *args, **kwargs):
+        # Ensure credit_hours matches credits
+        if not self.credit_hours:
+            self.credit_hours = self.credits
+        super().save(*args, **kwargs)
 
 
 class CourseOffering(models.Model):
@@ -106,3 +115,7 @@ class Assignment(models.Model):
     
     def __str__(self):
         return f"{self.course_offering.course.code} - {self.title}"
+
+
+# Enrollment and Grade models are now in academic app
+# Import them from there when needed
