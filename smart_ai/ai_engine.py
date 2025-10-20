@@ -1,429 +1,663 @@
-# محرك الذكاء الاصطناعي المتقدم
+# محرك الذكاء الاصطناعي المتقدم للجامعة
 # Advanced AI Engine for University Management System
 
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Tuple
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.neural_network import MLPRegressor, MLPClassifier
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import accuracy_score, mean_squared_error, classification_report
+import joblib
 import json
-import random
-from django.db.models import Avg, Count, Q
-from django.utils import timezone
-from students.models import Student, Enrollment
-from courses.models import Course
-from .models import StudentPerformancePrediction, SmartRecommendation
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Tuple, Optional
+import warnings
+warnings.filterwarnings('ignore')
 
-class StudentPerformancePredictor:
-    """محرك التنبؤ بأداء الطلاب"""
+class UniversityAIEngine:
+    """
+    محرك الذكاء الاصطناعي الشامل للجامعة
+    يوفر التنبؤات الأكاديمية، التوصيات الذكية، وكشف الأنماط
+    """
     
     def __init__(self):
-        self.model_weights = {
-            'gpa': 0.4,
-            'attendance': 0.3,
-            'assignments': 0.2,
-            'participation': 0.1
-        }
+        self.models = {}
+        self.scalers = {}
+        self.encoders = {}
+        self.is_trained = False
+        
+        # إعداد النماذج
+        self._initialize_models()
+        
+    def _initialize_models(self):
+        """تهيئة نماذج التعلم الآلي"""
+        
+        # نموذج التنبؤ بالدرجات
+        self.models['grade_predictor'] = RandomForestRegressor(
+            n_estimators=100,
+            max_depth=10,
+            random_state=42
+        )
+        
+        # نموذج تصنيف مستوى الطلاب
+        self.models['student_classifier'] = RandomForestClassifier(
+            n_estimators=100,
+            max_depth=8,
+            random_state=42
+        )
+        
+        # نموذج كشف المخاطر الأكاديمية
+        self.models['risk_detector'] = MLPClassifier(
+            hidden_layer_sizes=(100, 50),
+            max_iter=500,
+            random_state=42
+        )
+        
+        # نموذج التوصيات
+        self.models['recommendation_engine'] = MLPRegressor(
+            hidden_layer_sizes=(150, 100, 50),
+            max_iter=500,
+            random_state=42
+        )
+        
+        # نموذج تجميع الطلاب
+        self.models['student_clustering'] = KMeans(
+            n_clusters=5,
+            random_state=42
+        )
+        
+        # معالجات البيانات
+        self.scalers['standard'] = StandardScaler()
+        self.encoders['label'] = LabelEncoder()
+
+class StudentPerformancePredictor:
+    """نظام التنبؤ بأداء الطلاب"""
     
-    def predict_student_performance(self, student_id: int, course_id: int) -> Dict[str, Any]:
-        """التنبؤ بأداء طالب في مقرر محدد"""
+    def __init__(self, ai_engine: UniversityAIEngine):
+        self.ai_engine = ai_engine
+        
+    def predict_student_grade(self, student_data: Dict) -> Dict:
+        """
+        التنبؤ بدرجة الطالب في مقرر معين
+        
+        Args:
+            student_data: بيانات الطالب والمقرر
+            
+        Returns:
+            Dict: التنبؤات والتوصيات
+        """
         try:
-            student = Student.objects.get(id=student_id)
-            course = Course.objects.get(id=course_id)
-            
-            # جمع البيانات التاريخية
-            historical_data = self._get_historical_data(student, course)
-            
-            # حساب المقاييس الحالية
-            current_metrics = self._calculate_current_metrics(student, course)
+            # استخراج الميزات
+            features = self._extract_features(student_data)
             
             # التنبؤ بالدرجة
-            predicted_grade = self._predict_grade(current_metrics, historical_data)
+            predicted_grade = self.ai_engine.models['grade_predictor'].predict([features])[0]
             
             # حساب احتمالية النجاح
-            success_probability = self._calculate_success_probability(current_metrics)
+            success_probability = self._calculate_success_probability(features, predicted_grade)
             
             # تحديد مستوى المخاطر
-            risk_level = self._assess_risk_level(success_probability, current_metrics)
+            risk_level = self._assess_risk_level(predicted_grade, success_probability)
             
-            # إنشاء التوصيات
-            recommendations = self._generate_recommendations(current_metrics, risk_level)
-            
-            # حفظ التنبؤ في قاعدة البيانات
-            prediction, created = StudentPerformancePrediction.objects.update_or_create(
-                student=student,
-                course=course,
-                defaults={
-                    'current_gpa': current_metrics['gpa'],
-                    'attendance_rate': current_metrics['attendance'],
-                    'assignment_completion': current_metrics['assignments'],
-                    'participation_score': current_metrics['participation'],
-                    'predicted_grade': predicted_grade,
-                    'success_probability': success_probability,
-                    'risk_level': risk_level,
-                    'recommendations': recommendations,
-                    'intervention_needed': risk_level in ['high', 'critical']
-                }
-            )
+            # إنتاج التوصيات
+            recommendations = self._generate_recommendations(student_data, risk_level)
             
             return {
-                'student_id': student_id,
-                'course_id': course_id,
-                'predicted_grade': predicted_grade,
-                'success_probability': success_probability,
+                'predicted_grade': round(predicted_grade, 2),
+                'letter_grade': self._convert_to_letter_grade(predicted_grade),
+                'success_probability': round(success_probability * 100, 1),
                 'risk_level': risk_level,
                 'recommendations': recommendations,
-                'current_metrics': current_metrics
+                'confidence_score': self._calculate_confidence_score(features),
+                'prediction_date': datetime.now().isoformat()
             }
             
         except Exception as e:
-            return {'error': str(e)}
+            return {
+                'error': f'خطأ في التنبؤ: {str(e)}',
+                'predicted_grade': 0,
+                'success_probability': 0,
+                'risk_level': 'unknown'
+            }
     
-    def _get_historical_data(self, student: Student, course: Course) -> Dict[str, Any]:
-        """جمع البيانات التاريخية للطالب"""
-        # بيانات وهمية للتجربة - في التطبيق الحقيقي ستأتي من قاعدة البيانات
-        return {
-            'previous_courses_avg': 3.2,
-            'similar_courses_performance': 3.5,
-            'semester_trend': 0.1  # اتجاه تحسن
-        }
-    
-    def _calculate_current_metrics(self, student: Student, course: Course) -> Dict[str, float]:
-        """حساب المقاييس الحالية للطالب"""
-        # بيانات وهمية للتجربة
-        return {
-            'gpa': random.uniform(2.0, 4.0),
-            'attendance': random.uniform(0.6, 1.0),
-            'assignments': random.uniform(0.5, 1.0),
-            'participation': random.uniform(0.3, 1.0)
-        }
-    
-    def _predict_grade(self, current_metrics: Dict[str, float], 
-                      historical_data: Dict[str, Any]) -> str:
-        """التنبؤ بالدرجة النهائية"""
-        # حساب النقاط المرجحة
-        weighted_score = (
-            current_metrics['gpa'] * self.model_weights['gpa'] +
-            current_metrics['attendance'] * self.model_weights['attendance'] * 4 +
-            current_metrics['assignments'] * self.model_weights['assignments'] * 4 +
-            current_metrics['participation'] * self.model_weights['participation'] * 4
-        )
+    def _extract_features(self, student_data: Dict) -> List[float]:
+        """استخراج الميزات من بيانات الطالب"""
         
-        # تحويل إلى درجة حرفية
-        if weighted_score >= 3.7:
+        features = [
+            student_data.get('current_gpa', 0.0),
+            student_data.get('attendance_rate', 0.0),
+            student_data.get('assignment_completion', 0.0),
+            student_data.get('participation_score', 0.0),
+            student_data.get('previous_grades_avg', 0.0),
+            student_data.get('study_hours_per_week', 0.0),
+            student_data.get('course_difficulty', 3.0),
+            student_data.get('semester_load', 15.0),
+            student_data.get('extracurricular_activities', 0.0),
+            student_data.get('financial_aid_status', 0.0)  # 1 if receiving aid, 0 otherwise
+        ]
+        
+        return features
+    
+    def _calculate_success_probability(self, features: List[float], predicted_grade: float) -> float:
+        """حساب احتمالية النجاح"""
+        
+        # العتبة الأساسية للنجاح (60%)
+        base_threshold = 60.0
+        
+        # حساب الاحتمالية بناءً على الدرجة المتوقعة والعوامل الأخرى
+        if predicted_grade >= base_threshold:
+            probability = min(0.95, predicted_grade / 100.0 + 0.1)
+        else:
+            probability = max(0.05, predicted_grade / 100.0 - 0.1)
+        
+        # تعديل الاحتمالية بناءً على العوامل الإضافية
+        attendance_factor = features[1] / 100.0  # معدل الحضور
+        assignment_factor = features[2] / 100.0  # معدل إنجاز المهام
+        
+        probability = probability * (0.7 + 0.3 * (attendance_factor + assignment_factor) / 2)
+        
+        return max(0.0, min(1.0, probability))
+    
+    def _assess_risk_level(self, predicted_grade: float, success_probability: float) -> str:
+        """تقييم مستوى المخاطر الأكاديمية"""
+        
+        if predicted_grade >= 85 and success_probability >= 0.9:
+            return 'low'  # مخاطر منخفضة
+        elif predicted_grade >= 70 and success_probability >= 0.7:
+            return 'medium'  # مخاطر متوسطة
+        elif predicted_grade >= 60 and success_probability >= 0.5:
+            return 'high'  # مخاطر عالية
+        else:
+            return 'critical'  # مخاطر حرجة
+    
+    def _generate_recommendations(self, student_data: Dict, risk_level: str) -> List[Dict]:
+        """إنتاج التوصيات الأكاديمية"""
+        
+        recommendations = []
+        
+        if risk_level == 'critical':
+            recommendations.extend([
+                {
+                    'type': 'urgent',
+                    'title': 'تدخل أكاديمي عاجل',
+                    'description': 'يحتاج الطالب لدعم أكاديمي فوري ومراجعة خطة الدراسة',
+                    'priority': 'high',
+                    'actions': [
+                        'تحديد موعد مع المرشد الأكاديمي',
+                        'انضمام لبرنامج الدعم الأكاديمي',
+                        'تقليل العبء الدراسي إن أمكن'
+                    ]
+                },
+                {
+                    'type': 'study_plan',
+                    'title': 'خطة دراسة مكثفة',
+                    'description': 'برنامج دراسي مكثف لتحسين الأداء',
+                    'priority': 'high',
+                    'actions': [
+                        'جدولة ساعات دراسة إضافية يومياً',
+                        'تشكيل مجموعة دراسية',
+                        'استخدام موارد تعليمية إضافية'
+                    ]
+                }
+            ])
+        
+        elif risk_level == 'high':
+            recommendations.extend([
+                {
+                    'type': 'academic_support',
+                    'title': 'دعم أكاديمي',
+                    'description': 'الحصول على دعم أكاديمي إضافي',
+                    'priority': 'medium',
+                    'actions': [
+                        'حضور ساعات مكتبية للأستاذ',
+                        'الانضمام لمجموعات الدراسة',
+                        'استخدام مركز التعلم'
+                    ]
+                }
+            ])
+        
+        elif risk_level == 'medium':
+            recommendations.append({
+                'type': 'improvement',
+                'title': 'تحسين الأداء',
+                'description': 'فرص لتحسين الأداء الأكاديمي',
+                'priority': 'low',
+                'actions': [
+                    'مراجعة عادات الدراسة',
+                    'تحسين إدارة الوقت',
+                    'زيادة المشاركة في الصف'
+                ]
+            })
+        
+        # توصيات خاصة بناءً على البيانات
+        if student_data.get('attendance_rate', 100) < 80:
+            recommendations.append({
+                'type': 'attendance',
+                'title': 'تحسين الحضور',
+                'description': 'الحضور المنتظم ضروري للنجاح الأكاديمي',
+                'priority': 'high',
+                'actions': [
+                    'وضع جدول زمني منتظم للحضور',
+                    'تحديد أسباب الغياب ومعالجتها',
+                    'استخدام تذكيرات الحضور'
+                ]
+            })
+        
+        if student_data.get('assignment_completion', 100) < 70:
+            recommendations.append({
+                'type': 'assignments',
+                'title': 'إنجاز المهام',
+                'description': 'تحسين معدل إنجاز المهام والواجبات',
+                'priority': 'medium',
+                'actions': [
+                    'إنشاء تقويم للمهام والواجبات',
+                    'تقسيم المهام الكبيرة لمهام صغيرة',
+                    'طلب المساعدة عند الحاجة'
+                ]
+            })
+        
+        return recommendations
+    
+    def _convert_to_letter_grade(self, numeric_grade: float) -> str:
+        """تحويل الدرجة الرقمية لدرجة حرفية"""
+        
+        if numeric_grade >= 90:
+            return 'A+'
+        elif numeric_grade >= 85:
             return 'A'
-        elif weighted_score >= 3.3:
+        elif numeric_grade >= 80:
             return 'B+'
-        elif weighted_score >= 3.0:
+        elif numeric_grade >= 75:
             return 'B'
-        elif weighted_score >= 2.7:
+        elif numeric_grade >= 70:
             return 'C+'
-        elif weighted_score >= 2.3:
+        elif numeric_grade >= 65:
             return 'C'
-        elif weighted_score >= 2.0:
-            return 'D+'
-        elif weighted_score >= 1.7:
+        elif numeric_grade >= 60:
             return 'D'
         else:
             return 'F'
     
-    def _calculate_success_probability(self, metrics: Dict[str, float]) -> float:
-        """حساب احتمالية النجاح"""
-        success_score = (
-            metrics['gpa'] * 0.4 +
-            metrics['attendance'] * 0.3 +
-            metrics['assignments'] * 0.2 +
-            metrics['participation'] * 0.1
-        ) / 4.0
+    def _calculate_confidence_score(self, features: List[float]) -> float:
+        """حساب درجة الثقة في التنبؤ"""
         
-        return min(success_score, 1.0)
-    
-    def _assess_risk_level(self, success_probability: float, 
-                          metrics: Dict[str, float]) -> str:
-        """تقييم مستوى المخاطر"""
-        if success_probability < 0.5:
-            return 'critical'
-        elif success_probability < 0.65:
-            return 'high'
-        elif success_probability < 0.8:
-            return 'medium'
-        else:
-            return 'low'
-    
-    def _generate_recommendations(self, metrics: Dict[str, float], 
-                                risk_level: str) -> List[str]:
-        """إنشاء التوصيات"""
-        recommendations = []
+        # حساب درجة الثقة بناءً على جودة البيانات المتاحة
+        feature_completeness = sum(1 for f in features if f > 0) / len(features)
         
-        if metrics['attendance'] < 0.8:
-            recommendations.append("تحسين معدل الحضور - الحضور أقل من 80%")
+        # درجة الثقة الأساسية
+        base_confidence = 0.7
         
-        if metrics['assignments'] < 0.7:
-            recommendations.append("إنجاز المهام المتأخرة - معدل الإنجاز منخفض")
+        # تعديل بناءً على اكتمال البيانات
+        confidence = base_confidence + (feature_completeness * 0.3)
         
-        if metrics['participation'] < 0.5:
-            recommendations.append("زيادة المشاركة في الصف")
-        
-        if risk_level in ['high', 'critical']:
-            recommendations.extend([
-                "طلب المساعدة من الأستاذ",
-                "الانضمام لمجموعات الدراسة",
-                "حجز جلسات إضافية مع المرشد الأكاديمي"
-            ])
-        
-        return recommendations
+        return round(confidence, 2)
 
 class SmartRecommendationEngine:
     """محرك التوصيات الذكية"""
     
-    def generate_course_recommendations(self, student_id: int) -> List[Dict[str, Any]]:
-        """إنشاء توصيات المقررات للطالب"""
+    def __init__(self, ai_engine: UniversityAIEngine):
+        self.ai_engine = ai_engine
+        
+    def generate_course_recommendations(self, student_data: Dict) -> List[Dict]:
+        """إنتاج توصيات المقررات الدراسية"""
+        
+        recommendations = []
+        
         try:
-            student = Student.objects.get(id=student_id)
+            # تحليل الأداء الحالي
+            current_performance = self._analyze_student_performance(student_data)
             
-            # تحليل المقررات المكتملة
-            completed_courses = self._get_completed_courses(student)
+            # توصيات المقررات بناءً على التخصص
+            major_courses = self._recommend_major_courses(student_data)
+            recommendations.extend(major_courses)
             
-            # العثور على المقررات المتاحة
-            available_courses = self._get_available_courses(student)
+            # توصيات المقررات الاختيارية
+            elective_courses = self._recommend_elective_courses(student_data, current_performance)
+            recommendations.extend(elective_courses)
             
-            # تصنيف المقررات حسب الأولوية
-            recommendations = []
-            
-            for course in available_courses:
-                priority_score = self._calculate_course_priority(
-                    student, course, completed_courses
-                )
-                
-                recommendations.append({
-                    'course_id': course.id,
-                    'course_name': course.name,
-                    'priority_score': priority_score,
-                    'reasoning': self._get_recommendation_reasoning(
-                        student, course, priority_score
-                    )
-                })
-            
-            # ترتيب حسب الأولوية
-            recommendations.sort(key=lambda x: x['priority_score'], reverse=True)
-            
-            # حفظ التوصيات في قاعدة البيانات
-            self._save_recommendations(student, recommendations[:5])  # أفضل 5
-            
-            return recommendations[:10]  # إرجاع أفضل 10
+            # ترتيب التوصيات حسب الأولوية
+            recommendations.sort(key=lambda x: x.get('priority_score', 0), reverse=True)
             
         except Exception as e:
-            return [{'error': str(e)}]
-    
-    def _get_completed_courses(self, student: Student) -> List[Course]:
-        """الحصول على المقررات المكتملة"""
-        # منطق وهمي - في التطبيق الحقيقي سيأتي من قاعدة البيانات
-        return []
-    
-    def _get_available_courses(self, student: Student) -> List[Course]:
-        """الحصول على المقررات المتاحة"""
-        return Course.objects.filter(is_active=True)[:20]  # أول 20 مقرر متاح
-    
-    def _calculate_course_priority(self, student: Student, course: Course, 
-                                 completed_courses: List[Course]) -> float:
-        """حساب أولوية المقرر"""
-        priority_score = random.uniform(0.3, 1.0)  # نقاط وهمية للتجربة
+            recommendations = [{
+                'error': f'خطأ في إنتاج التوصيات: {str(e)}',
+                'type': 'error'
+            }]
         
-        # عوامل التقييم الحقيقية:
-        # - المتطلبات السابقة
-        # - اهتمامات الطالب
-        # - صعوبة المقرر
-        # - توفر الوقت
-        # - تقييمات الطلاب السابقين
-        
-        return priority_score
+        return recommendations
     
-    def _get_recommendation_reasoning(self, student: Student, course: Course, 
-                                    priority_score: float) -> str:
-        """الحصول على مبرر التوصية"""
-        if priority_score > 0.8:
-            return "مقرر ممتاز يناسب مستواك الأكاديمي ويساعد في تطوير مهاراتك"
-        elif priority_score > 0.6:
-            return "مقرر جيد يكمل دراستك ويحقق متطلبات التخرج"
+    def _analyze_student_performance(self, student_data: Dict) -> Dict:
+        """تحليل أداء الطالب الحالي"""
+        
+        performance = {
+            'overall_gpa': student_data.get('current_gpa', 0.0),
+            'strong_subjects': [],
+            'weak_subjects': [],
+            'learning_style': self._determine_learning_style(student_data),
+            'academic_strengths': [],
+            'areas_for_improvement': []
+        }
+        
+        # تحليل المواد القوية والضعيفة
+        courses_grades = student_data.get('courses_grades', {})
+        for course, grade in courses_grades.items():
+            if grade >= 85:
+                performance['strong_subjects'].append(course)
+            elif grade < 70:
+                performance['weak_subjects'].append(course)
+        
+        return performance
+    
+    def _determine_learning_style(self, student_data: Dict) -> str:
+        """تحديد أسلوب التعلم المفضل للطالب"""
+        
+        # تحليل بسيط لأسلوب التعلم بناءً على الأداء
+        practical_courses = student_data.get('practical_performance', 0)
+        theoretical_courses = student_data.get('theoretical_performance', 0)
+        
+        if practical_courses > theoretical_courses:
+            return 'practical'  # تطبيقي
+        elif theoretical_courses > practical_courses:
+            return 'theoretical'  # نظري
         else:
-            return "مقرر مناسب كاختيار إضافي لتوسيع معرفتك"
+            return 'balanced'  # متوازن
     
-    def _save_recommendations(self, student: Student, recommendations: List[Dict[str, Any]]):
-        """حفظ التوصيات في قاعدة البيانات"""
-        for rec in recommendations:
-            SmartRecommendation.objects.create(
-                student=student,
-                recommendation_type='course_selection',
-                title=f"يُنصح بدراسة: {rec['course_name']}",
-                description=rec['reasoning'],
-                priority_score=rec['priority_score'],
-                recommended_items=[{
-                    'course_id': rec['course_id'],
-                    'course_name': rec['course_name']
-                }],
-                reasoning=rec['reasoning'],
-                expires_at=timezone.now() + timedelta(days=30)
-            )
-
-class SecurityAIEngine:
-    """محرك الأمان الذكي"""
-    
-    def __init__(self):
-        self.threat_patterns = {
-            'brute_force': {'attempts_threshold': 5, 'time_window': 300},
-            'suspicious_ip': {'known_threats': [], 'geo_anomaly': True},
-            'privilege_escalation': {'role_changes': True, 'admin_access': True}
+    def _recommend_major_courses(self, student_data: Dict) -> List[Dict]:
+        """توصيات مقررات التخصص"""
+        
+        major = student_data.get('major', '')
+        current_semester = student_data.get('current_semester', 1)
+        completed_courses = student_data.get('completed_courses', [])
+        
+        recommendations = []
+        
+        # مقررات أساسية حسب التخصص (مثال)
+        major_courses_map = {
+            'Computer Science': [
+                {'name': 'Data Structures', 'semester': 3, 'difficulty': 4},
+                {'name': 'Algorithms', 'semester': 4, 'difficulty': 5},
+                {'name': 'Database Systems', 'semester': 5, 'difficulty': 4},
+                {'name': 'Software Engineering', 'semester': 6, 'difficulty': 4}
+            ],
+            'Business Administration': [
+                {'name': 'Financial Management', 'semester': 3, 'difficulty': 3},
+                {'name': 'Marketing Management', 'semester': 4, 'difficulty': 3},
+                {'name': 'Operations Management', 'semester': 5, 'difficulty': 4},
+                {'name': 'Strategic Management', 'semester': 6, 'difficulty': 5}
+            ]
         }
+        
+        if major in major_courses_map:
+            for course in major_courses_map[major]:
+                if (course['semester'] <= current_semester + 1 and 
+                    course['name'] not in completed_courses):
+                    
+                    recommendations.append({
+                        'course_name': course['name'],
+                        'type': 'major_requirement',
+                        'priority_score': 90 - course['difficulty'],
+                        'difficulty_level': course['difficulty'],
+                        'recommended_semester': course['semester'],
+                        'reasoning': f'مقرر أساسي في تخصص {major}'
+                    })
+        
+        return recommendations
     
-    def analyze_login_attempt(self, user_id: int, ip_address: str, 
-                            user_agent: str, success: bool) -> Dict[str, Any]:
-        """تحليل محاولة تسجيل الدخول"""
-        threat_level = 'low'
-        threats_detected = []
+    def _recommend_elective_courses(self, student_data: Dict, performance: Dict) -> List[Dict]:
+        """توصيات المقررات الاختيارية"""
         
-        # فحص محاولات القوة الغاشمة
-        if self._check_brute_force(user_id, ip_address):
-            threat_level = 'high'
-            threats_detected.append('brute_force')
+        recommendations = []
         
-        # فحص IP مشبوه
-        if self._check_suspicious_ip(ip_address):
-            threat_level = 'medium'
-            threats_detected.append('suspicious_ip')
-        
-        # فحص نمط الاستخدام غير العادي
-        if self._check_usage_anomaly(user_id, user_agent):
-            threat_level = 'medium'
-            threats_detected.append('usage_anomaly')
-        
-        return {
-            'threat_level': threat_level,
-            'threats_detected': threats_detected,
-            'recommendation': self._get_security_recommendation(threats_detected),
-            'timestamp': timezone.now()
-        }
-    
-    def _check_brute_force(self, user_id: int, ip_address: str) -> bool:
-        """فحص محاولات القوة الغاشمة"""
-        # منطق وهمي - في التطبيق الحقيقي سيفحص السجلات
-        return random.choice([True, False]) if random.random() < 0.1 else False
-    
-    def _check_suspicious_ip(self, ip_address: str) -> bool:
-        """فحص IP مشبوه"""
-        # فحص قوائم IP المشبوهة
-        suspicious_ips = ['192.168.1.100', '10.0.0.50']  # أمثلة
-        return ip_address in suspicious_ips
-    
-    def _check_usage_anomaly(self, user_id: int, user_agent: str) -> bool:
-        """فحص شذوذ في نمط الاستخدام"""
-        # تحليل نمط الاستخدام المعتاد للمستخدم
-        return random.choice([True, False]) if random.random() < 0.05 else False
-    
-    def _get_security_recommendation(self, threats: List[str]) -> str:
-        """الحصول على توصية أمنية"""
-        if 'brute_force' in threats:
-            return "حظر IP مؤقتاً وإرسال تنبيه للمستخدم"
-        elif 'suspicious_ip' in threats:
-            return "مراقبة إضافية وطلب تأكيد الهوية"
-        elif 'usage_anomaly' in threats:
-            return "إرسال تنبيه للمستخدم وطلب تغيير كلمة المرور"
-        else:
-            return "متابعة المراقبة العادية"
-
-class SchedulingAI:
-    """الذكاء الاصطناعي للجدولة"""
-    
-    def __init__(self):
-        self.constraints = {
-            'no_conflicts': True,
-            'balanced_load': True,
-            'room_capacity': True,
-            'instructor_availability': True
-        }
-    
-    def generate_optimal_schedule(self, courses: List[Course], 
-                                rooms: List[Dict], instructors: List[Dict]) -> Dict[str, Any]:
-        """إنشاء جدول أمثل للمقررات"""
-        
-        # خوارزمية الجدولة الذكية (مبسطة)
-        schedule = {}
-        conflicts = 0
-        
-        time_slots = self._generate_time_slots()
-        
-        for course in courses:
-            best_slot = self._find_best_slot(course, time_slots, schedule)
-            if best_slot:
-                schedule[course.id] = best_slot
-            else:
-                conflicts += 1
-        
-        fitness_score = self._calculate_fitness_score(schedule, conflicts)
-        
-        return {
-            'schedule': schedule,
-            'fitness_score': fitness_score,
-            'conflicts': conflicts,
-            'is_optimal': conflicts == 0 and fitness_score > 0.8
-        }
-    
-    def _generate_time_slots(self) -> List[Dict[str, Any]]:
-        """إنشاء فترات زمنية متاحة"""
-        days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس']
-        times = ['08:00', '09:30', '11:00', '12:30', '14:00', '15:30']
-        
-        slots = []
-        for day in days:
-            for time in times:
-                slots.append({
-                    'day': day,
-                    'time': time,
-                    'available': True
+        # توصيات بناءً على نقاط القوة
+        for strong_subject in performance['strong_subjects']:
+            if 'Math' in strong_subject:
+                recommendations.append({
+                    'course_name': 'Advanced Statistics',
+                    'type': 'elective',
+                    'priority_score': 75,
+                    'difficulty_level': 4,
+                    'reasoning': 'مناسب لقوتك في الرياضيات'
+                })
+            elif 'Programming' in strong_subject:
+                recommendations.append({
+                    'course_name': 'Mobile App Development',
+                    'type': 'elective',
+                    'priority_score': 80,
+                    'difficulty_level': 4,
+                    'reasoning': 'مناسب لمهاراتك في البرمجة'
                 })
         
-        return slots
+        # توصيات لتحسين نقاط الضعف
+        for weak_subject in performance['weak_subjects']:
+            if 'Communication' in weak_subject:
+                recommendations.append({
+                    'course_name': 'Public Speaking',
+                    'type': 'skill_improvement',
+                    'priority_score': 85,
+                    'difficulty_level': 2,
+                    'reasoning': 'لتحسين مهارات التواصل'
+                })
+        
+        return recommendations
+
+class PredictiveAnalytics:
+    """نظام التحليلات التنبؤية المتقدم"""
     
-    def _find_best_slot(self, course: Course, time_slots: List[Dict], 
-                       current_schedule: Dict) -> Dict[str, Any]:
-        """العثور على أفضل فترة زمنية للمقرر"""
-        available_slots = [slot for slot in time_slots if slot['available']]
+    def __init__(self, ai_engine: UniversityAIEngine):
+        self.ai_engine = ai_engine
         
-        if available_slots:
-            # اختيار عشوائي للتجربة - في التطبيق الحقيقي سيكون هناك خوارزمية تحسين
-            best_slot = random.choice(available_slots)
-            best_slot['available'] = False
-            best_slot['course_id'] = course.id
-            return best_slot
+    def predict_enrollment_trends(self, historical_data: List[Dict]) -> Dict:
+        """التنبؤ بأعداد التسجيل في الفصول القادمة"""
         
-        return None
+        try:
+            # تحضير البيانات التاريخية
+            df = pd.DataFrame(historical_data)
+            
+            # استخراج الميزات الزمنية
+            df['year'] = pd.to_datetime(df['date']).dt.year
+            df['month'] = pd.to_datetime(df['date']).dt.month
+            df['semester'] = df['month'].apply(lambda x: 1 if x <= 6 else 2)
+            
+            # بناء نموذج التنبؤ
+            features = ['year', 'semester', 'total_capacity', 'marketing_budget']
+            X = df[features].fillna(0)
+            y = df['enrollment_count']
+            
+            # تدريب النموذج
+            model = RandomForestRegressor(n_estimators=100, random_state=42)
+            model.fit(X, y)
+            
+            # التنبؤ للفصول القادمة
+            future_periods = []
+            current_year = datetime.now().year
+            
+            for year in range(current_year, current_year + 3):
+                for semester in [1, 2]:
+                    prediction_data = [year, semester, 1000, 50000]  # قيم افتراضية
+                    predicted_enrollment = model.predict([prediction_data])[0]
+                    
+                    future_periods.append({
+                        'year': year,
+                        'semester': semester,
+                        'predicted_enrollment': int(predicted_enrollment),
+                        'confidence_interval': [
+                            int(predicted_enrollment * 0.9),
+                            int(predicted_enrollment * 1.1)
+                        ]
+                    })
+            
+            return {
+                'predictions': future_periods,
+                'model_accuracy': model.score(X, y),
+                'feature_importance': dict(zip(features, model.feature_importances_)),
+                'analysis_date': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            return {
+                'error': f'خطأ في التنبؤ بالتسجيل: {str(e)}',
+                'predictions': []
+            }
     
-    def _calculate_fitness_score(self, schedule: Dict, conflicts: int) -> float:
-        """حساب درجة جودة الجدول"""
-        if not schedule:
-            return 0.0
+    def detect_dropout_risk(self, student_data: List[Dict]) -> List[Dict]:
+        """كشف الطلاب المعرضين لخطر التسرب"""
         
-        # حساب معايير الجودة
-        total_courses = len(schedule)
-        conflict_penalty = conflicts * 0.1
+        at_risk_students = []
         
-        # توزيع الأحمال
-        balance_score = self._calculate_balance_score(schedule)
+        try:
+            for student in student_data:
+                risk_score = self._calculate_dropout_risk_score(student)
+                
+                if risk_score > 0.7:  # عتبة عالية للخطر
+                    at_risk_students.append({
+                        'student_id': student.get('student_id'),
+                        'student_name': student.get('name'),
+                        'risk_score': round(risk_score, 2),
+                        'risk_level': 'high',
+                        'risk_factors': self._identify_risk_factors(student),
+                        'intervention_recommendations': self._suggest_interventions(student, risk_score)
+                    })
+                elif risk_score > 0.5:  # عتبة متوسطة للخطر
+                    at_risk_students.append({
+                        'student_id': student.get('student_id'),
+                        'student_name': student.get('name'),
+                        'risk_score': round(risk_score, 2),
+                        'risk_level': 'medium',
+                        'risk_factors': self._identify_risk_factors(student),
+                        'intervention_recommendations': self._suggest_interventions(student, risk_score)
+                    })
         
-        fitness = max(0.0, 1.0 - conflict_penalty + balance_score * 0.2)
-        return min(fitness, 1.0)
+        except Exception as e:
+            return [{
+                'error': f'خطأ في كشف مخاطر التسرب: {str(e)}'
+            }]
+        
+        # ترتيب حسب درجة المخاطر
+        at_risk_students.sort(key=lambda x: x.get('risk_score', 0), reverse=True)
+        
+        return at_risk_students
     
-    def _calculate_balance_score(self, schedule: Dict) -> float:
-        """حساب توازن الأحمال في الجدول"""
-        # تحليل توزيع المقررات عبر الأيام والأوقات
-        daily_loads = {}
+    def _calculate_dropout_risk_score(self, student: Dict) -> float:
+        """حساب درجة مخاطر التسرب للطالب"""
         
-        for course_id, slot in schedule.items():
-            day = slot['day']
-            daily_loads[day] = daily_loads.get(day, 0) + 1
+        risk_factors = []
         
-        if daily_loads:
-            max_load = max(daily_loads.values())
-            min_load = min(daily_loads.values())
-            balance = 1.0 - (max_load - min_load) / max_load if max_load > 0 else 1.0
-            return balance
+        # عوامل أكاديمية
+        gpa = student.get('current_gpa', 4.0)
+        if gpa < 2.0:
+            risk_factors.append(0.3)  # GPA منخفض جداً
+        elif gpa < 2.5:
+            risk_factors.append(0.2)  # GPA منخفض
         
-        return 0.0
+        # عوامل الحضور
+        attendance = student.get('attendance_rate', 100)
+        if attendance < 60:
+            risk_factors.append(0.25)  # حضور ضعيف جداً
+        elif attendance < 80:
+            risk_factors.append(0.15)  # حضور ضعيف
+        
+        # عوامل مالية
+        if student.get('financial_difficulties', False):
+            risk_factors.append(0.2)
+        
+        # عوامل اجتماعية
+        if student.get('social_isolation', False):
+            risk_factors.append(0.15)
+        
+        # عدد الفصول المتعثر فيها
+        failed_semesters = student.get('failed_semesters', 0)
+        if failed_semesters > 2:
+            risk_factors.append(0.25)
+        elif failed_semesters > 0:
+            risk_factors.append(0.1)
+        
+        # حساب الدرجة الإجمالية
+        total_risk = min(1.0, sum(risk_factors))
+        
+        return total_risk
+    
+    def _identify_risk_factors(self, student: Dict) -> List[str]:
+        """تحديد عوامل المخاطر المحددة للطالب"""
+        
+        factors = []
+        
+        if student.get('current_gpa', 4.0) < 2.5:
+            factors.append('معدل تراكمي منخفض')
+        
+        if student.get('attendance_rate', 100) < 80:
+            factors.append('ضعف في الحضور')
+        
+        if student.get('financial_difficulties', False):
+            factors.append('صعوبات مالية')
+        
+        if student.get('social_isolation', False):
+            factors.append('عزلة اجتماعية')
+        
+        if student.get('failed_semesters', 0) > 0:
+            factors.append('فصول دراسية متعثرة')
+        
+        if not factors:
+            factors.append('عوامل عامة')
+        
+        return factors
+    
+    def _suggest_interventions(self, student: Dict, risk_score: float) -> List[Dict]:
+        """اقتراح تدخلات للحد من مخاطر التسرب"""
+        
+        interventions = []
+        
+        if risk_score > 0.7:
+            interventions.extend([
+                {
+                    'type': 'urgent',
+                    'action': 'اجتماع عاجل مع المرشد الأكاديمي',
+                    'priority': 'high',
+                    'timeline': 'خلال أسبوع'
+                },
+                {
+                    'type': 'academic',
+                    'action': 'وضع خطة أكاديمية مكثفة',
+                    'priority': 'high',
+                    'timeline': 'فوري'
+                },
+                {
+                    'type': 'support',
+                    'action': 'تقديم دعم نفسي واجتماعي',
+                    'priority': 'medium',
+                    'timeline': 'خلال أسبوعين'
+                }
+            ])
+        elif risk_score > 0.5:
+            interventions.extend([
+                {
+                    'type': 'monitoring',
+                    'action': 'مراقبة أكاديمية دورية',
+                    'priority': 'medium',
+                    'timeline': 'شهرياً'
+                },
+                {
+                    'type': 'mentoring',
+                    'action': 'برنامج إرشاد أكاديمي',
+                    'priority': 'medium',
+                    'timeline': 'خلال شهر'
+                }
+            ])
+        
+        # تدخلات خاصة بالعوامل المحددة
+        if student.get('financial_difficulties', False):
+            interventions.append({
+                'type': 'financial',
+                'action': 'تقييم للمساعدات المالية',
+                'priority': 'high',
+                'timeline': 'خلال أسبوعين'
+            })
+        
+        return interventions
+
+# مثيل عام للمحرك
+university_ai = UniversityAIEngine()
+performance_predictor = StudentPerformancePredictor(university_ai)
+recommendation_engine = SmartRecommendationEngine(university_ai)
+predictive_analytics = PredictiveAnalytics(university_ai)

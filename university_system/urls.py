@@ -84,6 +84,10 @@ urlpatterns = [
     path('api/v1/ai/', include('ai.urls')),
     # path('api/v1/notifications/', include('notifications.urls')),  # Add when URLs are available
     
+    # Advanced AI and Security APIs
+    path('api/v1/smart-ai/', include('smart_ai.urls')),
+    path('api/v1/cyber-security/', include('cyber_security.urls')),
+    
     # Authentication API
     path('api/v1/auth/', include('rest_framework.urls')),
 ] + api_docs_urls

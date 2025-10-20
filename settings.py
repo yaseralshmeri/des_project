@@ -109,6 +109,11 @@ MIDDLEWARE = [
     'csp.middleware.CSPMiddleware',
     # 'permissions_policy.middleware.PermissionsPolicyMiddleware',
     
+    # Advanced Security Middleware
+    'cyber_security.middleware.SecurityThreatDetectionMiddleware',
+    'cyber_security.middleware.BehaviorAnalysisMiddleware',
+    'cyber_security.middleware.RateLimitingMiddleware',
+    
     # Core Django middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
