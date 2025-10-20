@@ -1,393 +1,469 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{% if LANGUAGE_CODE == 'ar' %}ar{% else %}en{% endif %}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}نظام إدارة الجامعة الشامل{% endblock %}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     
-    <!-- Bootstrap 5 RTL CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-    <!-- Font Awesome Icons -->
+    <!-- SEO Meta Tags -->
+    <title>{% block title %}{{ university.name|default:"نظام إدارة الجامعة" }}{% endblock %}</title>
+    <meta name="description" content="{% block description %}نظام إدارة جامعي شامل ومتطور{% endblock %}">
+    <meta name="keywords" content="{% block keywords %}جامعة, إدارة, طلاب, أساتذة, مقررات{% endblock %}">
+    <meta name="author" content="Future University">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="{% block og_title %}{{ university.name|default:"نظام إدارة الجامعة" }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}نظام إدارة جامعي شامل ومتطور{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% load static %}{% static 'images/favicon.ico' %}">
+    <link rel="apple-touch-icon" href="{% load static %}{% static 'images/apple-touch-icon.png' %}">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    {% if LANGUAGE_CODE == 'ar' %}
+        <!-- Arabic Fonts -->
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    {% else %}
+        <!-- English Fonts -->
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    {% endif %}
+    
+    <!-- CSS Libraries -->
+    <!-- Bootstrap 5.3 RTL Support -->
+    {% if LANGUAGE_CODE == 'ar' %}
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    {% else %}
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    {% endif %}
+    
+    <!-- Font Awesome 6 -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts Arabic -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- Custom CSS -->
-    {% load static %}
-    <link href="{% static 'css/enhanced-style.css' %}" rel="stylesheet">
     
-    <style>
-        body {
-            font-family: 'Cairo', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-        
-        .navbar {
-            background: rgba(255, 255, 255, 0.95) !important;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
-        }
-        
-        .navbar-brand {
-            color: #333 !important;
-            font-weight: 700;
-            font-size: 1.5rem;
-        }
-        
-        .nav-link {
-            color: #555 !important;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-link:hover,
-        .nav-link.active {
-            color: #667eea !important;
-            transform: translateY(-2px);
-        }
-        
-        .main-content {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            margin: 2rem auto;
-            padding: 2rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-        
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
-            background: white;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-        }
-        
-        .btn {
-            border-radius: 10px;
-            font-weight: 600;
-            padding: 10px 20px;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border: none;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .alert {
-            border: none;
-            border-radius: 10px;
-            border-left: 4px solid;
-        }
-        
-        .alert-success {
-            background: rgba(40, 167, 69, 0.1);
-            border-left-color: #28a745;
-            color: #155724;
-        }
-        
-        .alert-danger {
-            background: rgba(220, 53, 69, 0.1);
-            border-left-color: #dc3545;
-            color: #721c24;
-        }
-        
-        .alert-info {
-            background: rgba(23, 162, 184, 0.1);
-            border-left-color: #17a2b8;
-            color: #0c5460;
-        }
-        
-        .alert-warning {
-            background: rgba(255, 193, 7, 0.1);
-            border-left-color: #ffc107;
-            color: #856404;
-        }
-        
-        .footer {
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            margin-top: auto;
-        }
-        
-        .notification-badge {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        
-        .sidebar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin-left: 1rem;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        }
-        
-        .dashboard-stat {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 15px;
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-        
-        .dashboard-stat h3 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
+    <!-- Material Design Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css" rel="stylesheet">
+    
+    <!-- Animate.css -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    
+    <!-- AOS Animation -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="{% load static %}{% static 'css/enhanced-style.css' %}" rel="stylesheet">
     
     {% block extra_css %}{% endblock %}
+    
+    <!-- CSS Variables for Theming -->
+    <style>
+        :root {
+            /* Primary Colors */
+            --primary-color: #1976D2;
+            --primary-dark: #1565C0;
+            --primary-light: #BBDEFB;
+            --primary-contrast: #FFFFFF;
+            
+            /* Secondary Colors */
+            --secondary-color: #388E3C;
+            --secondary-dark: #2E7D32;
+            --secondary-light: #C8E6C9;
+            --secondary-contrast: #FFFFFF;
+            
+            /* Status Colors */
+            --success-color: #4CAF50;
+            --warning-color: #FF9800;
+            --error-color: #F44336;
+            --info-color: #2196F3;
+            
+            /* Neutral Colors */
+            --background-color: #FAFAFA;
+            --surface-color: #FFFFFF;
+            --text-primary: #212121;
+            --text-secondary: #757575;
+            --text-disabled: #BDBDBD;
+            --divider-color: #E0E0E0;
+            
+            /* University Brand Colors */
+            --university-blue: #0D47A1;
+            --university-gold: #FFD700;
+            --university-gray: #424242;
+            
+            /* Spacing */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-xxl: 3rem;
+            
+            /* Border Radius */
+            --border-radius-sm: 0.375rem;
+            --border-radius-md: 0.5rem;
+            --border-radius-lg: 0.75rem;
+            --border-radius-xl: 1rem;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            
+            /* Typography */
+            {% if LANGUAGE_CODE == 'ar' %}
+                --font-family-base: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                --font-family-heading: 'Amiri', 'Cairo', serif;
+            {% else %}
+                --font-family-base: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                --font-family-heading: 'Poppins', 'Inter', sans-serif;
+            {% endif %}
+        }
+        
+        /* Dark Theme Variables */
+        [data-bs-theme="dark"] {
+            --background-color: #121212;
+            --surface-color: #1E1E1E;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B3B3B3;
+            --text-disabled: #666666;
+            --divider-color: #333333;
+        }
+        
+        /* Base Typography */
+        body {
+            font-family: var(--font-family-base);
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-family-heading);
+            font-weight: 600;
+            line-height: 1.2;
+        }
+        
+        /* Utility Classes */
+        .text-university-blue { color: var(--university-blue) !important; }
+        .text-university-gold { color: var(--university-gold) !important; }
+        .bg-university-blue { background-color: var(--university-blue) !important; }
+        .bg-university-gold { background-color: var(--university-gold) !important; }
+        
+        .border-radius-sm { border-radius: var(--border-radius-sm) !important; }
+        .border-radius-md { border-radius: var(--border-radius-md) !important; }
+        .border-radius-lg { border-radius: var(--border-radius-lg) !important; }
+        .border-radius-xl { border-radius: var(--border-radius-xl) !important; }
+        
+        .shadow-custom-sm { box-shadow: var(--shadow-sm) !important; }
+        .shadow-custom-md { box-shadow: var(--shadow-md) !important; }
+        .shadow-custom-lg { box-shadow: var(--shadow-lg) !important; }
+        .shadow-custom-xl { box-shadow: var(--shadow-xl) !important; }
+    </style>
 </head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg fixed-top">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'web:enhanced_dashboard' %}">
-                <i class="fas fa-university me-2"></i>
-                نظام إدارة الجامعة
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'web:enhanced_dashboard' %}">
-                                <i class="fas fa-tachometer-alt me-1"></i>لوحة التحكم
-                            </a>
-                        </li>
-                        
-                        {% if user.role == 'STUDENT' %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-graduation-cap me-1"></i>الشؤون الأكاديمية
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'web:my_courses' %}">مقرراتي</a></li>
-                                <li><a class="dropdown-item" href="{% url 'web:my_grades' %}">درجاتي</a></li>
-                                <li><a class="dropdown-item" href="{% url 'web:my_schedule' %}">جدولي الدراسي</a></li>
-                                <li><a class="dropdown-item" href="{% url 'web:my_fees' %}">الرسوم المالية</a></li>
-                            </ul>
-                        </li>
-                        {% endif %}
-                        
-                        {% if user.role == 'TEACHER' %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-chalkboard-teacher me-1"></i>التدريس
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'web:teaching' %}">صفوفي</a></li>
-                                <li><a class="dropdown-item" href="{% url 'web:students' %}">الطلاب</a></li>
-                                <li><a class="dropdown-item" href="{% url 'web:grade_management' %}">إدارة الدرجات</a></li>
-                            </ul>
-                        </li>
-                        {% endif %}
-                        
-                        {% if user.role == 'ADMIN' or user.role == 'STAFF' %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-cogs me-1"></i>الإدارة
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'web:admin_panel' %}">لوحة الإدارة</a></li>
-                                <li><a class="dropdown-item" href="{% url 'web:user_management' %}">إدارة المستخدمين</a></li>
-                                <li><a class="dropdown-item" href="{% url 'web:system_stats' %}">إحصائيات النظام</a></li>
-                                <li><a class="dropdown-item" href="/admin/">لوحة Django</a></li>
-                            </ul>
-                        </li>
-                        {% endif %}
-                    {% endif %}
-                </ul>
-                
-                <ul class="navbar-nav">
-                    {% if user.is_authenticated %}
-                        <!-- Notifications -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle position-relative" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-bell"></i>
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill notification-badge" id="notification-count">
-                                    3
-                                </span>
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-end" style="width: 350px;">
-                                <h6 class="dropdown-header">الإشعارات الحديثة</h6>
-                                <div id="notifications-list" class="px-3">
-                                    <div class="d-flex justify-content-center py-3">
-                                        <div class="loading"></div>
-                                    </div>
-                                </div>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item text-center" href="#">عرض جميع الإشعارات</a>
-                            </div>
-                        </li>
-                        
-                        <!-- User Menu -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <img src="{% if user.profile_picture %}{{ user.profile_picture.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}" 
-                                     class="rounded-circle me-2" width="30" height="30" alt="الملف الشخصي">
-                                {{ user.get_full_name|default:user.username }}
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{% url 'web:profile' %}">
-                                    <i class="fas fa-user me-2"></i>الملف الشخصي
-                                </a></li>
-                                <li><a class="dropdown-item" href="#">
-                                    <i class="fas fa-cog me-2"></i>الإعدادات
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'web:logout' %}">
-                                    <i class="fas fa-sign-out-alt me-2"></i>تسجيل الخروج
-                                </a></li>
-                            </ul>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'web:login' %}">تسجيل الدخول</a>
-                        </li>
-                    {% endif %}
-                </ul>
+<body class="{% block body_class %}{% endblock %}">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white" style="z-index: 9999;">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
             </div>
+            <h5 class="text-university-blue">جاري تحميل النظام...</h5>
         </div>
+    </div>
+
+    <!-- Skip to main content -->
+    <a class="visually-hidden-focusable btn btn-primary position-absolute top-0 start-50 translate-middle-x" href="#main-content" style="z-index: 1050;">
+        تخطى إلى المحتوى الرئيسي
+    </a>
+
+    <!-- Header -->
+    <header class="header-section">
+        {% block header %}
+            {% include 'partials/header.html' %}
+        {% endblock %}
+    </header>
+
+    <!-- Navigation -->
+    <nav class="main-navigation" role="navigation" aria-label="الملاحة الرئيسية">
+        {% block navigation %}
+            {% include 'partials/navigation.html' %}
+        {% endblock %}
     </nav>
 
     <!-- Main Content -->
-    <main class="container-fluid" style="margin-top: 100px; padding-bottom: 2rem;">
+    <main id="main-content" class="main-content" role="main">
+        <!-- Breadcrumb -->
+        {% block breadcrumb %}
+            {% if show_breadcrumb %}
+                <nav aria-label="breadcrumb" class="bg-light py-2">
+                    <div class="container">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'web:dashboard' %}" class="text-decoration-none">
+                                    <i class="fas fa-home me-1"></i>الرئيسية
+                                </a>
+                            </li>
+                            {% block breadcrumb_items %}{% endblock %}
+                        </ol>
+                    </div>
+                </nav>
+            {% endif %}
+        {% endblock %}
+
+        <!-- Alerts and Messages -->
         {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
+            <div class="container mt-3">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show animate__animated animate__fadeInDown" role="alert">
+                        <div class="d-flex align-items-start">
+                            {% if message.tags == 'success' %}
+                                <i class="fas fa-check-circle me-2 mt-1 text-success"></i>
+                            {% elif message.tags == 'error' %}
+                                <i class="fas fa-exclamation-triangle me-2 mt-1 text-danger"></i>
+                            {% elif message.tags == 'warning' %}
+                                <i class="fas fa-exclamation-circle me-2 mt-1 text-warning"></i>
+                            {% else %}
+                                <i class="fas fa-info-circle me-2 mt-1 text-info"></i>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                {{ message|safe }}
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+                    </div>
+                {% endfor %}
+            </div>
         {% endif %}
-        
-        <div class="main-content">
-            {% block content %}{% endblock %}
+
+        <!-- Page Content -->
+        <div class="page-content">
+            {% block content %}
+                <!-- Default content -->
+                <div class="container py-5">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-8 text-center">
+                            <h1 class="display-4 text-university-blue mb-4">
+                                مرحباً بك في نظام إدارة الجامعة
+                            </h1>
+                            <p class="lead text-muted">
+                                نظام شامل ومتطور لإدارة جميع العمليات الأكاديمية والإدارية
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% endblock %}
         </div>
     </main>
 
     <!-- Footer -->
-    <footer class="footer text-light py-4">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>نظام إدارة الجامعة الشامل</h5>
-                    <p>نظام حديث وفعال لإدارة جميع العمليات الأكاديمية والإدارية</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <p>&copy; 2024 نظام إدارة الجامعة. جميع الحقوق محفوظة.</p>
-                    <p>
-                        <a href="#" class="text-light me-3">المساعدة</a>
-                        <a href="#" class="text-light me-3">الخصوصية</a>
-                        <a href="#" class="text-light">الشروط</a>
-                    </p>
-                </div>
-            </div>
-        </div>
+    <footer class="footer-section mt-auto">
+        {% block footer %}
+            {% include 'partials/footer.html' %}
+        {% endblock %}
     </footer>
 
-    <!-- Bootstrap 5 JS -->
+    <!-- Floating Action Button -->
+    {% if user.is_authenticated %}
+        <div class="floating-action-btn">
+            <button class="fab-main btn btn-primary rounded-circle shadow-lg" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-plus"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                {% if user.is_student %}
+                    <li><a class="dropdown-item" href="{% url 'courses:enrollment' %}">
+                        <i class="fas fa-plus-circle me-2"></i>تسجيل مقرر
+                    </a></li>
+                    <li><a class="dropdown-item" href="{% url 'support:new-ticket' %}">
+                        <i class="fas fa-question-circle me-2"></i>طلب مساعدة
+                    </a></li>
+                {% endif %}
+                {% if user.is_teacher %}
+                    <li><a class="dropdown-item" href="{% url 'courses:create' %}">
+                        <i class="fas fa-book-plus me-2"></i>إضافة مقرر
+                    </a></li>
+                    <li><a class="dropdown-item" href="{% url 'grades:input' %}">
+                        <i class="fas fa-star me-2"></i>إدخال درجات
+                    </a></li>
+                {% endif %}
+                {% if user.is_admin %}
+                    <li><a class="dropdown-item" href="{% url 'admin:index' %}">
+                        <i class="fas fa-cog me-2"></i>لوحة الإدارة
+                    </a></li>
+                {% endif %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{% url 'notifications:all' %}">
+                    <i class="fas fa-bell me-2"></i>جميع الإشعارات
+                </a></li>
+            </ul>
+        </div>
+    {% endif %}
+
+    <!-- Theme Toggle -->
+    <button class="theme-toggle btn btn-outline-secondary rounded-circle" type="button" onclick="toggleTheme()" title="تبديل الوضع المظلم">
+        <i class="fas fa-moon" id="theme-icon"></i>
+    </button>
+
+    <!-- Language Toggle -->
+    <div class="language-toggle">
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary rounded-circle" type="button" data-bs-toggle="dropdown" title="تغيير اللغة">
+                <i class="fas fa-language"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item {% if LANGUAGE_CODE == 'ar' %}active{% endif %}" href="{% url 'set_language' %}?language=ar">
+                        <span class="flag-icon flag-icon-sa me-2"></span>العربية
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item {% if LANGUAGE_CODE == 'en' %}active{% endif %}" href="{% url 'set_language' %}?language=en">
+                        <span class="flag-icon flag-icon-us me-2"></span>English
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Back to Top Button -->
+    <button class="back-to-top btn btn-primary rounded-circle shadow-lg" onclick="scrollToTop()" title="العودة للأعلى">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- JavaScript Libraries -->
+    <!-- Bootstrap 5.3 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <!-- Chart.js for analytics -->
+    
+    <!-- AOS Animation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+    
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <!-- Custom JavaScript -->
+    <script src="{% load static %}{% static 'js/enhanced-main.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
+    
+    <!-- Base JavaScript -->
     <script>
-        // Load notifications
-        function loadNotifications() {
-            $('#notifications-list').html('<div class="d-flex justify-content-center py-3"><div class="loading"></div></div>');
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            easing: 'ease-in-out',
+            once: true,
+            mirror: false
+        });
+        
+        // Hide loading screen
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                document.getElementById('loading-screen').style.display = 'none';
+            }, 500);
+        });
+        
+        // Theme Toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            const currentTheme = html.getAttribute('data-bs-theme');
             
-            // Simulate API call
-            setTimeout(() => {
-                $('#notifications-list').html(`
-                    <div class="notification-item border-bottom py-2">
-                        <div class="d-flex">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-info-circle text-primary"></i>
-                            </div>
-                            <div class="flex-grow-1 ms-2">
-                                <small class="text-muted">منذ 5 دقائق</small>
-                                <p class="mb-1">تم تحديث نتائج الفصل الدراسي الأول</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="notification-item py-2">
-                        <div class="d-flex">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-calendar text-warning"></i>
-                            </div>
-                            <div class="flex-grow-1 ms-2">
-                                <small class="text-muted">منذ ساعة</small>
-                                <p class="mb-1">تذكير: امتحان الرياضيات غداً الساعة 10 صباحاً</p>
-                            </div>
-                        </div>
-                    </div>
-                `);
-            }, 1000);
+            if (currentTheme === 'dark') {
+                html.setAttribute('data-bs-theme', 'light');
+                themeIcon.className = 'fas fa-moon';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-bs-theme', 'dark');
+                themeIcon.className = 'fas fa-sun';
+                localStorage.setItem('theme', 'dark');
+            }
         }
         
-        // Initialize notifications when dropdown is shown
-        $(document).on('show.bs.dropdown', '[data-bs-toggle="dropdown"]', function() {
-            if ($(this).find('.fa-bell').length > 0) {
-                loadNotifications();
+        // Load saved theme
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const themeIcon = document.getElementById('theme-icon');
+            
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            if (savedTheme === 'dark') {
+                themeIcon.className = 'fas fa-sun';
+            } else {
+                themeIcon.className = 'fas fa-moon';
+            }
+        })();
+        
+        // Back to Top
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+        
+        // Show/Hide Back to Top Button
+        window.addEventListener('scroll', function() {
+            const backToTop = document.querySelector('.back-to-top');
+            if (window.pageYOffset > 300) {
+                backToTop.style.display = 'block';
+            } else {
+                backToTop.style.display = 'none';
             }
         });
         
-        // Add smooth transitions
-        $(document).ready(function() {
-            // Fade in effect for main content
-            $('.main-content').css('opacity', '0').animate({'opacity': '1'}, 800);
-            
-            // Hover effects for cards
-            $('.card').hover(
-                function() { $(this).addClass('shadow-lg'); },
-                function() { $(this).removeClass('shadow-lg'); }
-            );
+        // Enhanced tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
         });
+        
+        // Enhanced popovers
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl)
+        });
+        
+        // Auto-dismiss alerts
+        document.querySelectorAll('.alert').forEach(function(alert) {
+            setTimeout(function() {
+                var bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 5000); // 5 seconds
+        });
+        
+        // Global CSRF protection for AJAX
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", $('[name=csrfmiddlewaretoken]').val());
+                }
+            }
+        });
+        
+        // Global error handler
+        window.addEventListener('error', function(e) {
+            console.error('Global Error:', e.error);
+            // Optionally show user-friendly error message
+        });
+        
+        // Service Worker registration for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(function(registration) {
+                    console.log('SW registered:', registration);
+                })
+                .catch(function(registrationError) {
+                    console.log('SW registration failed:', registrationError);
+                });
+        }
     </script>
     
-    {% block extra_js %}{% endblock %}
+    {% block footer_js %}{% endblock %}
 </body>
 </html>
