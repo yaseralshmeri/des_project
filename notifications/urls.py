@@ -1,19 +1,13 @@
-"""
-URL Configuration for Notifications API
-تكوين الروابط لواجهة برمجة تطبيقات الإشعارات
-"""
-
 from django.urls import path, include
+from django.http import JsonResponse
 from rest_framework.routers import DefaultRouter
 from . import views
 
-router = DefaultRouter()
-router.register(r'notifications', views.NotificationViewSet)
+def placeholder_view(request):
+    return JsonResponse({'message': 'Endpoint under development'}, status=501)
 
-app_name = 'notifications'
+router = DefaultRouter()
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('send/', views.send_notification, name='send_notification'),
-    path('mark-all-read/', views.mark_all_read, name='mark_all_read'),
+    path('api/', include(router.urls)),
 ]
