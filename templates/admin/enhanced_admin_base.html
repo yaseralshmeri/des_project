@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}لوحة التحكم الإدارية{% endblock %}</title>
+    
+    <!-- Bootstrap 5 RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --dark-color: #1e293b;
+            --light-color: #f8fafc;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f1f5f9;
+            direction: rtl;
+        }
+        
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary-color) 0%, #1e40af 100%);
+            min-height: 100vh;
+            padding: 0;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 15px 20px;
+            border-radius: 0;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            transform: translateX(-5px);
+        }
+        
+        .sidebar .nav-link i {
+            margin-left: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .main-content {
+            padding: 0;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .content-area {
+            padding: 30px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-header {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 12px 12px 0 0 !important;
+            padding: 20px;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+            transform: translateY(-1px);
+        }
+        
+        .table {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .table thead th {
+            background: var(--dark-color);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-weight: 600;
+        }
+        
+        .table tbody td {
+            padding: 15px;
+            border-color: #e2e8f0;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        
+        .badge {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #3b82f6 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-card h3 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stats-card p {
+            opacity: 0.9;
+            margin-bottom: 0;
+        }
+        
+        .breadcrumb {
+            background: none;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+        
+        .breadcrumb-item a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        
+        .breadcrumb-item.active {
+            color: var(--secondary-color);
+        }
+        
+        .dropdown-menu {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .alert {
+            border: none;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .form-control,
+        .form-select {
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            padding: 12px 15px;
+        }
+        
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--light-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+        
+        .modal-content {
+            border: none;
+            border-radius: 15px;
+        }
+        
+        .modal-header {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 280px;
+                height: 100vh;
+                z-index: 1000;
+                transition: right 0.3s ease;
+            }
+            
+            .sidebar.show {
+                right: 0;
+            }
+            
+            .main-content {
+                margin-right: 0;
+            }
+            
+            .content-area {
+                padding: 15px;
+            }
+        }
+        
+        .dark-mode {
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+        
+        .dark-mode .card,
+        .dark-mode .header {
+            background-color: #2d3748;
+            color: #e2e8f0;
+        }
+        
+        .dark-mode .table tbody td {
+            border-color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Spinner -->
+    <div class="loading-spinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">جاري التحميل...</span>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar" id="sidebar">
+                <div class="d-flex flex-column">
+                    <!-- Logo -->
+                    <div class="p-4 text-center border-bottom border-white border-opacity-25">
+                        <h4 class="text-white mb-0">
+                            <i class="fas fa-university me-2"></i>
+                            نظام الجامعة
+                        </h4>
+                    </div>
+                    
+                    <!-- Navigation -->
+                    <nav class="nav nav-pills flex-column">
+                        <a class="nav-link active" href="#dashboard">
+                            <i class="fas fa-tachometer-alt"></i>
+                            لوحة التحكم
+                        </a>
+                        <a class="nav-link" href="#users">
+                            <i class="fas fa-users"></i>
+                            إدارة المستخدمين
+                        </a>
+                        <a class="nav-link" href="#students">
+                            <i class="fas fa-user-graduate"></i>
+                            الطلاب
+                        </a>
+                        <a class="nav-link" href="#courses">
+                            <i class="fas fa-book"></i>
+                            المقررات
+                        </a>
+                        <a class="nav-link" href="#finance">
+                            <i class="fas fa-dollar-sign"></i>
+                            الشؤون المالية
+                        </a>
+                        <a class="nav-link" href="#reports">
+                            <i class="fas fa-chart-bar"></i>
+                            التقارير
+                        </a>
+                        <a class="nav-link" href="#ai">
+                            <i class="fas fa-brain"></i>
+                            الذكاء الاصطناعي
+                        </a>
+                        <a class="nav-link" href="#notifications">
+                            <i class="fas fa-bell"></i>
+                            الإشعارات
+                        </a>
+                        <a class="nav-link" href="#settings">
+                            <i class="fas fa-cog"></i>
+                            الإعدادات
+                        </a>
+                        <a class="nav-link" href="#security">
+                            <i class="fas fa-shield-alt"></i>
+                            الأمان
+                        </a>
+                        <a class="nav-link" href="#system">
+                            <i class="fas fa-server"></i>
+                            النظام
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Header -->
+                <header class="header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <button class="btn btn-link d-md-none" id="sidebarToggle">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item"><a href="#dashboard">الرئيسية</a></li>
+                                    <li class="breadcrumb-item active">{% block breadcrumb %}لوحة التحكم{% endblock %}</li>
+                                </ol>
+                            </nav>
+                        </div>
+                        
+                        <div class="d-flex align-items-center">
+                            <!-- Notifications -->
+                            <div class="dropdown me-3">
+                                <button class="btn btn-link position-relative" data-bs-toggle="dropdown">
+                                    <i class="fas fa-bell fs-5"></i>
+                                    <span class="notification-badge">3</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><h6 class="dropdown-header">الإشعارات الجديدة</h6></li>
+                                    <li><a class="dropdown-item" href="#">تسجيل طالب جديد</a></li>
+                                    <li><a class="dropdown-item" href="#">دفعة مالية جديدة</a></li>
+                                    <li><a class="dropdown-item" href="#">تقرير جاهز</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#">عرض جميع الإشعارات</a></li>
+                                </ul>
+                            </div>
+                            
+                            <!-- User Menu -->
+                            <div class="dropdown">
+                                <button class="btn btn-link d-flex align-items-center" data-bs-toggle="dropdown">
+                                    <div class="user-avatar me-2">
+                                        {{ user.first_name.0|default:"U" }}
+                                    </div>
+                                    <span>{{ user.get_full_name|default:user.username }}</span>
+                                    <i class="fas fa-chevron-down ms-2"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#profile"><i class="fas fa-user me-2"></i>الملف الشخصي</a></li>
+                                    <li><a class="dropdown-item" href="#settings"><i class="fas fa-cog me-2"></i>الإعدادات</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'admin:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>تسجيل الخروج</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+                
+                <!-- Content Area -->
+                <main class="content-area">
+                    {% block content %}
+                    <!-- Dashboard Content -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <h3>1,234</h3>
+                                <p>إجمالي الطلاب</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card" style="background: linear-gradient(135deg, var(--success-color) 0%, #10b981 100%);">
+                                <h3>456</h3>
+                                <p>المقررات النشطة</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card" style="background: linear-gradient(135deg, var(--warning-color) 0%, #f59e0b 100%);">
+                                <h3>89</h3>
+                                <p>أعضاء هيئة التدريس</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card" style="background: linear-gradient(135deg, var(--danger-color) 0%, #ef4444 100%);">
+                                <h3>$125K</h3>
+                                <p>الإيرادات الشهرية</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">إحصائيات الأداء</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="performanceChart" height="100"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">الأنشطة الحديثة</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="list-group list-group-flush">
+                                        <div class="list-group-item border-0 px-0">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    <i class="fas fa-user-plus text-success"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="mb-1">تسجيل طالب جديد</p>
+                                                    <small class="text-muted">منذ 5 دقائق</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="list-group-item border-0 px-0">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    <i class="fas fa-dollar-sign text-primary"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="mb-1">دفعة مالية جديدة</p>
+                                                    <small class="text-muted">منذ 10 دقائق</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="list-group-item border-0 px-0">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    <i class="fas fa-book text-warning"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="mb-1">إضافة مقرر جديد</p>
+                                                    <small class="text-muted">منذ 30 دقيقة</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endblock %}
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Sidebar toggle for mobile
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('show');
+        });
+        
+        // Performance Chart
+        const ctx = document.getElementById('performanceChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
+                    datasets: [{
+                        label: 'الطلاب المسجلين',
+                        data: [65, 59, 80, 81, 56, 55],
+                        borderColor: 'rgb(37, 99, 235)',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'الإيرادات',
+                        data: [28, 48, 40, 19, 86, 27],
+                        borderColor: 'rgb(16, 185, 129)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Loading spinner functions
+        function showLoading() {
+            document.querySelector('.loading-spinner').style.display = 'block';
+        }
+        
+        function hideLoading() {
+            document.querySelector('.loading-spinner').style.display = 'none';
+        }
+        
+        // AJAX setup
+        function setupAjax() {
+            // Add CSRF token to all AJAX requests
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            if (csrfToken) {
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!this.crossDomain) {
+                            xhr.setRequestHeader("X-CSRFToken", csrfToken);
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // setupAjax();
+            hideLoading();
+        });
+        
+        // Dark mode toggle (if needed)
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+        
+        // Load dark mode preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

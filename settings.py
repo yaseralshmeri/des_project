@@ -69,7 +69,7 @@ THIRD_PARTY_APPS = [
     'django_extensions',
     'django_ratelimit',
     'csp',
-    'permissions_policy',
+    # 'permissions_policy',
     
     # Monitoring & Health
     'health_check',
@@ -88,6 +88,8 @@ LOCAL_APPS = [
     'notifications.apps.NotificationsConfig',
     'ai.apps.AiConfig',
     'web.apps.WebConfig',
+    'admin_control.apps.AdminControlConfig',
+    'roles_permissions.apps.RolesPermissionsConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -101,7 +103,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'csp.middleware.CSPMiddleware',
-    'permissions_policy.middleware.PermissionsPolicyMiddleware',
+    # 'permissions_policy.middleware.PermissionsPolicyMiddleware',
     
     # Core Django middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -116,6 +118,14 @@ MIDDLEWARE = [
     
     # Rate limiting
     'django_ratelimit.middleware.RatelimitMiddleware',
+    
+    # Custom middleware
+    'utils.middleware.ActivityTrackingMiddleware',
+    'utils.middleware.MaintenanceModeMiddleware',
+    'utils.middleware.SecurityMiddleware',
+    'utils.middleware.SessionSecurityMiddleware',
+    'utils.middleware.PerformanceMonitoringMiddleware',
+    'utils.middleware.APIVersioningMiddleware',
 ]
 
 # =============================================================================
@@ -163,6 +173,13 @@ DATABASES = {
         conn_health_checks=True,
     )
 }
+
+# =============================================================================
+# AUTHENTICATION CONFIGURATION - تكوين المصادقة
+# =============================================================================
+
+# Custom user model
+AUTH_USER_MODEL = 'students.User'
 
 # =============================================================================
 # PASSWORD VALIDATION - التحقق من كلمات المرور
