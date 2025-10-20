@@ -1,396 +1,654 @@
-# نظام الحضور والغياب باستخدام QR Code
-# QR Code Attendance System
+# نظام الحضور والغياب المتطور مع QR Code
+# Advanced Attendance System with QR Code Technology
 
 from django.db import models
 from django.contrib.auth import get_user_model
-from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
-from students.models import Student
-from courses.models import Course
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 import uuid
+import json
 import qrcode
+import secrets
 from io import BytesIO
 from django.core.files.base import ContentFile
-from django.conf import settings
-import os
+import hashlib
+
+User = get_user_model()
 
 class AttendanceSession(models.Model):
-    """جلسة الحضور"""
+    """جلسة الحضور والغياب"""
     
-    SESSION_STATUS = [
-        ('active', 'نشطة'),
-        ('ended', 'منتهية'),
-        ('cancelled', 'ملغية'),
+    SESSION_TYPES = [
+        ('LECTURE', 'محاضرة'),
+        ('LAB', 'معمل'),
+        ('TUTORIAL', 'تطبيق'),
+        ('SEMINAR', 'ندوة'),
+        ('EXAM', 'امتحان'),
+        ('EVENT', 'فعالية'),
+        ('OTHER', 'أخرى'),
     ]
     
-    # معلومات الجلسة
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="المقرر")
-    instructor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, 
-                                 related_name='attendance_sessions',
+    SESSION_STATUS = [
+        ('SCHEDULED', 'مُجدولة'),
+        ('ACTIVE', 'نشطة'),
+        ('COMPLETED', 'مكتملة'),
+        ('CANCELLED', 'ملغية'),
+        ('POSTPONED', 'مؤجلة'),
+    ]
+    
+    QR_CODE_TYPES = [
+        ('STATIC', 'ثابت'),
+        ('DYNAMIC', 'ديناميكي'),
+        ('TIME_BASED', 'مؤقت'),
+        ('LOCATION_BASED', 'مكاني'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات الجلسة الأساسية
+    session_name = models.CharField(max_length=200, verbose_name="اسم الجلسة")
+    session_type = models.CharField(max_length=15, choices=SESSION_TYPES,
+                                  default='LECTURE', verbose_name="نوع الجلسة")
+    
+    # المقرر والمدرس
+    course_offering = models.ForeignKey('courses.CourseOffering', on_delete=models.CASCADE,
+                                      related_name='attendance_sessions',
+                                      verbose_name="عرض المقرر")
+    instructor = models.ForeignKey(User, on_delete=models.CASCADE,
+                                 related_name='taught_attendance_sessions',
                                  verbose_name="المدرس")
     
-    session_name = models.CharField(max_length=200, verbose_name="اسم الجلسة")
-    session_date = models.DateField(verbose_name="تاريخ الجلسة")
-    start_time = models.TimeField(verbose_name="وقت البدء")
-    end_time = models.TimeField(verbose_name="وقت الانتهاء")
+    # التوقيت والمكان
+    scheduled_start_time = models.DateTimeField(verbose_name="وقت البداية المُجدول")
+    scheduled_end_time = models.DateTimeField(verbose_name="وقت النهاية المُجدول")
+    actual_start_time = models.DateTimeField(null=True, blank=True, verbose_name="وقت البداية الفعلي")
+    actual_end_time = models.DateTimeField(null=True, blank=True, verbose_name="وقت النهاية الفعلي")
     
-    # QR Code للجلسة
-    session_code = models.UUIDField(default=uuid.uuid4, unique=True, 
-                                  verbose_name="رمز الجلسة")
-    qr_code_image = models.ImageField(upload_to='qr_codes/', blank=True, null=True,
-                                    verbose_name="صورة QR Code")
+    classroom = models.ForeignKey('courses.Classroom', on_delete=models.SET_NULL,
+                                null=True, blank=True, verbose_name="القاعة الدراسية")
+    location_coordinates = models.CharField(max_length=100, blank=True,
+                                          verbose_name="إحداثيات الموقع")
     
     # إعدادات الحضور
-    location_required = models.BooleanField(default=False, verbose_name="مطلوب الموقع")
-    location_latitude = models.FloatField(null=True, blank=True, verbose_name="خط العرض")
-    location_longitude = models.FloatField(null=True, blank=True, verbose_name="خط الطول")
-    location_radius = models.IntegerField(default=100, verbose_name="نطاق الموقع (متر)")
+    attendance_window_minutes = models.IntegerField(default=15,
+                                                  validators=[MinValueValidator(1), MaxValueValidator(60)],
+                                                  verbose_name="نافزة الحضور (دقائق)")
+    late_threshold_minutes = models.IntegerField(default=10,
+                                               validators=[MinValueValidator(0), MaxValueValidator(30)],
+                                               verbose_name="حد التأخير (دقائق)")
     
-    # صلاحية QR Code
-    qr_valid_duration = models.IntegerField(default=15, 
-                                          verbose_name="مدة صلاحية QR (دقيقة)")
-    late_threshold = models.IntegerField(default=10, 
-                                       verbose_name="حد التأخير (دقيقة)")
+    # إعدادات QR Code
+    qr_code_type = models.CharField(max_length=15, choices=QR_CODE_TYPES,
+                                  default='DYNAMIC', verbose_name="نوع رمز QR")
+    qr_code_refresh_minutes = models.IntegerField(default=5,
+                                                validators=[MinValueValidator(1), MaxValueValidator(30)],
+                                                verbose_name="تحديث رمز QR (دقائق)")
+    qr_code_range_meters = models.IntegerField(default=50,
+                                             validators=[MinValueValidator(10), MaxValueValidator(500)],
+                                             verbose_name="نطاق رمز QR (متر)")
     
-    # حالة الجلسة
-    status = models.CharField(max_length=20, choices=SESSION_STATUS, default='active',
+    # الحالة
+    status = models.CharField(max_length=15, choices=SESSION_STATUS, default='SCHEDULED',
                             verbose_name="حالة الجلسة")
-    is_auto_ended = models.BooleanField(default=False, verbose_name="انتهت تلقائياً")
     
     # الإحصائيات
-    total_enrolled = models.IntegerField(default=0, verbose_name="إجمالي المسجلين")
-    total_attended = models.IntegerField(default=0, verbose_name="إجمالي الحاضرين")
-    attendance_rate = models.FloatField(default=0.0, verbose_name="نسبة الحضور")
+    total_students = models.IntegerField(default=0, verbose_name="إجمالي الطلاب")
+    present_count = models.IntegerField(default=0, verbose_name="عدد الحاضرين")
+    late_count = models.IntegerField(default=0, verbose_name="عدد المتأخرين")
+    absent_count = models.IntegerField(default=0, verbose_name="عدد الغائبين")
     
-    # التوقيتات
-    created_at = models.DateTimeField(auto_now_add=True)
-    qr_generated_at = models.DateTimeField(null=True, blank=True, 
-                                         verbose_name="وقت إنشاء QR")
-    session_started_at = models.DateTimeField(null=True, blank=True,
-                                            verbose_name="وقت بدء الجلسة")
-    session_ended_at = models.DateTimeField(null=True, blank=True,
-                                          verbose_name="وقت انتهاء الجلسة")
+    # ملاحظات ووصف
+    description = models.TextField(blank=True, verbose_name="وصف الجلسة")
+    notes = models.TextField(blank=True, verbose_name="ملاحظات")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
     
     class Meta:
-        verbose_name = "جلسة حضور"
-        verbose_name_plural = "جلسات الحضور"
-        ordering = ['-created_at']
+        verbose_name = "جلسة حضور وغياب"
+        verbose_name_plural = "جلسات الحضور والغياب"
+        ordering = ['-scheduled_start_time']
+        indexes = [
+            models.Index(fields=['course_offering', 'status']),
+            models.Index(fields=['instructor']),
+            models.Index(fields=['scheduled_start_time']),
+            models.Index(fields=['status']),
+        ]
     
-    def generate_qr_code(self):
-        """إنشاء QR Code للجلسة"""
-        # بيانات QR Code
-        qr_data = {
-            'session_id': str(self.session_code),
-            'course_id': self.course.id,
-            'session_name': self.session_name,
-            'timestamp': timezone.now().isoformat(),
-        }
+    def __str__(self):
+        return f"{self.session_name} - {self.course_offering.course.name_ar}"
+    
+    @property
+    def duration_minutes(self):
+        """مدة الجلسة بالدقائق"""
+        if self.actual_start_time and self.actual_end_time:
+            return (self.actual_end_time - self.actual_start_time).total_seconds() / 60
+        return (self.scheduled_end_time - self.scheduled_start_time).total_seconds() / 60
+    
+    @property
+    def attendance_rate(self):
+        """معدل الحضور"""
+        if self.total_students > 0:
+            return (self.present_count / self.total_students) * 100
+        return 0
+    
+    @property
+    def is_active(self):
+        """هل الجلسة نشطة"""
+        return self.status == 'ACTIVE'
+    
+    @property
+    def can_take_attendance(self):
+        """هل يمكن أخذ الحضور"""
+        now = timezone.now()
+        window_start = self.scheduled_start_time - timezone.timedelta(minutes=self.attendance_window_minutes)
+        window_end = self.scheduled_end_time + timezone.timedelta(minutes=self.attendance_window_minutes)
+        return window_start <= now <= window_end and self.status == 'ACTIVE'
+    
+    def start_session(self):
+        """بدء الجلسة"""
+        self.status = 'ACTIVE'
+        self.actual_start_time = timezone.now()
+        self.save(update_fields=['status', 'actual_start_time'])
+    
+    def end_session(self):
+        """إنهاء الجلسة"""
+        self.status = 'COMPLETED'
+        self.actual_end_time = timezone.now()
+        self.save(update_fields=['status', 'actual_end_time'])
+        self.update_statistics()
+    
+    def update_statistics(self):
+        """تحديث الإحصائيات"""
+        records = self.attendance_records.all()
+        self.total_students = records.count()
+        self.present_count = records.filter(status='PRESENT').count()
+        self.late_count = records.filter(status='LATE').count()
+        self.absent_count = records.filter(status='ABSENT').count()
+        self.save(update_fields=['total_students', 'present_count', 'late_count', 'absent_count'])
+
+
+class QRCode(models.Model):
+    """رموز QR للحضور"""
+    
+    QR_STATUS = [
+        ('ACTIVE', 'نشط'),
+        ('EXPIRED', 'منتهي'),
+        ('USED', 'مُستخدم'),
+        ('DISABLED', 'معطل'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # الجلسة المرتبطة
+    attendance_session = models.ForeignKey(AttendanceSession, on_delete=models.CASCADE,
+                                         related_name='qr_codes', verbose_name="جلسة الحضور")
+    
+    # معلومات الرمز
+    qr_code_id = models.CharField(max_length=100, unique=True, verbose_name="معرف رمز QR")
+    qr_data = models.TextField(verbose_name="بيانات رمز QR")
+    secret_key = models.CharField(max_length=255, verbose_name="المفتاح السري")
+    
+    # التوقيت
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    expires_at = models.DateTimeField(verbose_name="تاريخ الانتهاء")
+    
+    # الحالة والاستخدام
+    status = models.CharField(max_length=15, choices=QR_STATUS, default='ACTIVE',
+                            verbose_name="حالة الرمز")
+    usage_count = models.IntegerField(default=0, verbose_name="عدد مرات الاستخدام")
+    max_usage = models.IntegerField(default=1, verbose_name="الحد الأقصى للاستخدام")
+    
+    # معلومات الموقع
+    valid_location_latitude = models.DecimalField(max_digits=10, decimal_places=8, null=True, blank=True,
+                                                verbose_name="خط العرض الصالح")
+    valid_location_longitude = models.DecimalField(max_digits=11, decimal_places=8, null=True, blank=True,
+                                                 verbose_name="خط الطول الصالح")
+    location_radius_meters = models.IntegerField(default=50, verbose_name="نطاق الموقع (متر)")
+    
+    # ملف الصورة
+    qr_image = models.ImageField(upload_to='qr_codes/', null=True, blank=True,
+                               verbose_name="صورة رمز QR")
+    
+    class Meta:
+        verbose_name = "رمز QR"
+        verbose_name_plural = "رموز QR"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['attendance_session', 'status']),
+            models.Index(fields=['qr_code_id']),
+            models.Index(fields=['expires_at']),
+        ]
+    
+    def __str__(self):
+        return f"QR-{self.qr_code_id}"
+    
+    def save(self, *args, **kwargs):
+        if not self.qr_code_id:
+            self.qr_code_id = self.generate_qr_id()
+        if not self.secret_key:
+            self.secret_key = self.generate_secret_key()
+        if not self.qr_data:
+            self.qr_data = self.generate_qr_data()
         
-        # إنشاء QR Code
+        super().save(*args, **kwargs)
+        
+        # إنشاء صورة QR Code
+        if not self.qr_image:
+            self.create_qr_image()
+    
+    def generate_qr_id(self):
+        """توليد معرف رمز QR فريد"""
+        timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+        random_part = secrets.token_hex(4)
+        return f"{timestamp}-{random_part}"
+    
+    def generate_secret_key(self):
+        """توليد مفتاح سري"""
+        return secrets.token_urlsafe(32)
+    
+    def generate_qr_data(self):
+        """توليد بيانات رمز QR"""
+        data = {
+            'session_id': str(self.attendance_session.id),
+            'qr_id': self.qr_code_id,
+            'secret': self.secret_key,
+            'timestamp': timezone.now().isoformat(),
+            'expires': self.expires_at.isoformat() if self.expires_at else None,
+        }
+        return json.dumps(data)
+    
+    def create_qr_image(self):
+        """إنشاء صورة رمز QR"""
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
             box_size=10,
             border=4,
         )
-        qr.add_data(str(qr_data))
+        qr.add_data(self.qr_data)
         qr.make(fit=True)
         
         # إنشاء الصورة
-        qr_image = qr.make_image(fill_color="black", back_color="white")
+        img = qr.make_image(fill_color="black", back_color="white")
         
-        # حفظ الصورة
+        # حفظ في الذاكرة
         buffer = BytesIO()
-        qr_image.save(buffer, format='PNG')
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
         
-        filename = f'qr_session_{self.session_code}.png'
-        self.qr_code_image.save(
-            filename,
-            ContentFile(buffer.getvalue()),
-            save=False
-        )
-        
-        self.qr_generated_at = timezone.now()
-        self.save()
-        
-        return self.qr_code_image.url
+        # حفظ في قاعدة البيانات
+        filename = f"qr_{self.qr_code_id}.png"
+        self.qr_image.save(filename, ContentFile(buffer.getvalue()), save=False)
+        self.save(update_fields=['qr_image'])
     
-    def is_qr_valid(self):
-        """فحص صلاحية QR Code"""
-        if not self.qr_generated_at:
-            return False
-        
+    @property
+    def is_valid(self):
+        """هل الرمز صالح"""
         now = timezone.now()
-        valid_until = self.qr_generated_at + timezone.timedelta(
-            minutes=self.qr_valid_duration
-        )
+        return (self.status == 'ACTIVE' and 
+                now <= self.expires_at and 
+                self.usage_count < self.max_usage)
+    
+    @property
+    def is_expired(self):
+        """هل الرمز منتهي"""
+        return timezone.now() > self.expires_at
+    
+    def verify_location(self, user_latitude, user_longitude):
+        """التحقق من صحة الموقع"""
+        if not self.valid_location_latitude or not self.valid_location_longitude:
+            return True  # لا يوجد قيد مكاني
         
-        return now <= valid_until and self.status == 'active'
+        # حساب المسافة بين الموقعين
+        from math import radians, cos, sin, asin, sqrt
+        
+        # تحويل إلى راديان
+        lat1, lon1 = radians(float(self.valid_location_latitude)), radians(float(self.valid_location_longitude))
+        lat2, lon2 = radians(user_latitude), radians(user_longitude)
+        
+        # حساب المسافة باستخدام Haversine formula
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        distance_km = 2 * asin(sqrt(a)) * 6371  # نصف قطر الأرض بالكيلومتر
+        distance_meters = distance_km * 1000
+        
+        return distance_meters <= self.location_radius_meters
     
-    def calculate_attendance_rate(self):
-        """حساب نسبة الحضور"""
-        if self.total_enrolled > 0:
-            self.attendance_rate = (self.total_attended / self.total_enrolled) * 100
-        else:
-            self.attendance_rate = 0.0
-        self.save()
-        return self.attendance_rate
-    
-    def __str__(self):
-        return f"{self.session_name} - {self.course.name}"
+    def use_code(self):
+        """استخدام الرمز"""
+        self.usage_count += 1
+        if self.usage_count >= self.max_usage:
+            self.status = 'USED'
+        self.save(update_fields=['usage_count', 'status'])
+
 
 class AttendanceRecord(models.Model):
-    """سجل الحضور"""
+    """سجل الحضور والغياب"""
     
     ATTENDANCE_STATUS = [
-        ('present', 'حاضر'),
-        ('late', 'متأخر'),
-        ('absent', 'غائب'),
-        ('excused', 'معذور'),
+        ('PRESENT', 'حاضر'),
+        ('ABSENT', 'غائب'),
+        ('LATE', 'متأخر'),
+        ('EXCUSED', 'معذور'),
+        ('EARLY_DEPARTURE', 'انصراف مبكر'),
     ]
     
     ATTENDANCE_METHOD = [
-        ('qr_code', 'QR Code'),
-        ('manual', 'يدوي'),
-        ('biometric', 'بيومترية'),
-        ('card', 'بطاقة'),
+        ('QR_CODE', 'رمز QR'),
+        ('MANUAL', 'يدوي'),
+        ('FACIAL_RECOGNITION', 'التعرف على الوجه'),
+        ('FINGERPRINT', 'بصمة الإصبع'),
+        ('RFID', 'RFID'),
+        ('PROXIMITY', 'القرب'),
+        ('OTHER', 'أخرى'),
     ]
     
-    # معلومات الحضور
-    session = models.ForeignKey(AttendanceSession, on_delete=models.CASCADE,
-                              related_name='attendance_records',
-                              verbose_name="الجلسة")
-    student = models.ForeignKey(Student, on_delete=models.CASCADE,
-                              verbose_name="الطالب")
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # الجلسة والطالب
+    attendance_session = models.ForeignKey(AttendanceSession, on_delete=models.CASCADE,
+                                         related_name='attendance_records',
+                                         verbose_name="جلسة الحضور")
+    student = models.ForeignKey(User, on_delete=models.CASCADE,
+                              related_name='attendance_records', verbose_name="الطالب")
     
     # حالة الحضور
     status = models.CharField(max_length=20, choices=ATTENDANCE_STATUS,
                             verbose_name="حالة الحضور")
     attendance_method = models.CharField(max_length=20, choices=ATTENDANCE_METHOD,
-                                       default='qr_code', verbose_name="طريقة الحضور")
+                                       default='QR_CODE', verbose_name="طريقة الحضور")
     
-    # وقت الحضور
-    check_in_time = models.DateTimeField(null=True, blank=True, 
-                                       verbose_name="وقت الحضور")
-    minutes_late = models.IntegerField(default=0, verbose_name="دقائق التأخير")
+    # التوقيت
+    recorded_at = models.DateTimeField(auto_now_add=True, verbose_name="وقت التسجيل")
+    arrival_time = models.DateTimeField(null=True, blank=True, verbose_name="وقت الوصول")
+    departure_time = models.DateTimeField(null=True, blank=True, verbose_name="وقت الانصراف")
     
-    # معلومات إضافية
-    ip_address = models.GenericIPAddressField(null=True, blank=True,
-                                            verbose_name="عنوان IP")
-    device_info = models.TextField(blank=True, verbose_name="معلومات الجهاز")
-    location_latitude = models.FloatField(null=True, blank=True, 
-                                        verbose_name="خط العرض")
-    location_longitude = models.FloatField(null=True, blank=True, 
-                                         verbose_name="خط الطول")
+    # تفاصيل المسح
+    qr_code = models.ForeignKey(QRCode, on_delete=models.SET_NULL, null=True, blank=True,
+                              related_name='attendance_records', verbose_name="رمز QR")
+    scan_location_latitude = models.DecimalField(max_digits=10, decimal_places=8, null=True, blank=True,
+                                               verbose_name="خط عرض المسح")
+    scan_location_longitude = models.DecimalField(max_digits=11, decimal_places=8, null=True, blank=True,
+                                                verbose_name="خط طول المسح")
+    device_info = models.JSONField(default=dict, verbose_name="معلومات الجهاز")
+    
+    # المعالجة والتحقق
+    is_verified = models.BooleanField(default=False, verbose_name="مُتحقق منه")
+    verification_method = models.CharField(max_length=100, blank=True, verbose_name="طريقة التحقق")
+    verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='verified_attendance_records',
+                                  verbose_name="تم التحقق بواسطة")
+    verified_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت التحقق")
+    
+    # الدرجات والنقاط
+    attendance_points = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                          verbose_name="نقاط الحضور")
+    bonus_points = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                     verbose_name="نقاط إضافية")
+    penalty_points = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                       verbose_name="نقاط الخصم")
     
     # ملاحظات
     notes = models.TextField(blank=True, verbose_name="ملاحظات")
-    verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-                                  verbose_name="تم التحقق بواسطة")
+    excuse_reason = models.TextField(blank=True, verbose_name="سبب العذر")
     
-    # معلومات النظام
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
     
     class Meta:
-        verbose_name = "سجل حضور"
-        verbose_name_plural = "سجلات الحضور"
-        unique_together = ['session', 'student']
-        ordering = ['-created_at']
-    
-    def calculate_lateness(self):
-        """حساب دقائق التأخير"""
-        if self.check_in_time and self.session.start_time:
-            session_start = timezone.datetime.combine(
-                self.session.session_date, 
-                self.session.start_time
-            )
-            session_start = timezone.make_aware(session_start)
-            
-            if self.check_in_time > session_start:
-                late_duration = self.check_in_time - session_start
-                self.minutes_late = int(late_duration.total_seconds() / 60)
-                
-                # تحديد حالة الحضور حسب التأخير
-                if self.minutes_late > self.session.late_threshold:
-                    self.status = 'late'
-                else:
-                    self.status = 'present'
-            else:
-                self.minutes_late = 0
-                self.status = 'present'
-        
-        self.save()
+        verbose_name = "سجل حضور وغياب"
+        verbose_name_plural = "سجلات الحضور والغياب"
+        ordering = ['-recorded_at']
+        unique_together = ['attendance_session', 'student']
+        indexes = [
+            models.Index(fields=['attendance_session', 'status']),
+            models.Index(fields=['student', 'status']),
+            models.Index(fields=['recorded_at']),
+            models.Index(fields=['is_verified']),
+        ]
     
     def __str__(self):
-        return f"{self.student.user.get_full_name()} - {self.session.session_name}"
-
-class AttendanceStatistics(models.Model):
-    """إحصائيات الحضور"""
+        return f"{self.student.display_name} - {self.attendance_session.session_name} - {self.get_status_display()}"
     
-    student = models.ForeignKey(Student, on_delete=models.CASCADE,
-                              verbose_name="الطالب")
-    course = models.ForeignKey(Course, on_delete=models.CASCADE,
-                             verbose_name="المقرر")
+    @property
+    def minutes_late(self):
+        """دقائق التأخير"""
+        if self.arrival_time and self.attendance_session.scheduled_start_time:
+            if self.arrival_time > self.attendance_session.scheduled_start_time:
+                return (self.arrival_time - self.attendance_session.scheduled_start_time).total_seconds() / 60
+        return 0
     
-    # إحصائيات الحضور
-    total_sessions = models.IntegerField(default=0, verbose_name="إجمالي الجلسات")
-    attended_sessions = models.IntegerField(default=0, verbose_name="الجلسات المحضورة")
-    late_sessions = models.IntegerField(default=0, verbose_name="الجلسات المتأخرة")
-    absent_sessions = models.IntegerField(default=0, verbose_name="الجلسات الغائبة")
-    excused_sessions = models.IntegerField(default=0, verbose_name="الجلسات المعذورة")
+    @property
+    def total_points(self):
+        """إجمالي النقاط"""
+        return self.attendance_points + self.bonus_points - self.penalty_points
     
-    # النسب المئوية
-    attendance_percentage = models.FloatField(default=0.0, verbose_name="نسبة الحضور")
-    lateness_percentage = models.FloatField(default=0.0, verbose_name="نسبة التأخير")
-    
-    # متوسط التأخير
-    average_lateness = models.FloatField(default=0.0, verbose_name="متوسط التأخير (دقيقة)")
-    
-    # اتجاه الحضور
-    attendance_trend = models.CharField(max_length=20, choices=[
-        ('improving', 'يتحسن'),
-        ('declining', 'يتراجع'),
-        ('stable', 'مستقر'),
-    ], default='stable', verbose_name="اتجاه الحضور")
-    
-    # آخر تحديث
-    last_updated = models.DateTimeField(auto_now=True, verbose_name="آخر تحديث")
-    
-    class Meta:
-        verbose_name = "إحصائية حضور"
-        verbose_name_plural = "إحصائيات الحضور"
-        unique_together = ['student', 'course']
-    
-    def update_statistics(self):
-        """تحديث الإحصائيات"""
-        # جلب جميع سجلات الحضور للطالب في هذا المقرر
-        records = AttendanceRecord.objects.filter(
-            student=self.student,
-            session__course=self.course
-        )
+    def calculate_points(self):
+        """حساب نقاط الحضور"""
+        if self.status == 'PRESENT':
+            self.attendance_points = 10.0
+        elif self.status == 'LATE':
+            # خصم نقاط حسب دقائق التأخير
+            late_minutes = self.minutes_late
+            if late_minutes <= 5:
+                self.attendance_points = 8.0
+            elif late_minutes <= 10:
+                self.attendance_points = 6.0
+            elif late_minutes <= 15:
+                self.attendance_points = 4.0
+            else:
+                self.attendance_points = 2.0
+        elif self.status == 'EXCUSED':
+            self.attendance_points = 5.0
+        else:  # ABSENT
+            self.attendance_points = 0.0
         
-        self.total_sessions = records.count()
-        if self.total_sessions > 0:
-            self.attended_sessions = records.filter(status='present').count()
-            self.late_sessions = records.filter(status='late').count()
-            self.absent_sessions = records.filter(status='absent').count()
-            self.excused_sessions = records.filter(status='excused').count()
-            
-            # حساب النسب
-            present_and_late = self.attended_sessions + self.late_sessions
-            self.attendance_percentage = (present_and_late / self.total_sessions) * 100
-            self.lateness_percentage = (self.late_sessions / self.total_sessions) * 100
-            
-            # حساب متوسط التأخير
-            late_records = records.filter(status='late', minutes_late__gt=0)
-            if late_records.exists():
-                total_late_minutes = sum(r.minutes_late for r in late_records)
-                self.average_lateness = total_late_minutes / late_records.count()
-            
-            # تحديد الاتجاه (بناءً على آخر 5 جلسات مقابل الـ 5 قبلها)
-            recent_records = records.order_by('-session__session_date')[:5]
-            previous_records = records.order_by('-session__session_date')[5:10]
-            
-            if recent_records.exists() and previous_records.exists():
-                recent_rate = recent_records.filter(
-                    status__in=['present', 'late']
-                ).count() / recent_records.count()
-                previous_rate = previous_records.filter(
-                    status__in=['present', 'late']
-                ).count() / previous_records.count()
-                
-                if recent_rate > previous_rate + 0.1:
-                    self.attendance_trend = 'improving'
-                elif recent_rate < previous_rate - 0.1:
-                    self.attendance_trend = 'declining'
-                else:
-                    self.attendance_trend = 'stable'
-        
-        self.save()
+        self.save(update_fields=['attendance_points'])
 
-class QRCodeTemplate(models.Model):
-    """قوالب QR Code"""
-    
-    name = models.CharField(max_length=200, verbose_name="اسم القالب")
-    description = models.TextField(verbose_name="وصف القالب")
-    
-    # إعدادات التصميم
-    background_color = models.CharField(max_length=7, default='#FFFFFF', 
-                                      verbose_name="لون الخلفية")
-    foreground_color = models.CharField(max_length=7, default='#000000', 
-                                      verbose_name="لون المقدمة")
-    logo_image = models.ImageField(upload_to='qr_logos/', blank=True, null=True,
-                                 verbose_name="صورة الشعار")
-    
-    # إعدادات QR Code
-    error_correction = models.CharField(max_length=1, choices=[
-        ('L', 'منخفض (~7%)'),
-        ('M', 'متوسط (~15%)'),
-        ('Q', 'ربع عالي (~25%)'),
-        ('H', 'عالي (~30%)'),
-    ], default='M', verbose_name="تصحيح الأخطاء")
-    
-    box_size = models.IntegerField(default=10, verbose_name="حجم المربع")
-    border_size = models.IntegerField(default=4, verbose_name="حجم الإطار")
-    
-    # الاستخدام
-    is_default = models.BooleanField(default=False, verbose_name="افتراضي")
-    is_active = models.BooleanField(default=True, verbose_name="نشط")
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        verbose_name = "قالب QR Code"
-        verbose_name_plural = "قوالب QR Code"
-    
-    def save(self, *args, **kwargs):
-        # التأكد من وجود قالب افتراضي واحد فقط
-        if self.is_default:
-            QRCodeTemplate.objects.filter(is_default=True).update(is_default=False)
-        super().save(*args, **kwargs)
 
-class AttendanceNotification(models.Model):
-    """إشعارات الحضور"""
+class AttendanceException(models.Model):
+    """استثناءات الحضور والغياب"""
     
-    NOTIFICATION_TYPES = [
-        ('session_started', 'بدء الجلسة'),
-        ('session_ending', 'انتهاء الجلسة قريباً'),
-        ('attendance_marked', 'تم تسجيل الحضور'),
-        ('attendance_warning', 'تحذير حضور'),
-        ('attendance_report', 'تقرير حضور'),
+    EXCEPTION_TYPES = [
+        ('MEDICAL', 'طبي'),
+        ('EMERGENCY', 'طارئ'),
+        ('OFFICIAL', 'رسمي'),
+        ('TECHNICAL', 'تقني'),
+        ('OTHER', 'أخرى'),
     ]
     
-    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES,
-                                       verbose_name="نوع الإشعار")
+    EXCEPTION_STATUS = [
+        ('PENDING', 'في الانتظار'),
+        ('APPROVED', 'موافق عليه'),
+        ('REJECTED', 'مرفوض'),
+    ]
     
-    # المرسل إليه
-    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-                                verbose_name="المستقبل")
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
-    # محتوى الإشعار
-    title = models.CharField(max_length=200, verbose_name="العنوان")
-    message = models.TextField(verbose_name="الرسالة")
+    # الطالب والجلسة
+    student = models.ForeignKey(User, on_delete=models.CASCADE,
+                              related_name='attendance_exceptions', verbose_name="الطالب")
+    attendance_session = models.ForeignKey(AttendanceSession, on_delete=models.CASCADE,
+                                         related_name='attendance_exceptions',
+                                         verbose_name="جلسة الحضور")
     
-    # البيانات المرتبطة
-    session = models.ForeignKey(AttendanceSession, on_delete=models.CASCADE,
-                              null=True, blank=True, verbose_name="الجلسة")
-    attendance_record = models.ForeignKey(AttendanceRecord, on_delete=models.CASCADE,
-                                        null=True, blank=True, verbose_name="سجل الحضور")
+    # نوع الاستثناء
+    exception_type = models.CharField(max_length=15, choices=EXCEPTION_TYPES,
+                                    verbose_name="نوع الاستثناء")
+    reason = models.TextField(verbose_name="سبب الاستثناء")
     
-    # حالة الإشعار
-    is_read = models.BooleanField(default=False, verbose_name="مقروء")
-    is_sent = models.BooleanField(default=False, verbose_name="مرسل")
+    # المستندات المرفقة
+    supporting_documents = models.JSONField(default=list, verbose_name="المستندات الداعمة")
     
-    # طرق الإرسال
-    send_email = models.BooleanField(default=True, verbose_name="إرسال بريد")
-    send_sms = models.BooleanField(default=False, verbose_name="إرسال SMS")
-    send_push = models.BooleanField(default=True, verbose_name="إشعار فوري")
+    # التوقيت
+    submitted_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ التقديم")
+    effective_date = models.DateField(verbose_name="تاريخ السريان")
     
-    created_at = models.DateTimeField(auto_now_add=True)
-    sent_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت الإرسال")
+    # المراجعة والموافقة
+    status = models.CharField(max_length=15, choices=EXCEPTION_STATUS, default='PENDING',
+                            verbose_name="حالة الطلب")
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='reviewed_attendance_exceptions',
+                                  verbose_name="راجعه")
+    reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ المراجعة")
+    reviewer_comments = models.TextField(blank=True, verbose_name="تعليقات المراجع")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
     
     class Meta:
-        verbose_name = "إشعار حضور"
-        verbose_name_plural = "إشعارات الحضور"
+        verbose_name = "استثناء حضور وغياب"
+        verbose_name_plural = "استثناءات الحضور والغياب"
+        ordering = ['-submitted_at']
+        indexes = [
+            models.Index(fields=['student', 'status']),
+            models.Index(fields=['attendance_session']),
+            models.Index(fields=['exception_type']),
+        ]
+    
+    def __str__(self):
+        return f"{self.student.display_name} - {self.get_exception_type_display()}"
+
+
+class AttendanceReport(models.Model):
+    """تقارير الحضور والغياب"""
+    
+    REPORT_TYPES = [
+        ('STUDENT_SUMMARY', 'ملخص طالب'),
+        ('COURSE_SUMMARY', 'ملخص مقرر'),
+        ('INSTRUCTOR_SUMMARY', 'ملخص مدرس'),
+        ('DAILY_REPORT', 'تقرير يومي'),
+        ('WEEKLY_REPORT', 'تقرير أسبوعي'),
+        ('MONTHLY_REPORT', 'تقرير شهري'),
+        ('SEMESTER_REPORT', 'تقرير فصلي'),
+        ('CUSTOM_REPORT', 'تقرير مخصص'),
+    ]
+    
+    REPORT_STATUS = [
+        ('GENERATING', 'قيد الإنتاج'),
+        ('COMPLETED', 'مكتمل'),
+        ('FAILED', 'فاشل'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات التقرير
+    report_name = models.CharField(max_length=200, verbose_name="اسم التقرير")
+    report_type = models.CharField(max_length=20, choices=REPORT_TYPES,
+                                 verbose_name="نوع التقرير")
+    
+    # الفترة والنطاق
+    start_date = models.DateField(verbose_name="تاريخ البداية")
+    end_date = models.DateField(verbose_name="تاريخ النهاية")
+    
+    # المرشحات
+    course_offerings = models.ManyToManyField('courses.CourseOffering', blank=True,
+                                            verbose_name="عروض المقررات")
+    students = models.ManyToManyField(User, blank=True, related_name='attendance_reports',
+                                    verbose_name="الطلاب")
+    instructors = models.ManyToManyField(User, blank=True, related_name='instructor_attendance_reports',
+                                       verbose_name="المدرسون")
+    
+    # البيانات الإحصائية
+    total_sessions = models.IntegerField(default=0, verbose_name="إجمالي الجلسات")
+    total_students = models.IntegerField(default=0, verbose_name="إجمالي الطلاب")
+    average_attendance_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                                 verbose_name="متوسط معدل الحضور")
+    
+    # بيانات التقرير
+    report_data = models.JSONField(default=dict, verbose_name="بيانات التقرير")
+    
+    # الحالة والملف
+    status = models.CharField(max_length=15, choices=REPORT_STATUS, default='GENERATING',
+                            verbose_name="حالة التقرير")
+    file_path = models.CharField(max_length=500, blank=True, verbose_name="مسار الملف")
+    
+    # معلومات الإنتاج
+    generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name='generated_attendance_reports',
+                                   verbose_name="أُنتج بواسطة")
+    generated_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الإنتاج")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "تقرير حضور وغياب"
+        verbose_name_plural = "تقارير الحضور والغياب"
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['report_type', 'status']),
+            models.Index(fields=['start_date', 'end_date']),
+            models.Index(fields=['generated_by']),
+        ]
+    
+    def __str__(self):
+        return f"{self.report_name} - {self.get_report_type_display()}"
+
+
+class AttendanceSettings(models.Model):
+    """إعدادات نظام الحضور والغياب"""
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # إعدادات عامة
+    default_attendance_window_minutes = models.IntegerField(default=15,
+                                                          verbose_name="نافذة الحضور الافتراضية (دقائق)")
+    default_late_threshold_minutes = models.IntegerField(default=10,
+                                                       verbose_name="حد التأخير الافتراضي (دقائق)")
+    
+    # إعدادات QR Code
+    qr_code_refresh_minutes = models.IntegerField(default=5,
+                                                verbose_name="تحديث رمز QR (دقائق)")
+    qr_code_valid_range_meters = models.IntegerField(default=50,
+                                                   verbose_name="نطاق صلاحية رمز QR (متر)")
+    enable_location_verification = models.BooleanField(default=True,
+                                                     verbose_name="تفعيل التحقق من الموقع")
+    
+    # إعدادات النقاط
+    present_points = models.DecimalField(max_digits=5, decimal_places=2, default=10.0,
+                                       verbose_name="نقاط الحضور")
+    late_points = models.DecimalField(max_digits=5, decimal_places=2, default=5.0,
+                                    verbose_name="نقاط التأخير")
+    excused_points = models.DecimalField(max_digits=5, decimal_places=2, default=5.0,
+                                        verbose_name="نقاط العذر")
+    absent_points = models.DecimalField(max_digits=5, decimal_places=2, default=0.0,
+                                      verbose_name="نقاط الغياب")
+    
+    # إعدادات التنبيهات
+    enable_attendance_reminders = models.BooleanField(default=True,
+                                                    verbose_name="تفعيل تذكيرات الحضور")
+    reminder_minutes_before = models.IntegerField(default=30,
+                                                verbose_name="التذكير قبل (دقائق)")
+    
+    # إعدادات التقارير
+    auto_generate_reports = models.BooleanField(default=True,
+                                              verbose_name="إنتاج تقارير تلقائي")
+    report_generation_frequency = models.CharField(max_length=20, default='WEEKLY',
+                                                 choices=[
+                                                     ('DAILY', 'يومي'),
+                                                     ('WEEKLY', 'أسبوعي'),
+                                                     ('MONTHLY', 'شهري'),
+                                                 ], verbose_name="تكرار إنتاج التقارير")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='updated_attendance_settings',
+                                 verbose_name="حُدث بواسطة")
+    
+    class Meta:
+        verbose_name = "إعدادات الحضور والغياب"
+        verbose_name_plural = "إعدادات الحضور والغياب"
+    
+    def __str__(self):
+        return "إعدادات نظام الحضور والغياب"

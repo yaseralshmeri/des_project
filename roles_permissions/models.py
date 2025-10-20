@@ -1,402 +1,651 @@
-"""
-Advanced Role-Based Access Control System
-نظام تحكم بالأدوار والصلاحيات المتطور
-"""
+# نظام الأدوار والصلاحيات المتقدم
+# Advanced Role-Based Access Control (RBAC) System
+
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
-from django.core.cache import cache
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+import uuid
 import json
 
 User = get_user_model()
 
-
-class Department(models.Model):
-    """
-    Enhanced Department model with hierarchy support
-    نموذج القسم المحسن مع دعم التسلسل الهرمي
-    """
-    name = models.CharField(max_length=100, unique=True)
-    code = models.CharField(max_length=10, unique=True)
-    description = models.TextField(blank=True)
-    parent_department = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='sub_departments')
-    head_of_department = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='roles_headed_departments')
-    budget_code = models.CharField(max_length=20, blank=True)
-    location = models.CharField(max_length=200, blank=True)
-    phone = models.CharField(max_length=20, blank=True)
-    email = models.EmailField(blank=True)
+class Permission(models.Model):
+    """الصلاحيات في النظام"""
     
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    PERMISSION_CATEGORIES = [
+        ('SYSTEM', 'نظام'),
+        ('ACADEMIC', 'أكاديمي'),
+        ('FINANCIAL', 'مالي'),
+        ('HR', 'موارد بشرية'),
+        ('REPORTING', 'تقارير'),
+        ('SECURITY', 'أمان'),
+        ('AI', 'ذكاء اصطناعي'),
+    ]
+    
+    PERMISSION_LEVELS = [
+        ('VIEW', 'عرض'),
+        ('CREATE', 'إنشاء'),
+        ('UPDATE', 'تعديل'),
+        ('DELETE', 'حذف'),
+        ('APPROVE', 'موافقة'),
+        ('MANAGE', 'إدارة كاملة'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات الصلاحية الأساسية
+    codename = models.CharField(max_length=100, unique=True, verbose_name="رمز الصلاحية")
+    name_ar = models.CharField(max_length=255, verbose_name="اسم الصلاحية - عربي")
+    name_en = models.CharField(max_length=255, verbose_name="اسم الصلاحية - إنجليزي")
+    description = models.TextField(blank=True, verbose_name="وصف الصلاحية")
+    
+    # تصنيف الصلاحية
+    category = models.CharField(max_length=20, choices=PERMISSION_CATEGORIES,
+                              verbose_name="فئة الصلاحية")
+    level = models.CharField(max_length=10, choices=PERMISSION_LEVELS,
+                           verbose_name="مستوى الصلاحية")
+    
+    # النموذج المرتبط بالصلاحية
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE,
+                                   null=True, blank=True,
+                                   verbose_name="نوع المحتوى")
+    
+    # الأولوية والتدرج
+    priority = models.IntegerField(default=1, verbose_name="الأولوية")
+    requires_supervisor_approval = models.BooleanField(default=False,
+                                                     verbose_name="يتطلب موافقة المشرف")
+    
+    # قيود إضافية
+    resource_constraints = models.JSONField(default=dict, verbose_name="قيود الموارد")
+    time_constraints = models.JSONField(default=dict, verbose_name="قيود زمنية")
+    
+    # الحالة
+    is_active = models.BooleanField(default=True, verbose_name="نشطة")
+    is_system_permission = models.BooleanField(default=False, verbose_name="صلاحية نظام")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='created_permissions',
+                                 verbose_name="أُنشأت بواسطة")
     
     class Meta:
-        db_table = 'roles_departments'
-        ordering = ['name']
+        verbose_name = "صلاحية"
+        verbose_name_plural = "الصلاحيات"
+        ordering = ['category', 'priority', 'name_ar']
+        indexes = [
+            models.Index(fields=['category', 'level']),
+            models.Index(fields=['codename']),
+            models.Index(fields=['is_active']),
+        ]
     
     def __str__(self):
-        return f"{self.code} - {self.name}"
+        return f"{self.name_ar} ({self.get_level_display()})"
     
-    def get_full_hierarchy(self):
-        """Get full department hierarchy path"""
-        hierarchy = [self.name]
-        parent = self.parent_department
-        while parent:
-            hierarchy.insert(0, parent.name)
-            parent = parent.parent_department
-        return ' > '.join(hierarchy)
-    
-    def get_all_subdepartments(self):
-        """Get all subdepartments recursively"""
-        subdepts = list(self.sub_departments.all())
-        for subdept in self.sub_departments.all():
-            subdepts.extend(subdept.get_all_subdepartments())
-        return subdepts
+    @property
+    def display_name(self):
+        return self.name_ar
 
 
 class Role(models.Model):
-    """
-    Advanced role system with hierarchical permissions
-    نظام أدوار متطور مع صلاحيات هرمية
-    """
+    """الأدوار في النظام"""
+    
     ROLE_TYPES = [
-        ('SYSTEM', 'System Role'),
-        ('DEPARTMENT', 'Department Role'),
-        ('CUSTOM', 'Custom Role'),
+        ('SYSTEM', 'دور نظام'),
+        ('ACADEMIC', 'دور أكاديمي'),
+        ('ADMINISTRATIVE', 'دور إداري'),
+        ('CUSTOM', 'دور مخصص'),
     ]
     
-    name = models.CharField(max_length=100, unique=True)
-    display_name = models.CharField(max_length=150)
-    description = models.TextField()
-    role_type = models.CharField(max_length=20, choices=ROLE_TYPES, default='CUSTOM')
+    ROLE_LEVELS = [
+        ('SUPER', 'فائق'),  # Super Admin
+        ('HIGH', 'عالي'),   # Dean, Department Head
+        ('MEDIUM', 'متوسط'), # Teacher, Academic Staff
+        ('LOW', 'منخفض'),   # Student, Basic Staff
+        ('GUEST', 'زائر'),  # Guest Access
+    ]
     
-    # Hierarchy support
-    parent_role = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='child_roles')
-    priority = models.IntegerField(default=0, help_text="Higher number = higher priority")
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
-    # Department association
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True, related_name='roles')
+    # معلومات الدور الأساسية
+    name_ar = models.CharField(max_length=100, verbose_name="اسم الدور - عربي")
+    name_en = models.CharField(max_length=100, verbose_name="اسم الدور - إنجليزي")
+    code = models.CharField(max_length=30, unique=True, verbose_name="رمز الدور")
+    description = models.TextField(blank=True, verbose_name="وصف الدور")
     
-    # Role settings
-    is_system_role = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    max_users = models.IntegerField(null=True, blank=True, help_text="Maximum users that can have this role")
+    # تصنيف الدور
+    role_type = models.CharField(max_length=15, choices=ROLE_TYPES,
+                               verbose_name="نوع الدور")
+    role_level = models.CharField(max_length=10, choices=ROLE_LEVELS,
+                                verbose_name="مستوى الدور")
     
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_roles')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    # الصلاحيات المرتبطة بالدور
+    permissions = models.ManyToManyField(Permission, through='RolePermission',
+                                       related_name='roles',
+                                       verbose_name="الصلاحيات")
+    
+    # التدرج الهرمي
+    parent_role = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='child_roles',
+                                  verbose_name="الدور الأب")
+    hierarchy_level = models.IntegerField(default=1, verbose_name="مستوى التدرج")
+    
+    # قيود الدور
+    max_users = models.IntegerField(null=True, blank=True, verbose_name="الحد الأقصى للمستخدمين")
+    session_timeout = models.IntegerField(default=3600, verbose_name="انتهاء الجلسة (ثانية)")
+    
+    # إعدادات أمنية
+    requires_2fa = models.BooleanField(default=False, verbose_name="يتطلب مصادقة ثنائية")
+    ip_restrictions = models.JSONField(default=list, verbose_name="قيود عناوين IP")
+    time_restrictions = models.JSONField(default=dict, verbose_name="قيود زمنية")
+    
+    # الحالة والإعدادات
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    is_system_role = models.BooleanField(default=False, verbose_name="دور نظام")
+    is_assignable = models.BooleanField(default=True, verbose_name="قابل للتعيين")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='created_roles',
+                                 verbose_name="أُنشأ بواسطة")
     
     class Meta:
-        db_table = 'roles'
-        ordering = ['-priority', 'name']
+        verbose_name = "دور"
+        verbose_name_plural = "الأدوار"
+        ordering = ['hierarchy_level', 'name_ar']
         indexes = [
-            models.Index(fields=['role_type', 'is_active']),
-            models.Index(fields=['department', 'is_active']),
+            models.Index(fields=['role_type', 'role_level']),
+            models.Index(fields=['code']),
+            models.Index(fields=['is_active', 'is_assignable']),
         ]
     
     def __str__(self):
-        return self.display_name
+        return self.name_ar
+    
+    @property
+    def display_name(self):
+        return self.name_ar
+    
+    @property
+    def current_users_count(self):
+        """عدد المستخدمين الحاليين في هذا الدور"""
+        return self.user_roles.filter(is_active=True).count()
+    
+    @property
+    def can_assign_new_users(self):
+        """هل يمكن تعيين مستخدمين جدد لهذا الدور"""
+        if not self.is_assignable or not self.is_active:
+            return False
+        if self.max_users:
+            return self.current_users_count < self.max_users
+        return True
     
     def get_all_permissions(self):
-        """Get all permissions including inherited from parent roles"""
-        permissions = set(self.role_permissions.filter(is_active=True))
+        """الحصول على جميع الصلاحيات (بما في ذلك الموروثة)"""
+        permissions = set()
         
-        # Add permissions from parent roles
-        parent = self.parent_role
-        while parent:
-            permissions.update(parent.role_permissions.filter(is_active=True))
-            parent = parent.parent_role
+        # إضافة صلاحيات الدور الحالي
+        for role_perm in self.role_permissions.filter(is_active=True):
+            permissions.add(role_perm.permission)
         
-        return permissions
-    
-    def can_assign_to_user(self, user):
-        """Check if role can be assigned to user"""
-        if not self.is_active:
-            return False
+        # إضافة صلاحيات الأدوار الأب (الوراثة)
+        current_role = self.parent_role
+        while current_role:
+            for role_perm in current_role.role_permissions.filter(is_active=True, is_inherited=True):
+                permissions.add(role_perm.permission)
+            current_role = current_role.parent_role
         
-        if self.max_users:
-            current_users = UserRole.objects.filter(role=self, is_active=True).count()
-            if current_users >= self.max_users:
-                return False
-        
-        # Check department restrictions
-        if self.department and hasattr(user, 'employee_profile'):
-            return user.employee_profile.department == self.department
-        
-        return True
-
-
-class Permission(models.Model):
-    """
-    Granular permission system
-    نظام صلاحيات مفصل
-    """
-    PERMISSION_TYPES = [
-        ('CREATE', 'Create'),
-        ('READ', 'Read'),
-        ('UPDATE', 'Update'), 
-        ('DELETE', 'Delete'),
-        ('EXECUTE', 'Execute'),
-        ('APPROVE', 'Approve'),
-        ('REJECT', 'Reject'),
-        ('EXPORT', 'Export'),
-        ('IMPORT', 'Import'),
-        ('MANAGE', 'Manage'),
-    ]
-    
-    name = models.CharField(max_length=100, unique=True)
-    display_name = models.CharField(max_length=150)
-    description = models.TextField()
-    permission_type = models.CharField(max_length=20, choices=PERMISSION_TYPES)
-    
-    # Resource association
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True, related_name='custom_permissions')
-    resource_name = models.CharField(max_length=100, help_text="e.g., 'students', 'courses', 'reports'")
-    
-    # Permission constraints
-    conditions = models.JSONField(default=dict, blank=True, help_text="Additional conditions for permission")
-    is_system_permission = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        db_table = 'permissions'
-        ordering = ['resource_name', 'permission_type']
-        unique_together = [['resource_name', 'permission_type']]
-        indexes = [
-            models.Index(fields=['resource_name', 'permission_type']),
-            models.Index(fields=['content_type', 'is_active']),
-        ]
-    
-    def __str__(self):
-        return f"{self.permission_type} {self.resource_name}"
-    
-    def check_conditions(self, user, obj=None):
-        """Check if permission conditions are met"""
-        if not self.conditions:
-            return True
-        
-        # Implement condition checking logic
-        # This can be extended based on specific requirements
-        return True
+        return list(permissions)
 
 
 class RolePermission(models.Model):
-    """
-    Association between roles and permissions
-    ربط الأدوار بالصلاحيات
-    """
-    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='role_permissions')
-    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name='permission_roles')
+    """ربط الدور بالصلاحية مع تفاصيل إضافية"""
     
-    # Permission constraints
-    constraints = models.JSONField(default=dict, blank=True)
-    is_active = models.BooleanField(default=True)
+    GRANT_TYPES = [
+        ('DIRECT', 'مباشر'),
+        ('INHERITED', 'موروث'),
+        ('TEMPORARY', 'مؤقت'),
+        ('CONDITIONAL', 'مشروط'),
+    ]
     
-    granted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    granted_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(null=True, blank=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    role = models.ForeignKey(Role, on_delete=models.CASCADE,
+                           related_name='role_permissions', verbose_name="الدور")
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE,
+                                 related_name='role_permissions', verbose_name="الصلاحية")
+    
+    # نوع المنح
+    grant_type = models.CharField(max_length=15, choices=GRANT_TYPES, default='DIRECT',
+                                verbose_name="نوع المنح")
+    
+    # قيود إضافية
+    conditions = models.JSONField(default=dict, verbose_name="شروط الصلاحية")
+    resource_limits = models.JSONField(default=dict, verbose_name="حدود الموارد")
+    
+    # التوقيت
+    valid_from = models.DateTimeField(null=True, blank=True, verbose_name="ساري من")
+    valid_until = models.DateTimeField(null=True, blank=True, verbose_name="ساري حتى")
+    
+    # الحالة
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    is_inherited = models.BooleanField(default=False, verbose_name="قابل للوراثة")
+    requires_approval = models.BooleanField(default=False, verbose_name="يتطلب موافقة")
+    
+    # معلومات الموافقة
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='approved_role_permissions',
+                                  verbose_name="مُوافق عليه من")
+    approved_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الموافقة")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='created_role_permissions',
+                                 verbose_name="أُنشأ بواسطة")
     
     class Meta:
-        db_table = 'role_permissions'
-        unique_together = [['role', 'permission']]
+        verbose_name = "صلاحية الدور"
+        verbose_name_plural = "صلاحيات الأدوار"
+        unique_together = ['role', 'permission']
+        ordering = ['role', 'permission__category', 'permission__priority']
         indexes = [
             models.Index(fields=['role', 'is_active']),
             models.Index(fields=['permission', 'is_active']),
+            models.Index(fields=['grant_type']),
         ]
     
     def __str__(self):
-        return f"{self.role.name} - {self.permission.name}"
+        return f"{self.role.name_ar} - {self.permission.name_ar}"
     
     @property
-    def is_expired(self):
-        if self.expires_at:
-            return timezone.now() > self.expires_at
-        return False
+    def is_valid(self):
+        """هل الصلاحية سارية حالياً"""
+        now = timezone.now()
+        if self.valid_from and now < self.valid_from:
+            return False
+        if self.valid_until and now > self.valid_until:
+            return False
+        return self.is_active
+    
+    def clean(self):
+        if self.valid_from and self.valid_until and self.valid_from >= self.valid_until:
+            raise ValidationError("تاريخ البداية يجب أن يكون قبل تاريخ النهاية")
 
 
 class UserRole(models.Model):
-    """
-    User role assignments with time-based controls
-    تعيين أدوار المستخدمين مع ضوابط زمنية
-    """
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_roles')
-    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='role_users')
+    """تعيين الأدوار للمستخدمين"""
     
-    # Time-based controls
-    effective_from = models.DateTimeField(default=timezone.now)
-    effective_until = models.DateTimeField(null=True, blank=True)
+    ASSIGNMENT_TYPES = [
+        ('PERMANENT', 'دائم'),
+        ('TEMPORARY', 'مؤقت'),
+        ('ACTING', 'بالوكالة'),
+        ('SUBSTITUTE', 'بديل'),
+    ]
     
-    # Assignment context
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True)
-    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='assigned_roles')
-    reason = models.TextField(blank=True)
+    STATUS_CHOICES = [
+        ('PENDING', 'في الانتظار'),
+        ('ACTIVE', 'نشط'),
+        ('SUSPENDED', 'موقوف'),
+        ('EXPIRED', 'منتهي'),
+        ('REVOKED', 'مُلغى'),
+    ]
     
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                           related_name='user_roles', verbose_name="المستخدم")
+    role = models.ForeignKey(Role, on_delete=models.CASCADE,
+                           related_name='user_roles', verbose_name="الدور")
+    
+    # نوع التعيين
+    assignment_type = models.CharField(max_length=15, choices=ASSIGNMENT_TYPES,
+                                     default='PERMANENT', verbose_name="نوع التعيين")
+    
+    # التوقيت
+    assigned_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ التعيين")
+    valid_from = models.DateTimeField(default=timezone.now, verbose_name="ساري من")
+    valid_until = models.DateTimeField(null=True, blank=True, verbose_name="ساري حتى")
+    
+    # الحالة
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='ACTIVE',
+                            verbose_name="الحالة")
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    is_primary = models.BooleanField(default=False, verbose_name="دور أساسي")
+    
+    # معلومات التعيين
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                  related_name='assigned_user_roles',
+                                  verbose_name="عُين بواسطة")
+    assignment_reason = models.TextField(blank=True, verbose_name="سبب التعيين")
+    
+    # قيود إضافية
+    resource_quotas = models.JSONField(default=dict, verbose_name="حصص الموارد")
+    additional_permissions = models.ManyToManyField(Permission, blank=True,
+                                                  related_name='user_role_permissions',
+                                                  verbose_name="صلاحيات إضافية")
+    
+    # معلومات الإلغاء/الإيقاف
+    revoked_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الإلغاء")
+    revoked_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='revoked_user_roles',
+                                 verbose_name="أُلغى بواسطة")
+    revocation_reason = models.TextField(blank=True, verbose_name="سبب الإلغاء")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
     
     class Meta:
-        db_table = 'user_roles'
-        unique_together = [['user', 'role', 'department']]
+        verbose_name = "دور المستخدم"
+        verbose_name_plural = "أدوار المستخدمين"
+        ordering = ['-is_primary', 'user', 'role']
         indexes = [
             models.Index(fields=['user', 'is_active']),
             models.Index(fields=['role', 'is_active']),
-            models.Index(fields=['effective_from', 'effective_until']),
+            models.Index(fields=['status']),
+            models.Index(fields=['assignment_type']),
         ]
     
     def __str__(self):
-        return f"{self.user.username} - {self.role.name}"
+        return f"{self.user.display_name} - {self.role.name_ar}"
     
     @property
-    def is_effective(self):
-        """Check if role assignment is currently effective"""
+    def is_valid(self):
+        """هل التعيين ساري حالياً"""
         now = timezone.now()
-        return (
-            self.is_active and
-            self.effective_from <= now and
-            (not self.effective_until or self.effective_until > now)
-        )
-
-
-class UserPermission(models.Model):
-    """
-    Direct user permissions (overrides role permissions)
-    صلاحيات مباشرة للمستخدم (تتجاوز صلاحيات الأدوار)
-    """
-    PERMISSION_ACTION = [
-        ('GRANT', 'Grant'),
-        ('DENY', 'Deny'),
-    ]
-    
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='direct_permissions')
-    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name='user_permissions')
-    action = models.CharField(max_length=10, choices=PERMISSION_ACTION, default='GRANT')
-    
-    # Scope limitation
-    object_id = models.CharField(max_length=100, blank=True, help_text="Specific object ID if permission is object-specific")
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
-    content_object = GenericForeignKey('content_type', 'object_id')
-    
-    constraints = models.JSONField(default=dict, blank=True)
-    
-    granted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='granted_permissions')
-    granted_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(null=True, blank=True)
-    reason = models.TextField(blank=True)
-    
-    is_active = models.BooleanField(default=True)
-    
-    class Meta:
-        db_table = 'user_permissions'
-        indexes = [
-            models.Index(fields=['user', 'is_active']),
-            models.Index(fields=['permission', 'action']),
-            models.Index(fields=['content_type', 'object_id']),
-        ]
-    
-    def __str__(self):
-        return f"{self.user.username} - {self.action} {self.permission.name}"
+        if now < self.valid_from:
+            return False
+        if self.valid_until and now > self.valid_until:
+            return False
+        return self.is_active and self.status == 'ACTIVE'
     
     @property
-    def is_expired(self):
-        if self.expires_at:
-            return timezone.now() > self.expires_at
-        return False
+    def is_temporary(self):
+        """هل التعيين مؤقت"""
+        return self.assignment_type == 'TEMPORARY' or self.valid_until is not None
+    
+    def clean(self):
+        if self.valid_until and self.valid_from >= self.valid_until:
+            raise ValidationError("تاريخ البداية يجب أن يكون قبل تاريخ النهاية")
+    
+    def save(self, *args, **kwargs):
+        # التأكد من وجود دور أساسي واحد فقط للمستخدم
+        if self.is_primary:
+            UserRole.objects.filter(user=self.user, is_primary=True).exclude(pk=self.pk).update(is_primary=False)
+        
+        # تحديث الحالة بناءً على التوقيت
+        now = timezone.now()
+        if self.valid_until and now > self.valid_until:
+            self.status = 'EXPIRED'
+            self.is_active = False
+        elif now < self.valid_from:
+            self.status = 'PENDING'
+        
+        super().save(*args, **kwargs)
+    
+    def revoke(self, revoked_by, reason=""):
+        """إلغاء التعيين"""
+        self.status = 'REVOKED'
+        self.is_active = False
+        self.revoked_at = timezone.now()
+        self.revoked_by = revoked_by
+        self.revocation_reason = reason
+        self.save()
+    
+    def suspend(self):
+        """إيقاف التعيين مؤقتاً"""
+        self.status = 'SUSPENDED'
+        self.save()
+    
+    def reactivate(self):
+        """إعادة تنشيط التعيين"""
+        if self.status == 'SUSPENDED':
+            self.status = 'ACTIVE'
+            self.save()
 
 
 class AccessLog(models.Model):
-    """
-    Comprehensive access logging
-    سجل شامل للوصول
-    """
-    ACCESS_TYPES = [
-        ('LOGIN', 'Login'),
-        ('LOGOUT', 'Logout'),
-        ('PERMISSION_CHECK', 'Permission Check'),
-        ('RESOURCE_ACCESS', 'Resource Access'),
-        ('DENIED_ACCESS', 'Denied Access'),
+    """سجل الوصول والصلاحيات"""
+    
+    ACTION_TYPES = [
+        ('LOGIN', 'تسجيل دخول'),
+        ('LOGOUT', 'تسجيل خروج'),
+        ('ACCESS_GRANTED', 'وصول مُسمح'),
+        ('ACCESS_DENIED', 'وصول مُرفض'),
+        ('PERMISSION_USED', 'استخدام صلاحية'),
+        ('ROLE_CHANGED', 'تغيير دور'),
     ]
     
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='access_logs')
-    access_type = models.CharField(max_length=20, choices=ACCESS_TYPES)
-    resource = models.CharField(max_length=100, blank=True)
-    permission_checked = models.ForeignKey(Permission, on_delete=models.SET_NULL, null=True, blank=True)
+    RISK_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+    ]
     
-    # Request details
-    ip_address = models.GenericIPAddressField()
-    user_agent = models.TextField()
-    request_path = models.CharField(max_length=500, blank=True)
-    request_method = models.CharField(max_length=10, blank=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
-    # Access result
-    access_granted = models.BooleanField()
-    denial_reason = models.TextField(blank=True)
+    # معلومات المستخدم والجلسة
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                           related_name='access_logs', verbose_name="المستخدم")
+    session_id = models.CharField(max_length=100, blank=True, verbose_name="معرف الجلسة")
     
-    created_at = models.DateTimeField(auto_now_add=True)
+    # نوع الإجراء
+    action_type = models.CharField(max_length=20, choices=ACTION_TYPES,
+                                 verbose_name="نوع الإجراء")
+    action_description = models.CharField(max_length=255, verbose_name="وصف الإجراء")
+    
+    # الصلاحية أو الدور المستخدم
+    permission_used = models.ForeignKey(Permission, on_delete=models.SET_NULL, null=True, blank=True,
+                                      related_name='access_logs', verbose_name="الصلاحية المستخدمة")
+    role_used = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name='access_logs', verbose_name="الدور المستخدم")
+    
+    # معلومات تقنية
+    ip_address = models.GenericIPAddressField(verbose_name="عنوان IP")
+    user_agent = models.TextField(verbose_name="متصفح المستخدم")
+    request_path = models.CharField(max_length=500, blank=True, verbose_name="مسار الطلب")
+    request_method = models.CharField(max_length=10, blank=True, verbose_name="طريقة الطلب")
+    
+    # النتيجة والمخاطر
+    was_successful = models.BooleanField(verbose_name="نجح الإجراء")
+    risk_level = models.CharField(max_length=10, choices=RISK_LEVELS, default='LOW',
+                                verbose_name="مستوى المخاطر")
+    failure_reason = models.CharField(max_length=500, blank=True, verbose_name="سبب الفشل")
+    
+    # المعلومات الإضافية
+    additional_data = models.JSONField(default=dict, verbose_name="بيانات إضافية")
+    
+    # التوقيت
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="الوقت")
     
     class Meta:
-        db_table = 'access_logs'
-        ordering = ['-created_at']
+        verbose_name = "سجل الوصول"
+        verbose_name_plural = "سجلات الوصول"
+        ordering = ['-timestamp']
         indexes = [
-            models.Index(fields=['user', '-created_at']),
-            models.Index(fields=['access_type', '-created_at']),
-            models.Index(fields=['access_granted', '-created_at']),
+            models.Index(fields=['user', '-timestamp']),
+            models.Index(fields=['action_type']),
+            models.Index(fields=['was_successful']),
+            models.Index(fields=['risk_level']),
+            models.Index(fields=['ip_address']),
         ]
     
     def __str__(self):
-        return f"{self.user.username} - {self.access_type} - {self.created_at}"
+        return f"{self.user.display_name} - {self.get_action_type_display()} - {self.timestamp}"
 
 
-class SessionManager(models.Model):
-    """
-    Advanced session management
-    إدارة الجلسات المتقدمة
-    """
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='managed_sessions')
-    session_key = models.CharField(max_length=100, unique=True)
+class SecurityPolicy(models.Model):
+    """سياسات الأمان والصلاحيات"""
     
-    # Session details
-    ip_address = models.GenericIPAddressField()
-    user_agent = models.TextField()
-    device_fingerprint = models.CharField(max_length=100, blank=True)
-    location = models.CharField(max_length=200, blank=True)
+    POLICY_TYPES = [
+        ('AUTHENTICATION', 'مصادقة'),
+        ('AUTHORIZATION', 'تفويض'),
+        ('PASSWORD', 'كلمة مرور'),
+        ('SESSION', 'جلسة'),
+        ('ACCESS_CONTROL', 'التحكم في الوصول'),
+        ('DATA_PROTECTION', 'حماية البيانات'),
+    ]
     
-    # Session control
-    is_active = models.BooleanField(default=True)
-    last_activity = models.DateTimeField(auto_now=True)
-    max_idle_time = models.DurationField(null=True, blank=True)
+    ENFORCEMENT_LEVELS = [
+        ('STRICT', 'صارم'),
+        ('MODERATE', 'متوسط'),
+        ('LENIENT', 'متساهل'),
+        ('DISABLED', 'معطل'),
+    ]
     
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(null=True, blank=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات السياسة
+    name_ar = models.CharField(max_length=200, verbose_name="اسم السياسة - عربي")
+    name_en = models.CharField(max_length=200, verbose_name="اسم السياسة - إنجليزي")
+    code = models.CharField(max_length=50, unique=True, verbose_name="رمز السياسة")
+    description = models.TextField(verbose_name="وصف السياسة")
+    
+    # نوع السياسة
+    policy_type = models.CharField(max_length=20, choices=POLICY_TYPES,
+                                 verbose_name="نوع السياسة")
+    enforcement_level = models.CharField(max_length=15, choices=ENFORCEMENT_LEVELS,
+                                       default='MODERATE', verbose_name="مستوى التطبيق")
+    
+    # إعدادات السياسة
+    policy_settings = models.JSONField(default=dict, verbose_name="إعدادات السياسة")
+    
+    # الأدوار المطبقة عليها
+    applies_to_roles = models.ManyToManyField(Role, blank=True,
+                                            related_name='security_policies',
+                                            verbose_name="الأدوار المطبقة عليها")
+    
+    # التوقيت
+    effective_from = models.DateTimeField(default=timezone.now, verbose_name="سارية من")
+    effective_until = models.DateTimeField(null=True, blank=True, verbose_name="سارية حتى")
+    
+    # الحالة
+    is_active = models.BooleanField(default=True, verbose_name="نشطة")
+    is_system_policy = models.BooleanField(default=False, verbose_name="سياسة نظام")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='created_security_policies',
+                                 verbose_name="أُنشأت بواسطة")
     
     class Meta:
-        db_table = 'session_manager'
-        ordering = ['-created_at']
+        verbose_name = "سياسة أمان"
+        verbose_name_plural = "سياسات الأمان"
+        ordering = ['policy_type', 'name_ar']
         indexes = [
-            models.Index(fields=['user', 'is_active']),
-            models.Index(fields=['session_key', 'is_active']),
-            models.Index(fields=['last_activity']),
+            models.Index(fields=['policy_type', 'is_active']),
+            models.Index(fields=['code']),
+            models.Index(fields=['enforcement_level']),
         ]
     
     def __str__(self):
-        return f"{self.user.username} - {self.session_key[:8]}..."
+        return self.name_ar
     
     @property
-    def is_expired(self):
-        if self.expires_at:
-            return timezone.now() > self.expires_at
-        if self.max_idle_time:
-            return timezone.now() > self.last_activity + self.max_idle_time
-        return False
+    def is_effective(self):
+        """هل السياسة سارية حالياً"""
+        now = timezone.now()
+        if now < self.effective_from:
+            return False
+        if self.effective_until and now > self.effective_until:
+            return False
+        return self.is_active
+
+
+class OrganizationalUnit(models.Model):
+    """الوحدات التنظيمية لتطبيق الصلاحيات"""
     
-    def terminate_session(self):
-        """Terminate the session"""
-        self.is_active = False
-        self.save()
-        # Clear from cache if exists
-        cache.delete(f"session:{self.session_key}")
+    UNIT_TYPES = [
+        ('UNIVERSITY', 'جامعة'),
+        ('COLLEGE', 'كلية'),
+        ('DEPARTMENT', 'قسم'),
+        ('CENTER', 'مركز'),
+        ('INSTITUTE', 'معهد'),
+        ('OFFICE', 'مكتب'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    name_ar = models.CharField(max_length=200, verbose_name="اسم الوحدة - عربي")
+    name_en = models.CharField(max_length=200, verbose_name="اسم الوحدة - إنجليزي")
+    code = models.CharField(max_length=20, unique=True, verbose_name="رمز الوحدة")
+    
+    unit_type = models.CharField(max_length=15, choices=UNIT_TYPES,
+                               verbose_name="نوع الوحدة")
+    
+    # التدرج الهرمي
+    parent_unit = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True,
+                                  related_name='child_units', verbose_name="الوحدة الأب")
+    hierarchy_level = models.IntegerField(default=1, verbose_name="مستوى التدرج")
+    
+    # المسؤولون
+    head = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                           related_name='headed_units', verbose_name="رئيس الوحدة")
+    members = models.ManyToManyField(User, through='UnitMembership',
+                                   related_name='organizational_units',
+                                   verbose_name="الأعضاء")
+    
+    # الحالة
+    is_active = models.BooleanField(default=True, verbose_name="نشطة")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "وحدة تنظيمية"
+        verbose_name_plural = "الوحدات التنظيمية"
+        ordering = ['hierarchy_level', 'name_ar']
+        indexes = [
+            models.Index(fields=['unit_type', 'is_active']),
+            models.Index(fields=['parent_unit']),
+        ]
+    
+    def __str__(self):
+        return self.name_ar
+
+
+class UnitMembership(models.Model):
+    """عضوية الوحدة التنظيمية"""
+    
+    MEMBERSHIP_TYPES = [
+        ('MEMBER', 'عضو'),
+        ('COORDINATOR', 'منسق'),
+        ('DEPUTY', 'نائب'),
+        ('SECRETARY', 'سكرتير'),
+    ]
+    
+    unit = models.ForeignKey(OrganizationalUnit, on_delete=models.CASCADE,
+                           related_name='memberships', verbose_name="الوحدة")
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                           related_name='unit_memberships', verbose_name="المستخدم")
+    
+    membership_type = models.CharField(max_length=15, choices=MEMBERSHIP_TYPES,
+                                     default='MEMBER', verbose_name="نوع العضوية")
+    
+    # التوقيت
+    joined_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الانضمام")
+    valid_until = models.DateTimeField(null=True, blank=True, verbose_name="ساري حتى")
+    
+    # الحالة
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    
+    class Meta:
+        verbose_name = "عضوية وحدة"
+        verbose_name_plural = "عضويات الوحدات"
+        unique_together = ['unit', 'user']
+        ordering = ['unit', 'membership_type', 'user']
+    
+    def __str__(self):
+        return f"{self.user.display_name} - {self.unit.name_ar}"

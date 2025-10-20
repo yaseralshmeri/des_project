@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم المتطورة - نظام إدارة الجامعة</title>
+    
+    <!-- CSS Frameworks -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #1976D2;
+            --primary-dark: #1565C0;
+            --secondary-color: #00BCD4;
+            --success-color: #4CAF50;
+            --warning-color: #FF9800;
+            --danger-color: #F44336;
+            --info-color: #2196F3;
+            --light-color: #F8F9FA;
+            --dark-color: #212529;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+            --border-radius: 12px;
+            --shadow-light: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-medium: 0 4px 8px rgba(0,0,0,0.15);
+            --shadow-heavy: 0 8px 16px rgba(0,0,0,0.2);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* الشريط الجانبي المتطور */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+            box-shadow: var(--shadow-heavy);
+            z-index: 1000;
+            transition: var(--transition);
+            overflow-y: auto;
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            background: rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            text-align: center;
+        }
+
+        .sidebar-logo {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 1rem;
+            background: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .sidebar-title {
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .sidebar.collapsed .sidebar-title {
+            opacity: 0;
+            transform: scale(0);
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-item {
+            margin: 0.25rem 1rem;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(-5px);
+        }
+
+        .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .nav-link i {
+            width: 24px;
+            margin-left: 1rem;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+        .nav-text {
+            transition: var(--transition);
+        }
+
+        .sidebar.collapsed .nav-text {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+
+        /* المحتوى الرئيسي */
+        .main-content {
+            margin-right: var(--sidebar-width);
+            min-height: 100vh;
+            transition: var(--transition);
+        }
+
+        .sidebar.collapsed + .main-content {
+            margin-right: 80px;
+        }
+
+        /* الرأس المتطور */
+        .top-header {
+            height: var(--header-height);
+            background: white;
+            box-shadow: var(--shadow-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--dark-color);
+            cursor: pointer;
+            transition: var(--transition);
+            padding: 0.5rem;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .header-btn:hover {
+            background: var(--light-color);
+            color: var(--primary-color);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+        }
+
+        .user-profile:hover {
+            background: var(--light-color);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* المحتوى */
+        .content {
+            padding: 2rem;
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            min-height: calc(100vh - var(--header-height));
+        }
+
+        /* البطاقات المتطورة */
+        .stat-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-light);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-change {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .stat-change.positive {
+            color: var(--success-color);
+        }
+
+        .stat-change.negative {
+            color: var(--danger-color);
+        }
+
+        /* الرسوم البيانية */
+        .chart-container {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-light);
+            margin-top: 2rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .chart-filters {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.8rem;
+        }
+
+        .filter-btn.active,
+        .filter-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* جدول البيانات المتطور */
+        .data-table {
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+            margin-top: 2rem;
+        }
+
+        .table-header {
+            background: var(--light-color);
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .table-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .table-responsive {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .table {
+            margin: 0;
+        }
+
+        .table th {
+            background: var(--light-color);
+            border: none;
+            font-weight: 600;
+            color: var(--dark-color);
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        .table tbody tr {
+            transition: var(--transition);
+        }
+
+        .table tbody tr:hover {
+            background: rgba(25, 118, 210, 0.05);
+        }
+
+        /* الشارات والحالات */
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-active {
+            background: rgba(76, 175, 80, 0.1);
+            color: var(--success-color);
+        }
+
+        .status-pending {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning-color);
+        }
+
+        .status-inactive {
+            background: rgba(244, 67, 54, 0.1);
+            color: var(--danger-color);
+        }
+
+        /* الوضع المظلم */
+        .dark-mode {
+            --light-color: #2c3e50;
+            --dark-color: #ecf0f1;
+        }
+
+        .dark-mode .top-header,
+        .dark-mode .stat-card,
+        .dark-mode .chart-container,
+        .dark-mode .data-table {
+            background: #34495e;
+            color: #ecf0f1;
+        }
+
+        .dark-mode .table th {
+            background: #2c3e50;
+            color: #ecf0f1;
+        }
+
+        .dark-mode .table td {
+            border-bottom-color: #495057;
+        }
+
+        /* الانيميشن والتأثيرات */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-in-right {
+            animation: slideInRight 0.5s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* الاستجابة للأجهزة المحمولة */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(100%);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-right: 0;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .stat-card {
+                margin-bottom: 1rem;
+            }
+        }
+
+        /* مؤشر التحميل المتطور */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- مؤشر التحميل -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- الشريط الجانبي -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h4 class="sidebar-title">نظام إدارة الجامعة</h4>
+        </div>
+        
+        <ul class="sidebar-nav">
+            <li class="nav-item">
+                <a href="#" class="nav-link active">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span class="nav-text">لوحة التحكم</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    <span class="nav-text">الطلاب</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <span class="nav-text">أعضاء هيئة التدريس</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-book"></i>
+                    <span class="nav-text">المقررات</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span class="nav-text">الجداول الدراسية</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="nav-text">الدرجات والتقييم</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span class="nav-text">الشؤون المالية</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="nav-text">التقارير</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-robot"></i>
+                    <span class="nav-text">الذكاء الاصطناعي</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-shield-alt"></i>
+                    <span class="nav-text">الأمان السيبراني</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    <span class="nav-text">الإعدادات</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- المحتوى الرئيسي -->
+    <div class="main-content">
+        <!-- الرأس -->
+        <header class="top-header">
+            <div class="header-actions">
+                <button class="header-btn" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <button class="header-btn" id="searchBtn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            
+            <div class="header-actions">
+                <button class="header-btn" id="notificationBtn">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">5</span>
+                </button>
+                <button class="header-btn" id="themeToggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="user-profile">
+                    <div class="user-avatar">أ.م</div>
+                    <div>
+                        <div style="font-weight: 600;">أحمد محمد</div>
+                        <div style="font-size: 0.8rem; color: #6c757d;">مدير النظام</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- المحتوى -->
+        <main class="content">
+            <!-- البطاقات الإحصائية -->
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="stat-card fade-in">
+                        <div class="stat-icon" style="background: var(--primary-color);">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-number">12,845</div>
+                        <div class="stat-label">إجمالي الطلاب</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>8.5% زيادة</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="stat-card fade-in" style="animation-delay: 0.1s;">
+                        <div class="stat-icon" style="background: var(--success-color);">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div class="stat-number">1,247</div>
+                        <div class="stat-label">أعضاء هيئة التدريس</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>3.2% زيادة</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="stat-card fade-in" style="animation-delay: 0.2s;">
+                        <div class="stat-icon" style="background: var(--warning-color);">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="stat-number">2,156</div>
+                        <div class="stat-label">المقررات النشطة</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>12.1% زيادة</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="stat-card fade-in" style="animation-delay: 0.3s;">
+                        <div class="stat-icon" style="background: var(--info-color);">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="stat-number">3,428</div>
+                        <div class="stat-label">الخريجون هذا العام</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>5.7% زيادة</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الرسوم البيانية -->
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="chart-container slide-in-right">
+                        <div class="chart-header">
+                            <h5 class="chart-title">إحصائيات التسجيل الشهرية</h5>
+                            <div class="chart-filters">
+                                <button class="filter-btn active">هذا العام</button>
+                                <button class="filter-btn">العام الماضي</button>
+                                <button class="filter-btn">آخر 6 أشهر</button>
+                            </div>
+                        </div>
+                        <canvas id="enrollmentChart" height="200"></canvas>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4">
+                    <div class="chart-container slide-in-right" style="animation-delay: 0.2s;">
+                        <div class="chart-header">
+                            <h5 class="chart-title">توزيع الطلاب حسب الكليات</h5>
+                        </div>
+                        <canvas id="collegeDistributionChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول البيانات -->
+            <div class="data-table slide-in-right" style="animation-delay: 0.4s;">
+                <div class="table-header">
+                    <h5 class="table-title">آخر العمليات المسجلة</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>المستخدم</th>
+                                <th>العملية</th>
+                                <th>التاريخ</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-2" style="width: 30px; height: 30px; font-size: 0.8rem;">س.أ</div>
+                                        <div>
+                                            <div style="font-weight: 500;">سارة أحمد</div>
+                                            <small class="text-muted">202012345</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>تسجيل مقرر جديد</td>
+                                <td>2024-01-15 10:30</td>
+                                <td><span class="status-badge status-active">مكتمل</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">عرض</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-2" style="width: 30px; height: 30px; font-size: 0.8rem;">م.ع</div>
+                                        <div>
+                                            <div style="font-weight: 500;">محمد علي</div>
+                                            <small class="text-muted">د. علوم الحاسوب</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>رفع درجات الطلاب</td>
+                                <td>2024-01-15 09:15</td>
+                                <td><span class="status-badge status-pending">قيد المراجعة</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">عرض</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-2" style="width: 30px; height: 30px; font-size: 0.8rem;">ف.م</div>
+                                        <div>
+                                            <div style="font-weight: 500;">فاطمة محمود</div>
+                                            <small class="text-muted">موظفة قبول وتسجيل</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>تحديث بيانات طالب</td>
+                                <td>2024-01-15 08:45</td>
+                                <td><span class="status-badge status-active">مكتمل</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">عرض</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-2" style="width: 30px; height: 30px; font-size: 0.8rem;">ن.ح</div>
+                                        <div>
+                                            <div style="font-weight: 500;">نورا حسن</div>
+                                            <small class="text-muted">202067890</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>طلب إفادة</td>
+                                <td>2024-01-14 16:20</td>
+                                <td><span class="status-badge status-inactive">مرفوض</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">عرض</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // إخفاء مؤشر التحميل عند اكتمال التحميل
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }, 1000);
+        });
+
+        // وظائف التفاعل
+        document.addEventListener('DOMContentLoaded', function() {
+            // تبديل الشريط الجانبي
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('sidebar');
+            
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+            });
+
+            // تبديل الوضع المظلم
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = themeToggle.querySelector('i');
+            
+            themeToggle.addEventListener('click', function() {
+                document.body.classList.toggle('dark-mode');
+                
+                if (document.body.classList.contains('dark-mode')) {
+                    themeIcon.classList.replace('fa-moon', 'fa-sun');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    themeIcon.classList.replace('fa-sun', 'fa-moon');
+                    localStorage.setItem('theme', 'light');
+                }
+            });
+
+            // استرجاع الوضع المحفوظ
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeIcon.classList.replace('fa-moon', 'fa-sun');
+            }
+
+            // الرسم البياني للتسجيل
+            const enrollmentCtx = document.getElementById('enrollmentChart').getContext('2d');
+            new Chart(enrollmentCtx, {
+                type: 'line',
+                data: {
+                    labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'],
+                    datasets: [{
+                        label: 'تسجيلات جديدة',
+                        data: [1200, 1100, 1300, 1450, 1200, 1350, 1500, 1600, 2100, 1800, 1400, 1250],
+                        borderColor: 'rgb(25, 118, 210)',
+                        backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#f0f0f0'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // الرسم البياني لتوزيع الكليات
+            const collegeCtx = document.getElementById('collegeDistributionChart').getContext('2d');
+            new Chart(collegeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['الهندسة', 'الطب', 'العلوم', 'الآداب', 'إدارة الأعمال', 'الحاسوب'],
+                    datasets: [{
+                        data: [3200, 2800, 2400, 1900, 1600, 900],
+                        backgroundColor: [
+                            '#1976D2',
+                            '#4CAF50',
+                            '#FF9800',
+                            '#9C27B0',
+                            '#F44336',
+                            '#00BCD4'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+
+            // تحديث البيانات تلقائياً كل 30 ثانية
+            setInterval(function() {
+                // محاكاة تحديث البيانات
+                const statNumbers = document.querySelectorAll('.stat-number');
+                statNumbers.forEach(stat => {
+                    const currentValue = parseInt(stat.textContent.replace(/,/g, ''));
+                    const newValue = currentValue + Math.floor(Math.random() * 10);
+                    stat.textContent = newValue.toLocaleString();
+                });
+            }, 30000);
+        });
+    </script>
+</body>
+</html>
