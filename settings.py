@@ -90,6 +90,10 @@ LOCAL_APPS = [
     'web.apps.WebConfig',
     'admin_control.apps.AdminControlConfig',
     'roles_permissions.apps.RolesPermissionsConfig',
+    # New AI and Security Apps
+    'smart_ai',
+    'cyber_security',
+    'attendance_qr',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

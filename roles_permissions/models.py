@@ -22,7 +22,7 @@ class Department(models.Model):
     code = models.CharField(max_length=10, unique=True)
     description = models.TextField(blank=True)
     parent_department = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='sub_departments')
-    head_of_department = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='headed_departments')
+    head_of_department = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='roles_headed_departments')
     budget_code = models.CharField(max_length=20, blank=True)
     location = models.CharField(max_length=200, blank=True)
     phone = models.CharField(max_length=20, blank=True)
@@ -33,7 +33,7 @@ class Department(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        db_table = 'departments'
+        db_table = 'roles_departments'
         ordering = ['name']
     
     def __str__(self):
@@ -152,7 +152,7 @@ class Permission(models.Model):
     permission_type = models.CharField(max_length=20, choices=PERMISSION_TYPES)
     
     # Resource association
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True, related_name='custom_permissions')
     resource_name = models.CharField(max_length=100, help_text="e.g., 'students', 'courses', 'reports'")
     
     # Permission constraints
