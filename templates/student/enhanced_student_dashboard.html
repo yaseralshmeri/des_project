@@ -1,0 +1,414 @@
+{% extends 'enhanced_base.html' %}
+{% load static %}
+
+{% block title %}لوحة تحكم الطالب - {{ user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Welcome Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="welcome-card bg-gradient-primary text-white p-4 rounded-4 shadow">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="display-6 fw-bold mb-2">
+                            مرحباً {{ user.get_full_name|default:user.username }}! 🎓
+                        </h1>
+                        <p class="lead mb-2">
+                            الرقم الجامعي: <span class="badge bg-light text-primary fs-6">{{ student.student_id }}</span>
+                        </p>
+                        <p class="mb-0">
+                            <i class="fas fa-building me-2"></i>{{ student.department.name|default:"غير محدد" }}
+                            <span class="mx-3">|</span>
+                            <i class="fas fa-calendar me-2"></i>المستوى: {{ student.academic_level|default:"الأول" }}
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="student-avatar">
+                            {% if user.profile_picture %}
+                                <img src="{{ user.profile_picture.url }}" alt="صورة الطالب" class="rounded-circle border-4 border-white shadow" width="120" height="120">
+                            {% else %}
+                                <div class="bg-white bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center border-4 border-white shadow" style="width: 120px; height: 120px;">
+                                    <i class="fas fa-user fa-3x text-white opacity-75"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 hover-card">
+                <div class="card-body text-center">
+                    <div class="text-primary mb-3">
+                        <i class="fas fa-book-open fa-3x"></i>
+                    </div>
+                    <h3 class="text-primary fw-bold mb-1">{{ stats.enrolled_courses|default:0 }}</h3>
+                    <p class="text-muted mb-0">المقررات المسجلة</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 hover-card">
+                <div class="card-body text-center">
+                    <div class="text-success mb-3">
+                        <i class="fas fa-chart-line fa-3x"></i>
+                    </div>
+                    <h3 class="text-success fw-bold mb-1">{{ stats.gpa|default:"0.00" }}</h3>
+                    <p class="text-muted mb-0">المعدل التراكمي</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 hover-card">
+                <div class="card-body text-center">
+                    <div class="text-warning mb-3">
+                        <i class="fas fa-graduation-cap fa-3x"></i>
+                    </div>
+                    <h3 class="text-warning fw-bold mb-1">{{ stats.completed_hours|default:0 }}</h3>
+                    <p class="text-muted mb-0">الساعات المكتسبة</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 hover-card">
+                <div class="card-body text-center">
+                    <div class="text-info mb-3">
+                        <i class="fas fa-calendar-check fa-3x"></i>
+                    </div>
+                    <h3 class="text-info fw-bold mb-1">{{ stats.attendance_rate|default:0 }}%</h3>
+                    <p class="text-muted mb-0">معدل الحضور</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Current Courses -->
+        <div class="col-xl-8 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title text-primary mb-0">
+                            <i class="fas fa-books me-2"></i>
+                            المقررات الحالية
+                        </h5>
+                        <a href="{% url 'web:my_courses' %}" class="btn btn-outline-primary btn-sm">
+                            عرض الكل
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if current_courses %}
+                        <div class="row">
+                            {% for enrollment in current_courses %}
+                            <div class="col-md-6 mb-3">
+                                <div class="course-card border rounded-3 p-3 h-100">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="fw-bold text-dark mb-1">{{ enrollment.course.name }}</h6>
+                                        <span class="badge bg-primary">{{ enrollment.course.code }}</span>
+                                    </div>
+                                    <p class="text-muted small mb-2">
+                                        <i class="fas fa-user-tie me-1"></i>
+                                        {{ enrollment.course.instructor|default:"غير محدد" }}
+                                    </p>
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <small class="text-muted d-block">الساعات</small>
+                                            <strong class="text-primary">{{ enrollment.course.credit_hours|default:3 }}</strong>
+                                        </div>
+                                        <div class="col-4">
+                                            <small class="text-muted d-block">الدرجة</small>
+                                            <strong class="text-success">{{ enrollment.current_grade|default:"--" }}</strong>
+                                        </div>
+                                        <div class="col-4">
+                                            <small class="text-muted d-block">الحضور</small>
+                                            <strong class="text-info">{{ enrollment.attendance_rate|default:0 }}%</strong>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <div class="progress" style="height: 5px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ enrollment.progress|default:0 }}%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">لا توجد مقررات مسجلة حالياً</h5>
+                            <p class="text-muted">تواصل مع المرشد الأكاديمي لتسجيل المقررات</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-xl-4">
+            <!-- Academic Progress -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <h6 class="card-title text-primary mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        التقدم الأكاديمي
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="progress-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small">الساعات المكتسبة</span>
+                            <span class="small fw-bold">{{ stats.completed_hours|default:0 }}/{{ stats.required_hours|default:132 }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ stats.hours_percentage|default:0 }}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="progress-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small">المتطلبات الأساسية</span>
+                            <span class="small fw-bold">{{ stats.core_completed|default:0 }}/{{ stats.core_required|default:45 }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ stats.core_percentage|default:0 }}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="progress-item">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small">المتطلبات الاختيارية</span>
+                            <span class="small fw-bold">{{ stats.elective_completed|default:0 }}/{{ stats.elective_required|default:21 }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ stats.elective_percentage|default:0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Notifications -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="card-title text-primary mb-0">
+                            <i class="fas fa-bell me-2"></i>
+                            الإشعارات الحديثة
+                        </h6>
+                        <span class="badge bg-danger">{{ unread_notifications_count|default:0 }}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if recent_notifications %}
+                        {% for notification in recent_notifications %}
+                        <div class="notification-item d-flex align-items-start mb-3 p-2 rounded {% if not notification.is_read %}bg-light{% endif %}">
+                            <div class="notification-icon me-2 mt-1">
+                                <i class="fas fa-{% if notification.notification_type == 'academic' %}graduation-cap{% elif notification.notification_type == 'financial' %}money-bill{% else %}info-circle{% endif %} text-primary"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 fs-6">{{ notification.title }}</h6>
+                                <p class="text-muted small mb-1">{{ notification.message|truncatechars:100 }}</p>
+                                <small class="text-muted">{{ notification.created_at|timesince }} منذ</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-bell-slash fa-2x text-muted mb-2"></i>
+                            <p class="text-muted small mb-0">لا توجد إشعارات جديدة</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h6 class="card-title text-primary mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        إجراءات سريعة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'web:my_courses' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-book me-2"></i>
+                            مقرراتي
+                        </a>
+                        <a href="{% url 'web:grades' %}" class="btn btn-outline-success">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            الدرجات
+                        </a>
+                        <a href="{% url 'web:schedule' %}" class="btn btn-outline-info">
+                            <i class="fas fa-calendar me-2"></i>
+                            الجدول الدراسي
+                        </a>
+                        <a href="{% url 'web:transcript' %}" class="btn btn-outline-warning">
+                            <i class="fas fa-file-alt me-2"></i>
+                            كشف الدرجات
+                        </a>
+                        <a href="{% url 'web:profile' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-user me-2"></i>
+                            الملف الشخصي
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Events & Deadlines -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="card-title text-primary mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        الأحداث والمواعيد المهمة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_events %}
+                        <div class="row">
+                            {% for event in upcoming_events %}
+                            <div class="col-md-4 mb-3">
+                                <div class="event-card border-start border-4 border-{{ event.type_color|default:'primary' }} bg-light p-3 rounded">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="fw-bold mb-0">{{ event.title }}</h6>
+                                        <span class="badge bg-{{ event.type_color|default:'primary' }}">{{ event.type }}</span>
+                                    </div>
+                                    <p class="text-muted small mb-2">{{ event.description|truncatechars:80 }}</p>
+                                    <div class="d-flex align-items-center text-muted small">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        <span>{{ event.date|date:"d M Y" }}</span>
+                                        <span class="mx-2">|</span>
+                                        <i class="fas fa-clock me-1"></i>
+                                        <span>{{ event.time|time:"H:i" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">لا توجد أحداث مجدولة</h6>
+                            <p class="text-muted small">سيتم عرض الأحداث والمواعيد المهمة هنا</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.welcome-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.hover-card {
+    transition: all 0.3s ease;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+}
+
+.course-card {
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef !important;
+}
+
+.course-card:hover {
+    border-color: #667eea !important;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+}
+
+.notification-item {
+    transition: all 0.3s ease;
+}
+
+.notification-item:hover {
+    background-color: #f8f9ff !important;
+    transform: translateX(5px);
+}
+
+.event-card {
+    transition: all 0.3s ease;
+}
+
+.event-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.progress-item {
+    transition: all 0.3s ease;
+}
+
+.progress-item:hover {
+    transform: scale(1.02);
+}
+
+.student-avatar img,
+.student-avatar div {
+    transition: all 0.3s ease;
+}
+
+.student-avatar:hover img,
+.student-avatar:hover div {
+    transform: scale(1.05);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-success:hover,
+.btn-outline-info:hover,
+.btn-outline-warning:hover,
+.btn-outline-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mark notifications as read when clicked
+    document.querySelectorAll('.notification-item').forEach(item => {
+        item.addEventListener('click', function() {
+            if (!this.classList.contains('bg-light')) return;
+            
+            // Mark as read visually
+            this.classList.remove('bg-light');
+            
+            // You can add AJAX call here to mark as read in database
+        });
+    });
+
+    // Auto-refresh notifications every 2 minutes
+    setInterval(function() {
+        // You can add AJAX call here to fetch new notifications
+        console.log('Checking for new notifications...');
+    }, 120000);
+});
+</script>
+{% endblock %}

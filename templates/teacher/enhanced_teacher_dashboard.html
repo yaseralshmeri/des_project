@@ -1,0 +1,609 @@
+{% extends 'enhanced_base.html' %}
+{% load static %}
+
+{% block title %}لوحة تحكم الأستاذ - {{ user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Welcome Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="welcome-card bg-gradient-success text-white p-4 rounded-4 shadow">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="display-6 fw-bold mb-2">
+                            مرحباً د. {{ user.get_full_name|default:user.username }}! 👨‍🏫
+                        </h1>
+                        <p class="lead mb-2">
+                            الرقم الوظيفي: <span class="badge bg-light text-success fs-6">{{ teacher.employee_id|default:"غير محدد" }}</span>
+                        </p>
+                        <p class="mb-0">
+                            <i class="fas fa-building me-2"></i>{{ teacher.department.name|default:"غير محدد" }}
+                            <span class="mx-3">|</span>
+                            <i class="fas fa-briefcase me-2"></i>{{ teacher.position|default:"أستاذ" }}
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="teacher-avatar">
+                            {% if user.profile_picture %}
+                                <img src="{{ user.profile_picture.url }}" alt="صورة الأستاذ" class="rounded-circle border-4 border-white shadow" width="120" height="120">
+                            {% else %}
+                                <div class="bg-white bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center border-4 border-white shadow" style="width: 120px; height: 120px;">
+                                    <i class="fas fa-user-tie fa-3x text-white opacity-75"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 hover-card">
+                <div class="card-body text-center">
+                    <div class="text-primary mb-3">
+                        <i class="fas fa-chalkboard-teacher fa-3x"></i>
+                    </div>
+                    <h3 class="text-primary fw-bold mb-1">{{ stats.teaching_courses|default:0 }}</h3>
+                    <p class="text-muted mb-0">المقررات التي أدرسها</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 hover-card">
+                <div class="card-body text-center">
+                    <div class="text-success mb-3">
+                        <i class="fas fa-users fa-3x"></i>
+                    </div>
+                    <h3 class="text-success fw-bold mb-1">{{ stats.total_students|default:0 }}</h3>
+                    <p class="text-muted mb-0">إجمالي الطلاب</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 hover-card">
+                <div class="card-body text-center">
+                    <div class="text-warning mb-3">
+                        <i class="fas fa-clipboard-check fa-3x"></i>
+                    </div>
+                    <h3 class="text-warning fw-bold mb-1">{{ stats.pending_grades|default:0 }}</h3>
+                    <p class="text-muted mb-0">درجات في الانتظار</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 hover-card">
+                <div class="card-body text-center">
+                    <div class="text-info mb-3">
+                        <i class="fas fa-calendar-week fa-3x"></i>
+                    </div>
+                    <h3 class="text-info fw-bold mb-1">{{ stats.weekly_hours|default:0 }}</h3>
+                    <p class="text-muted mb-0">ساعات تدريس أسبوعياً</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Teaching Courses -->
+        <div class="col-xl-8 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title text-primary mb-0">
+                            <i class="fas fa-chalkboard me-2"></i>
+                            المقررات التي أدرسها
+                        </h5>
+                        <a href="{% url 'web:teaching_courses' %}" class="btn btn-outline-primary btn-sm">
+                            عرض الكل
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if teaching_courses %}
+                        <div class="row">
+                            {% for course in teaching_courses %}
+                            <div class="col-md-6 mb-4">
+                                <div class="course-card border rounded-3 p-3 h-100">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <h6 class="fw-bold text-dark mb-1">{{ course.name }}</h6>
+                                        <span class="badge bg-success">{{ course.code }}</span>
+                                    </div>
+                                    
+                                    <div class="course-stats row text-center mb-3">
+                                        <div class="col-4">
+                                            <small class="text-muted d-block">الطلاب</small>
+                                            <strong class="text-primary">{{ course.student_count|default:0 }}</strong>
+                                        </div>
+                                        <div class="col-4">
+                                            <small class="text-muted d-block">الساعات</small>
+                                            <strong class="text-success">{{ course.credit_hours|default:3 }}</strong>
+                                        </div>
+                                        <div class="col-4">
+                                            <small class="text-muted d-block">الحضور</small>
+                                            <strong class="text-info">{{ course.avg_attendance|default:0 }}%</strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="course-actions d-flex gap-2">
+                                        <a href="{% url 'web:course_detail' course.id %}" class="btn btn-outline-primary btn-sm flex-fill">
+                                            <i class="fas fa-eye me-1"></i>
+                                            عرض
+                                        </a>
+                                        <a href="{% url 'web:attendance' course.id %}" class="btn btn-outline-success btn-sm flex-fill">
+                                            <i class="fas fa-check me-1"></i>
+                                            حضور
+                                        </a>
+                                        <a href="{% url 'web:grades' course.id %}" class="btn btn-outline-warning btn-sm flex-fill">
+                                            <i class="fas fa-star me-1"></i>
+                                            درجات
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-chalkboard-teacher fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">لا توجد مقررات مخصصة حالياً</h5>
+                            <p class="text-muted">تواصل مع إدارة الكلية لتخصيص المقررات</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-xl-4">
+            <!-- Today's Schedule -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <h6 class="card-title text-primary mb-0">
+                        <i class="fas fa-calendar-day me-2"></i>
+                        جدول اليوم
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if today_schedule %}
+                        {% for class in today_schedule %}
+                        <div class="schedule-item d-flex align-items-center p-2 mb-2 rounded bg-light">
+                            <div class="time-badge bg-primary text-white px-2 py-1 rounded me-3">
+                                {{ class.start_time|time:"H:i" }}
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0">{{ class.course.name }}</h6>
+                                <small class="text-muted">{{ class.room|default:"غير محدد" }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                            <p class="text-muted small mb-0">لا توجد محاضرات مجدولة اليوم</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <h6 class="card-title text-primary mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        إجراءات سريعة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#attendanceModal">
+                            <i class="fas fa-check-circle me-2"></i>
+                            تسجيل حضور
+                        </a>
+                        <a href="#" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#gradeModal">
+                            <i class="fas fa-star me-2"></i>
+                            إدخال درجات
+                        </a>
+                        <a href="#" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#announcementModal">
+                            <i class="fas fa-bullhorn me-2"></i>
+                            إعلان جديد
+                        </a>
+                        <a href="{% url 'web:teaching_schedule' %}" class="btn btn-outline-warning">
+                            <i class="fas fa-calendar me-2"></i>
+                            الجدول التدريسي
+                        </a>
+                        <a href="{% url 'web:profile' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-user me-2"></i>
+                            الملف الشخصي
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activities -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h6 class="card-title text-primary mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        الأنشطة الحديثة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_activities %}
+                        {% for activity in recent_activities %}
+                        <div class="activity-item d-flex align-items-start mb-3">
+                            <div class="activity-icon me-2 mt-1">
+                                <i class="fas fa-{{ activity.icon|default:'info-circle' }} text-{{ activity.color|default:'primary' }}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <p class="mb-1 small">{{ activity.description }}</p>
+                                <small class="text-muted">{{ activity.created_at|timesince }} منذ</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-clock fa-2x text-muted mb-2"></i>
+                            <p class="text-muted small mb-0">لا توجد أنشطة حديثة</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Performance Overview -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="card-title text-primary mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        نظرة عامة على أداء الطلاب
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <canvas id="performanceChart" height="300"></canvas>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="performance-stats">
+                                <div class="stat-item d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded">
+                                    <span>معدل النجاح</span>
+                                    <span class="badge bg-success fs-6">{{ stats.success_rate|default:0 }}%</span>
+                                </div>
+                                <div class="stat-item d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded">
+                                    <span>متوسط الدرجات</span>
+                                    <span class="badge bg-primary fs-6">{{ stats.avg_grade|default:0 }}</span>
+                                </div>
+                                <div class="stat-item d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded">
+                                    <span>معدل الحضور</span>
+                                    <span class="badge bg-info fs-6">{{ stats.avg_attendance|default:0 }}%</span>
+                                </div>
+                                <div class="stat-item d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                                    <span>الطلاب المتميزون</span>
+                                    <span class="badge bg-warning fs-6">{{ stats.excellent_students|default:0 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Modal -->
+<div class="modal fade" id="attendanceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تسجيل الحضور</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="attendanceForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">المقرر</label>
+                            <select class="form-select" name="course" required>
+                                <option value="">اختر المقرر</option>
+                                {% for course in teaching_courses %}
+                                <option value="{{ course.id }}">{{ course.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">التاريخ</label>
+                            <input type="date" class="form-control" name="date" value="{{ today|date:'Y-m-d' }}" required>
+                        </div>
+                    </div>
+                    <div id="studentsList">
+                        <!-- Students list will be loaded here -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="submitAttendance()">
+                    <i class="fas fa-save me-2"></i>حفظ الحضور
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grade Modal -->
+<div class="modal fade" id="gradeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إدخال الدرجات</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="gradeForm">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">المقرر</label>
+                            <select class="form-select" name="course" required>
+                                <option value="">اختر المقرر</option>
+                                {% for course in teaching_courses %}
+                                <option value="{{ course.id }}">{{ course.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">نوع التقييم</label>
+                            <select class="form-select" name="assessment_type" required>
+                                <option value="">اختر النوع</option>
+                                <option value="midterm">امتحان نصفي</option>
+                                <option value="final">امتحان نهائي</option>
+                                <option value="assignment">واجب</option>
+                                <option value="quiz">اختبار قصير</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">الدرجة الكاملة</label>
+                            <input type="number" class="form-control" name="total_marks" min="1" max="100" required>
+                        </div>
+                    </div>
+                    <div id="gradesInput">
+                        <!-- Grades input will be loaded here -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-success" onclick="submitGrades()">
+                    <i class="fas fa-save me-2"></i>حفظ الدرجات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Announcement Modal -->
+<div class="modal fade" id="announcementModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إعلان جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="announcementForm">
+                    <div class="mb-3">
+                        <label class="form-label">المقرر</label>
+                        <select class="form-select" name="course" required>
+                            <option value="">اختر المقرر</option>
+                            {% for course in teaching_courses %}
+                            <option value="{{ course.id }}">{{ course.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">عنوان الإعلان</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">محتوى الإعلان</label>
+                        <textarea class="form-control" name="content" rows="4" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">أولوية الإعلان</label>
+                        <select class="form-select" name="priority">
+                            <option value="normal">عادي</option>
+                            <option value="important">مهم</option>
+                            <option value="urgent">عاجل</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-info" onclick="submitAnnouncement()">
+                    <i class="fas fa-paper-plane me-2"></i>إرسال الإعلان
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bg-gradient-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.welcome-card {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+}
+
+.hover-card {
+    transition: all 0.3s ease;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+}
+
+.course-card {
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef !important;
+}
+
+.course-card:hover {
+    border-color: #28a745 !important;
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.1);
+}
+
+.schedule-item {
+    transition: all 0.3s ease;
+}
+
+.schedule-item:hover {
+    background-color: #e7f3ff !important;
+}
+
+.activity-item {
+    transition: all 0.3s ease;
+}
+
+.activity-item:hover {
+    background-color: #f8f9ff;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+}
+
+.teacher-avatar img,
+.teacher-avatar div {
+    transition: all 0.3s ease;
+}
+
+.teacher-avatar:hover img,
+.teacher-avatar:hover div {
+    transform: scale(1.05);
+}
+
+.time-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.course-actions .btn {
+    font-size: 0.8rem;
+}
+
+.course-stats strong {
+    font-size: 1.1rem;
+}
+
+.stat-item {
+    transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+    background-color: #e8f4fd !important;
+    transform: translateX(5px);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Performance Chart
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ performance_chart_labels|safe }},
+            datasets: [{
+                label: 'متوسط الدرجات',
+                data: {{ performance_chart_data|safe }},
+                backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        font: {
+                            family: 'Cairo'
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+});
+
+function submitAttendance() {
+    // Implementation for attendance submission
+    alert('تم حفظ الحضور بنجاح!');
+    $('#attendanceModal').modal('hide');
+}
+
+function submitGrades() {
+    // Implementation for grades submission
+    alert('تم حفظ الدرجات بنجاح!');
+    $('#gradeModal').modal('hide');
+}
+
+function submitAnnouncement() {
+    // Implementation for announcement submission
+    alert('تم إرسال الإعلان بنجاح!');
+    $('#announcementModal').modal('hide');
+}
+
+// Load students when course is selected in attendance modal
+document.querySelector('#attendanceModal select[name="course"]').addEventListener('change', function() {
+    const courseId = this.value;
+    if (courseId) {
+        // Load students via AJAX
+        document.getElementById('studentsList').innerHTML = `
+            <div class="text-center py-3">
+                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                <p class="mt-2">جاري تحميل قائمة الطلاب...</p>
+            </div>
+        `;
+        // Simulate loading
+        setTimeout(() => {
+            document.getElementById('studentsList').innerHTML = `
+                <h6>قائمة الطلاب:</h6>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="1" id="student1">
+                            <label class="form-check-label" for="student1">أحمد محمد علي - 2021001</label>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }, 1000);
+    }
+});
+</script>
+{% endblock %}

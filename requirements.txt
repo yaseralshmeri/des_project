@@ -21,6 +21,9 @@ djangorestframework==3.14.0
 # JWT Authentication
 djangorestframework-simplejwt==5.3.0
 
+# Fix pkg_resources warnings
+setuptools-scm==8.0.4
+
 # Security Enhancements
 django-ratelimit==4.1.0
 django-csp==3.8

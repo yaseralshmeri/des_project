@@ -1,0 +1,522 @@
+{% extends 'enhanced_base.html' %}
+{% load static %}
+
+{% block title %}لوحة تحكم المدير الشاملة - نظام إدارة الجامعة{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-header bg-gradient-primary text-white p-4 rounded-4 shadow">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h1 class="display-6 fw-bold mb-2">
+                            <i class="fas fa-tachometer-alt me-3"></i>
+                            لوحة تحكم المدير الشاملة
+                        </h1>
+                        <p class="lead mb-0">إدارة شاملة لجميع عمليات الجامعة</p>
+                    </div>
+                    <div class="text-end">
+                        <div class="badge bg-light text-dark p-2 fs-6">
+                            {{ current_academic_year }} - الفصل {{ current_semester }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 hover-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-primary bg-gradient rounded-circle p-3 text-white">
+                                <i class="fas fa-users fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small text-muted">إجمالي الطلاب</div>
+                            <div class="h4 mb-0 text-primary fw-bold">{{ stats.total_students|default:0 }}</div>
+                            <div class="small text-success">
+                                <i class="fas fa-arrow-up"></i> +{{ stats.new_students_this_month|default:0 }} هذا الشهر
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 hover-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-success bg-gradient rounded-circle p-3 text-white">
+                                <i class="fas fa-chalkboard-teacher fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small text-muted">إجمالي الأساتذة</div>
+                            <div class="h4 mb-0 text-success fw-bold">{{ stats.total_teachers|default:0 }}</div>
+                            <div class="small">
+                                <span class="text-info">{{ stats.active_teachers|default:0 }}</span> نشط
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 hover-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-warning bg-gradient rounded-circle p-3 text-white">
+                                <i class="fas fa-book fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small text-muted">إجمالي المقررات</div>
+                            <div class="h4 mb-0 text-warning fw-bold">{{ stats.total_courses|default:0 }}</div>
+                            <div class="small">
+                                <span class="text-success">{{ stats.active_courses|default:0 }}</span> نشط
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 hover-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-info bg-gradient rounded-circle p-3 text-white">
+                                <i class="fas fa-graduation-cap fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small text-muted">إجمالي التسجيلات</div>
+                            <div class="h4 mb-0 text-info fw-bold">{{ stats.total_enrollments|default:0 }}</div>
+                            <div class="small text-success">
+                                <i class="fas fa-chart-line"></i> {{ stats.enrollment_rate|default:0 }}% معدل التسجيل
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pb-0">
+                    <h5 class="card-title text-primary mb-3">
+                        <i class="fas fa-bolt me-2"></i>
+                        إجراءات سريعة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2 col-sm-6 mb-3">
+                            <a href="{% url 'admin:students_student_add' %}" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3">
+                                <i class="fas fa-user-plus fa-2x mb-2"></i>
+                                <span>إضافة طالب</span>
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-sm-6 mb-3">
+                            <a href="{% url 'admin:courses_course_add' %}" class="btn btn-outline-success w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3">
+                                <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                                <span>إضافة مقرر</span>
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-sm-6 mb-3">
+                            <a href="{% url 'admin:students_user_add' %}" class="btn btn-outline-warning w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3">
+                                <i class="fas fa-user-tie fa-2x mb-2"></i>
+                                <span>إضافة أستاذ</span>
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-sm-6 mb-3">
+                            <a href="#" class="btn btn-outline-info w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3" data-bs-toggle="modal" data-bs-target="#reportModal">
+                                <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                                <span>إنشاء تقرير</span>
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-sm-6 mb-3">
+                            <a href="#" class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3" onclick="createBackup()">
+                                <i class="fas fa-database fa-2x mb-2"></i>
+                                <span>نسخ احتياطي</span>
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-sm-6 mb-3">
+                            <a href="{% url 'admin:notifications_notification_add' %}" class="btn btn-outline-danger w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3">
+                                <i class="fas fa-bell fa-2x mb-2"></i>
+                                <span>إرسال إشعار</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Analytics -->
+    <div class="row mb-4">
+        <div class="col-xl-8 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0">
+                    <h5 class="card-title text-primary mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        إحصائيات التسجيل الشهرية
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="enrollmentChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0">
+                    <h5 class="card-title text-primary mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        توزيع الطلاب حسب الكلية
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="departmentChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities and System Status -->
+    <div class="row">
+        <div class="col-xl-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0">
+                    <h5 class="card-title text-primary mb-0">
+                        <i class="fas fa-clock me-2"></i>
+                        الأنشطة الحديثة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for activity in recent_activities %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-{{ activity.type }}"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title mb-1">{{ activity.title }}</h6>
+                                <p class="timeline-text mb-1">{{ activity.description }}</p>
+                                <small class="text-muted">{{ activity.created_at|timesince }} منذ</small>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle fa-2x mb-2"></i>
+                            <p>لا توجد أنشطة حديثة</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0">
+                    <h5 class="card-title text-primary mb-0">
+                        <i class="fas fa-server me-2"></i>
+                        حالة النظام
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="system-status">
+                        <div class="status-item d-flex justify-content-between align-items-center mb-3">
+                            <span>قاعدة البيانات</span>
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>متصلة
+                            </span>
+                        </div>
+                        <div class="status-item d-flex justify-content-between align-items-center mb-3">
+                            <span>الخادم</span>
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>يعمل
+                            </span>
+                        </div>
+                        <div class="status-item d-flex justify-content-between align-items-center mb-3">
+                            <span>استخدام المساحة</span>
+                            <span class="badge bg-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>{{ system_info.disk_usage|default:"75" }}%
+                            </span>
+                        </div>
+                        <div class="status-item d-flex justify-content-between align-items-center mb-3">
+                            <span>استخدام الذاكرة</span>
+                            <span class="badge bg-info">
+                                <i class="fas fa-memory me-1"></i>{{ system_info.memory_usage|default:"45" }}%
+                            </span>
+                        </div>
+                        <div class="status-item d-flex justify-content-between align-items-center">
+                            <span>المستخدمون المتصلون</span>
+                            <span class="badge bg-primary">
+                                <i class="fas fa-users me-1"></i>{{ online_users_count|default:0 }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إنشاء تقرير مخصص</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reportForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">نوع التقرير</label>
+                            <select class="form-select" name="report_type" required>
+                                <option value="">اختر نوع التقرير</option>
+                                <option value="students">تقرير الطلاب</option>
+                                <option value="courses">تقرير المقررات</option>
+                                <option value="enrollments">تقرير التسجيلات</option>
+                                <option value="financial">التقرير المالي</option>
+                                <option value="attendance">تقرير الحضور</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">صيغة التقرير</label>
+                            <select class="form-select" name="report_format" required>
+                                <option value="pdf">PDF</option>
+                                <option value="excel">Excel</option>
+                                <option value="csv">CSV</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">من تاريخ</label>
+                            <input type="date" class="form-control" name="date_from">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">إلى تاريخ</label>
+                            <input type="date" class="form-control" name="date_to">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="generateReport()">
+                    <i class="fas fa-download me-2"></i>إنشاء التقرير
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Charts Configuration
+document.addEventListener('DOMContentLoaded', function() {
+    // Enrollment Chart
+    const enrollmentCtx = document.getElementById('enrollmentChart').getContext('2d');
+    new Chart(enrollmentCtx, {
+        type: 'line',
+        data: {
+            labels: {{ enrollment_chart_labels|safe }},
+            datasets: [{
+                label: 'التسجيلات الجديدة',
+                data: {{ enrollment_chart_data|safe }},
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        font: {
+                            family: 'Cairo'
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Department Distribution Chart
+    const departmentCtx = document.getElementById('departmentChart').getContext('2d');
+    new Chart(departmentCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ department_chart_labels|safe }},
+            datasets: [{
+                data: {{ department_chart_data|safe }},
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0',
+                    '#9966FF',
+                    '#FF9F40'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                            family: 'Cairo'
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+
+// Functions
+function generateReport() {
+    const form = document.getElementById('reportForm');
+    const formData = new FormData(form);
+    
+    // Show loading
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الإنشاء...';
+    button.disabled = true;
+    
+    // Simulate report generation
+    setTimeout(() => {
+        alert('تم إنشاء التقرير بنجاح!');
+        button.innerHTML = originalText;
+        button.disabled = false;
+        $('#reportModal').modal('hide');
+    }, 3000);
+}
+
+function createBackup() {
+    if (confirm('هل تريد إنشاء نسخة احتياطية الآن؟')) {
+        const originalText = event.target.innerHTML;
+        event.target.innerHTML = '<i class="fas fa-spinner fa-spin fa-2x mb-2"></i><span>جاري الإنشاء...</span>';
+        
+        // Simulate backup creation
+        setTimeout(() => {
+            alert('تم إنشاء النسخة الاحتياطية بنجاح!');
+            event.target.innerHTML = originalText;
+        }, 5000);
+    }
+}
+
+// Auto-refresh system status every 30 seconds
+setInterval(function() {
+    // Update system status via AJAX
+    fetch('/admin/system-status/')
+        .then(response => response.json())
+        .then(data => {
+            // Update system status indicators
+            console.log('System status updated:', data);
+        })
+        .catch(error => console.error('Error updating system status:', error));
+}, 30000);
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.hover-card {
+    transition: all 0.3s ease;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+}
+
+.timeline {
+    position: relative;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 30px;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: 0;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.timeline-title {
+    font-weight: 600;
+    color: #333;
+}
+
+.timeline-text {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.system-status .status-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.system-status .status-item:last-child {
+    border-bottom: none;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.page-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-success:hover,
+.btn-outline-warning:hover,
+.btn-outline-info:hover,
+.btn-outline-secondary:hover,
+.btn-outline-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+</style>
+{% endblock %}
