@@ -79,21 +79,21 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    'students.apps.StudentsConfig',
-    'courses.apps.CoursesConfig',
-    'finance.apps.FinanceConfig',
-    'hr.apps.HrConfig',
-    'reports.apps.ReportsConfig',
-    'academic.apps.AcademicConfig',
-    'notifications.apps.NotificationsConfig',
-    'ai.apps.AiConfig',
-    'web.apps.WebConfig',
-    'admin_control.apps.AdminControlConfig',
-    'roles_permissions.apps.RolesPermissionsConfig',
-    # New AI and Security Apps
-    'smart_ai',
-    'cyber_security',
-    'attendance_qr',
+    # التطبيقات الأساسية فقط للبداية
+    'students',
+    'courses',
+    'notifications',
+    # 'finance',
+    # 'hr',
+    # 'reports', 
+    # 'academic',
+    # 'ai',
+    # 'web',
+    # 'admin_control',
+    # 'roles_permissions',
+    # 'smart_ai',
+    # 'cyber_security', 
+    # 'attendance_qr',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -107,12 +107,6 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'csp.middleware.CSPMiddleware',
-    # 'permissions_policy.middleware.PermissionsPolicyMiddleware',
-    
-    # Advanced Security Middleware
-    'cyber_security.middleware.SecurityThreatDetectionMiddleware',
-    'cyber_security.middleware.BehaviorAnalysisMiddleware',
-    'cyber_security.middleware.RateLimitingMiddleware',
     
     # Core Django middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -127,21 +121,13 @@ MIDDLEWARE = [
     
     # Rate limiting
     'django_ratelimit.middleware.RatelimitMiddleware',
-    
-    # Custom middleware
-    'utils.middleware.ActivityTrackingMiddleware',
-    'utils.middleware.MaintenanceModeMiddleware',
-    'utils.middleware.SecurityMiddleware',
-    'utils.middleware.SessionSecurityMiddleware',
-    'utils.middleware.PerformanceMonitoringMiddleware',
-    'utils.middleware.APIVersioningMiddleware',
 ]
 
 # =============================================================================
 # URL & ROUTING CONFIGURATION
 # =============================================================================
 
-ROOT_URLCONF = 'university_system.urls'
+ROOT_URLCONF = 'urls'  # استخدام الملف الجديد المبسط
 
 # =============================================================================
 # TEMPLATES CONFIGURATION

@@ -11,6 +11,85 @@ import json
 
 User = get_user_model()
 
+# إضافة النموذج المطلوب - Notification مع اسم آخر للتوافق
+class Notification(models.Model):
+    """نموذج الإشعارات الأساسي للتوافق"""
+    
+    CATEGORY_CHOICES = [
+        ('academic', 'أكاديمي'),
+        ('financial', 'مالي'),
+        ('administrative', 'إداري'),
+        ('security', 'أمني'),
+        ('system', 'النظام'),
+        ('personal', 'شخصي'),
+        ('emergency', 'طوارئ'),
+    ]
+    
+    PRIORITY_CHOICES = [
+        ('low', 'منخفض'),
+        ('normal', 'عادي'),
+        ('high', 'عالي'),
+        ('urgent', 'عاجل'),
+        ('critical', 'حرج'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_notifications',
+                           verbose_name="المستخدم")
+    
+    title = models.CharField(max_length=255, verbose_name="العنوان")
+    message = models.TextField(verbose_name="الرسالة")
+    category = models.CharField(max_length=15, choices=CATEGORY_CHOICES, default='personal',
+                              verbose_name="الفئة")
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='normal',
+                              verbose_name="الأولوية")
+    
+    # إعدادات الإجراء
+    action_url = models.URLField(blank=True, verbose_name="رابط الإجراء")
+    action_text = models.CharField(max_length=100, blank=True, verbose_name="نص الإجراء")
+    
+    # البيانات الإضافية
+    metadata = models.JSONField(default=dict, verbose_name="بيانات إضافية")
+    
+    # حالة القراءة
+    is_read = models.BooleanField(default=False, verbose_name="مقروء")
+    read_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت القراءة")
+    
+    # الحالة
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    expires_at = models.DateTimeField(null=True, blank=True, verbose_name="ينتهي في")
+    
+    # التواريخ
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "إشعار"
+        verbose_name_plural = "الإشعارات"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['category', 'priority']),
+            models.Index(fields=['is_read', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} - {self.user.get_full_name() if hasattr(self.user, 'get_full_name') else self.user.username}"
+    
+    def mark_as_read(self):
+        """تمييز الإشعار كمقروء"""
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=['is_read', 'read_at'])
+    
+    @property
+    def is_expired(self):
+        """فحص انتهاء صلاحية الإشعار"""
+        if self.expires_at:
+            return timezone.now() > self.expires_at
+        return False
+
 class InAppNotification(models.Model):
     """الإشعارات داخل التطبيق"""
     
@@ -73,7 +152,7 @@ class InAppNotification(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.title} - {self.user.display_name}"
+        return f"{self.title} - {self.user.get_full_name() if hasattr(self.user, 'get_full_name') else self.user.username}"
     
     def mark_as_read(self):
         """تمييز الإشعار كمقروء"""

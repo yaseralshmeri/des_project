@@ -13,9 +13,10 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 import logging
 
-from .models import User, Student
+from .models import User, StudentProfile
 from courses.models import Department
-from .serializers import UserSerializer, UserCreateSerializer, StudentSerializer, DepartmentSerializer
+from .serializers import UserSerializer, UserCreateSerializer
+from courses.serializers import DepartmentSerializer
 from .permissions import IsAdmin, IsAdminOrStaff
 
 logger = logging.getLogger(__name__)
@@ -139,21 +140,17 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(user_data)
 
 
-class StudentViewSet(viewsets.ModelViewSet):
+class StudentProfileViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for Student CRUD operations.
+    ViewSet for StudentProfile CRUD operations.
     FIX: Major performance improvements with optimized queries
     """
-    serializer_class = StudentSerializer
+    serializer_class = UserSerializer  # Using UserSerializer for now
     permission_classes = [IsAdminOrStaff]
-    filterset_fields = ['status', 'major', 'current_semester']
+    filterset_fields = ['study_status', 'academic_standing']
     search_fields = ['student_id', 'user__first_name', 'user__last_name']
-    queryset = Student.objects.select_related(
-        'user'  # Join with User table to avoid N+1 queries
-    ).prefetch_related(
-        'fees',  # Prefetch related fees
-        'enrollments',  # Prefetch enrollments
-        'scholarship_applications'  # Prefetch scholarship applications
+    queryset = StudentProfile.objects.select_related(
+        'user', 'department', 'major'  # Join with related tables to avoid N+1 queries
     ).order_by('-user__date_joined')
 
     def get_queryset(self):
@@ -197,10 +194,10 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     """
     serializer_class = DepartmentSerializer
     permission_classes = [IsAdminOrStaff]
-    search_fields = ['name', 'code']
+    search_fields = ['name_ar', 'name_en', 'code']
     queryset = Department.objects.select_related(
-        'head_of_department'  # Join with User table for department head
-    ).order_by('name')
+        'head'  # Join with User table for department head
+    ).order_by('name_ar')
     
     def get_queryset(self):
         """FIX: Performance - Use select_related for head_of_department"""

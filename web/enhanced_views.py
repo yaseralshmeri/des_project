@@ -25,7 +25,7 @@ from students.models import User
 from courses.models import Department
 from courses.models import Course
 from academic.models import Enrollment, Grade, Semester, AcademicYear
-from notifications.models import Notification
+from notifications.models import Notification, InAppNotification
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def enhanced_home_view(request):
     try:
         # Get basic statistics for the home page
         context = {
-            'total_students': Student.objects.filter(status='ACTIVE').count(),
+            'total_students': User.objects.filter(role='STUDENT', is_active=True).count(),
             'total_teachers': User.objects.filter(role='TEACHER', is_active=True).count(),
             'total_courses': Course.objects.filter(is_active=True).count(),
             'total_departments': Department.objects.count(),

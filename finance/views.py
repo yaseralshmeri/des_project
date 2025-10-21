@@ -24,7 +24,7 @@ class FeeStructureViewSet(viewsets.ModelViewSet):
     """
     serializer_class = FeeStructureSerializer
     permission_classes = [IsAdminOrStaff]
-    queryset = FeeStructure.objects.order_by('program_type', 'semester')
+    queryset = FeeStructure.objects.order_by('program_type', 'student_type')
     
     def get_queryset(self):
         """FIX: Add ordering for consistent results"""
@@ -40,7 +40,7 @@ class FeeStructureViewSet(viewsets.ModelViewSet):
         """FIX: Add transaction for data consistency"""
         try:
             fee_structure = serializer.save()
-            logger.info(f"Fee structure created: {fee_structure.program_type} - Semester {fee_structure.semester}")
+            logger.info(f"Fee structure created: {fee_structure.program_type} - {fee_structure.student_type}")
             # Clear cache
             cache.delete('fee_structures_list')
         except Exception as e:
@@ -183,7 +183,7 @@ class ScholarshipViewSet(viewsets.ModelViewSet):
         'applications',
         'applications__student',
         'applications__student__user'
-    ).order_by('name')
+    ).order_by('name_ar')
     
     def get_queryset(self):
         """FIX: Add prefetch for applications"""

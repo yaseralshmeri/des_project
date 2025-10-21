@@ -767,4 +767,444 @@ class FinancialReport(models.Model):
         """هامش الربح"""
         if self.total_revenue > 0:
             return (self.net_income / self.total_revenue) * 100
+        return 0# إضافة النماذج المفقودة لتطبيق Finance
+
+from django.db import models
+from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
+from decimal import Decimal
+import uuid
+
+User = get_user_model()
+
+# سأحتاج لاستيراد النماذج من التطبيقات الأخرى
+# from courses.models import Major, Semester, Course
+# from students.models import StudentProfile
+
+class FeeStructure(models.Model):
+    """هيكل الرسوم الجامعية"""
+    
+    PROGRAM_TYPES = [
+        ('UNDERGRADUATE', 'بكالوريوس'),
+        ('GRADUATE', 'دراسات عليا'),
+        ('DIPLOMA', 'دبلوم'),
+        ('CERTIFICATE', 'شهادة'),
+    ]
+    
+    STUDENT_TYPES = [
+        ('REGULAR', 'نظامي'),
+        ('PART_TIME', 'جزئي'),
+        ('DISTANCE', 'تعليم عن بُعد'),
+        ('INTERNATIONAL', 'دولي'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات الهيكل
+    name_ar = models.CharField(max_length=200, verbose_name="اسم هيكل الرسوم - عربي")
+    name_en = models.CharField(max_length=200, verbose_name="اسم هيكل الرسوم - إنجليزي")
+    code = models.CharField(max_length=20, unique=True, verbose_name="رمز الهيكل")
+    
+    # التصنيف
+    program_type = models.CharField(max_length=20, choices=PROGRAM_TYPES,
+                                  verbose_name="نوع البرنامج")
+    student_type = models.CharField(max_length=15, choices=STUDENT_TYPES,
+                                  default='REGULAR', verbose_name="نوع الطالب")
+    
+    # الرسوم الأساسية
+    tuition_fee_per_credit = models.DecimalField(max_digits=8, decimal_places=2,
+                                               verbose_name="رسوم الساعة المعتمدة")
+    registration_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0.00,
+                                         verbose_name="رسوم التسجيل")
+    activity_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0.00,
+                                     verbose_name="رسوم الأنشطة")
+    lab_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0.00,
+                                verbose_name="رسوم المختبرات")
+    
+    # رسوم إضافية
+    library_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0.00,
+                                    verbose_name="رسوم المكتبة")
+    medical_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0.00,
+                                    verbose_name="رسوم طبية")
+    insurance_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0.00,
+                                      verbose_name="رسوم تأمين")
+    
+    # فترة السريان
+    effective_from = models.DateField(verbose_name="سارية من")
+    effective_to = models.DateField(null=True, blank=True, verbose_name="سارية حتى")
+    
+    # الحالة
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                 related_name='created_fee_structures',
+                                 verbose_name="أُنشأ بواسطة")
+    
+    class Meta:
+        verbose_name = "هيكل رسوم"
+        verbose_name_plural = "هياكل الرسوم"
+        ordering = ['program_type', 'student_type', '-effective_from']
+        indexes = [
+            models.Index(fields=['program_type', 'student_type', 'is_active']),
+            models.Index(fields=['effective_from', 'effective_to']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name_ar} - {self.get_program_type_display()}"
+    
+    @property
+    def is_current(self):
+        """فحص إذا كان الهيكل ساري حالياً"""
+        today = timezone.now().date()
+        if self.effective_to:
+            return self.effective_from <= today <= self.effective_to
+        return self.effective_from <= today
+
+
+class StudentFee(models.Model):
+    """رسوم الطلاب"""
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'معلق'),
+        ('PARTIAL', 'دُفع جزئياً'),
+        ('PAID', 'مدفوع'),
+        ('OVERDUE', 'متأخر'),
+        ('WAIVED', 'معفى'),
+        ('CANCELLED', 'ملغي'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # ربط بالطالب والفصل
+    student = models.ForeignKey(User, on_delete=models.CASCADE,
+                              related_name='student_fees', verbose_name="الطالب")
+    # semester = models.ForeignKey('courses.Semester', on_delete=models.CASCADE,
+    #                            related_name='student_fees', verbose_name="الفصل الدراسي")
+    academic_year = models.CharField(max_length=9, verbose_name="السنة الأكاديمية")
+    semester = models.CharField(max_length=20, verbose_name="الفصل الدراسي")
+    
+    # هيكل الرسوم المطبق
+    fee_structure = models.ForeignKey(FeeStructure, on_delete=models.PROTECT,
+                                    related_name='student_fees', verbose_name="هيكل الرسوم")
+    
+    # تفاصيل الرسوم
+    total_credit_hours = models.IntegerField(default=0, verbose_name="إجمالي الساعات المعتمدة")
+    tuition_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00,
+                                       verbose_name="مبلغ الرسوم الدراسية")
+    additional_fees = models.DecimalField(max_digits=10, decimal_places=2, default=0.00,
+                                        verbose_name="الرسوم الإضافية")
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2,
+                                     verbose_name="إجمالي المبلغ")
+    
+    # المدفوعات
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00,
+                                    verbose_name="المبلغ المدفوع")
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00,
+                                        verbose_name="مبلغ الخصم")
+    
+    # المواعيد
+    due_date = models.DateField(verbose_name="تاريخ الاستحقاق")
+    payment_deadline = models.DateField(null=True, blank=True,
+                                      verbose_name="آخر موعد للدفع")
+    
+    # الحالة
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING',
+                            verbose_name="حالة الدفع")
+    is_installment_allowed = models.BooleanField(default=True, verbose_name="السماح بالتقسيط")
+    
+    # ملاحظات
+    notes = models.TextField(blank=True, verbose_name="ملاحظات")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                 related_name='created_student_fees',
+                                 verbose_name="أُنشأ بواسطة")
+    
+    class Meta:
+        verbose_name = "رسوم طالب"
+        verbose_name_plural = "رسوم الطلاب"
+        ordering = ['-academic_year', 'semester', 'student__first_name']
+        unique_together = ['student', 'academic_year', 'semester']
+        indexes = [
+            models.Index(fields=['student', 'status']),
+            models.Index(fields=['academic_year', 'semester']),
+            models.Index(fields=['due_date']),
+            models.Index(fields=['status']),
+        ]
+    
+    def __str__(self):
+        return f"{self.student.get_full_name()} - {self.academic_year} {self.semester}"
+    
+    @property
+    def remaining_amount(self):
+        """المبلغ المتبقي"""
+        return self.total_amount - self.paid_amount - self.discount_amount
+    
+    @property
+    def is_overdue(self):
+        """فحص التأخير في السداد"""
+        return self.due_date < timezone.now().date() and self.status != 'PAID'
+    
+    @property
+    def payment_percentage(self):
+        """نسبة الدفع"""
+        if self.total_amount > 0:
+            return (self.paid_amount / self.total_amount) * 100
         return 0
+
+
+class Payment(models.Model):
+    """المدفوعات"""
+    
+    PAYMENT_METHODS = [
+        ('CASH', 'نقدي'),
+        ('BANK_TRANSFER', 'تحويل بنكي'),
+        ('CREDIT_CARD', 'بطاقة ائتمان'),
+        ('DEBIT_CARD', 'بطاقة خصم'),
+        ('CHEQUE', 'شيك'),
+        ('ONLINE', 'دفع إلكتروني'),
+        ('MOBILE_PAYMENT', 'دفع جوال'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'معلق'),
+        ('PROCESSING', 'قيد المعالجة'),
+        ('COMPLETED', 'مكتمل'),
+        ('FAILED', 'فاشل'),
+        ('CANCELLED', 'ملغي'),
+        ('REFUNDED', 'مُسترد'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # ربط بالطالب والرسوم
+    student = models.ForeignKey(User, on_delete=models.CASCADE,
+                              related_name='payments', verbose_name="الطالب")
+    student_fee = models.ForeignKey(StudentFee, on_delete=models.CASCADE,
+                                  related_name='payments', verbose_name="رسوم الطالب")
+    
+    # تفاصيل الدفع
+    amount = models.DecimalField(max_digits=10, decimal_places=2,
+                               verbose_name="مبلغ الدفع")
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS,
+                                    verbose_name="طريقة الدفع")
+    
+    # معلومات المعاملة
+    transaction_id = models.CharField(max_length=100, unique=True,
+                                    verbose_name="رقم المعاملة")
+    reference_number = models.CharField(max_length=100, blank=True,
+                                      verbose_name="الرقم المرجعي")
+    
+    # التوقيتات
+    payment_date = models.DateTimeField(verbose_name="تاريخ الدفع")
+    processed_date = models.DateTimeField(null=True, blank=True,
+                                        verbose_name="تاريخ المعالجة")
+    
+    # الحالة
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING',
+                            verbose_name="حالة الدفع")
+    
+    # معلومات إضافية
+    notes = models.TextField(blank=True, verbose_name="ملاحظات")
+    receipt_number = models.CharField(max_length=50, blank=True,
+                                    verbose_name="رقم الإيصال")
+    
+    # معلومات البنك (في حالة التحويل البنكي)
+    bank_name = models.CharField(max_length=100, blank=True, verbose_name="اسم البنك")
+    bank_reference = models.CharField(max_length=100, blank=True,
+                                    verbose_name="مرجع البنك")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    processed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                   related_name='processed_payments',
+                                   verbose_name="معالج بواسطة")
+    
+    class Meta:
+        verbose_name = "دفعة"
+        verbose_name_plural = "المدفوعات"
+        ordering = ['-payment_date']
+        indexes = [
+            models.Index(fields=['student', 'status']),
+            models.Index(fields=['student_fee', 'status']),
+            models.Index(fields=['payment_date']),
+            models.Index(fields=['transaction_id']),
+            models.Index(fields=['status']),
+        ]
+    
+    def __str__(self):
+        return f"{self.student.get_full_name()} - {self.amount} - {self.payment_date.strftime('%Y-%m-%d')}"
+
+
+class Scholarship(models.Model):
+    """المنح الدراسية"""
+    
+    SCHOLARSHIP_TYPES = [
+        ('FULL', 'منحة كاملة'),
+        ('PARTIAL', 'منحة جزئية'),
+        ('MERIT', 'منحة تفوق'),
+        ('NEED_BASED', 'منحة حاجة'),
+        ('SPORTS', 'منحة رياضية'),
+        ('RESEARCH', 'منحة بحثية'),
+        ('EMPLOYEE', 'منحة موظفين'),
+        ('DISABLED', 'منحة ذوي الاحتياجات'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('ACTIVE', 'نشطة'),
+        ('SUSPENDED', 'معلقة'),
+        ('CANCELLED', 'ملغية'),
+        ('COMPLETED', 'مكتملة'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات المنحة
+    name_ar = models.CharField(max_length=200, verbose_name="اسم المنحة - عربي")
+    name_en = models.CharField(max_length=200, verbose_name="اسم المنحة - إنجليزي")
+    code = models.CharField(max_length=20, unique=True, verbose_name="رمز المنحة")
+    
+    # نوع المنحة
+    scholarship_type = models.CharField(max_length=15, choices=SCHOLARSHIP_TYPES,
+                                      verbose_name="نوع المنحة")
+    
+    # قيمة المنحة
+    coverage_percentage = models.DecimalField(max_digits=5, decimal_places=2,
+                                            validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                            verbose_name="نسبة التغطية %")
+    max_amount_per_semester = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                                verbose_name="الحد الأقصى للمبلغ لكل فصل")
+    max_total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                         verbose_name="الحد الأقصى للمبلغ الإجمالي")
+    
+    # شروط الاستحقاق
+    min_gpa_requirement = models.DecimalField(max_digits=4, decimal_places=3, default=0.000,
+                                            verbose_name="الحد الأدنى للمعدل المطلوب")
+    max_family_income = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                          verbose_name="الحد الأقصى لدخل الأسرة")
+    
+    # فترة المنحة
+    start_date = models.DateField(verbose_name="تاريخ البداية")
+    end_date = models.DateField(verbose_name="تاريخ النهاية")
+    max_duration_semesters = models.IntegerField(default=8, verbose_name="الحد الأقصى للفصول")
+    
+    # العدد والحصص
+    total_slots = models.IntegerField(default=10, verbose_name="إجمالي المقاعد")
+    available_slots = models.IntegerField(default=10, verbose_name="المقاعد المتاحة")
+    
+    # الوصف والشروط
+    description = models.TextField(verbose_name="وصف المنحة")
+    eligibility_criteria = models.TextField(verbose_name="معايير الاستحقاق")
+    required_documents = models.TextField(blank=True, verbose_name="المستندات المطلوبة")
+    
+    # الحالة
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='ACTIVE',
+                            verbose_name="حالة المنحة")
+    is_renewable = models.BooleanField(default=True, verbose_name="قابلة للتجديد")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                 related_name='created_scholarships',
+                                 verbose_name="أُنشأ بواسطة")
+    
+    class Meta:
+        verbose_name = "منحة دراسية"
+        verbose_name_plural = "المنح الدراسية"
+        ordering = ['name_ar']
+        indexes = [
+            models.Index(fields=['scholarship_type', 'status']),
+            models.Index(fields=['start_date', 'end_date']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name_ar} ({self.coverage_percentage}%)"
+    
+    @property
+    def is_active(self):
+        """فحص إذا كانت المنحة نشطة"""
+        today = timezone.now().date()
+        return (self.status == 'ACTIVE' and 
+                self.start_date <= today <= self.end_date and 
+                self.available_slots > 0)
+
+
+class ScholarshipApplication(models.Model):
+    """طلبات المنح الدراسية"""
+    
+    STATUS_CHOICES = [
+        ('SUBMITTED', 'مُقدم'),
+        ('UNDER_REVIEW', 'قيد المراجعة'),
+        ('APPROVED', 'موافق عليه'),
+        ('REJECTED', 'مرفوض'),
+        ('WAITLISTED', 'قائمة انتظار'),
+        ('WITHDRAWN', 'منسحب'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # ربط بالطالب والمنحة
+    student = models.ForeignKey(User, on_delete=models.CASCADE,
+                              related_name='scholarship_applications',
+                              verbose_name="الطالب")
+    scholarship = models.ForeignKey(Scholarship, on_delete=models.CASCADE,
+                                  related_name='applications',
+                                  verbose_name="المنحة")
+    
+    # معلومات الطلب
+    application_date = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ التقديم")
+    academic_year = models.CharField(max_length=9, verbose_name="السنة الأكاديمية")
+    
+    # المعلومات الأكاديمية
+    current_gpa = models.DecimalField(max_digits=4, decimal_places=3, verbose_name="المعدل الحالي")
+    total_credit_hours = models.IntegerField(verbose_name="إجمالي الساعات المُنجزة")
+    
+    # المعلومات المالية
+    family_income = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                      verbose_name="دخل الأسرة")
+    financial_need_statement = models.TextField(blank=True, verbose_name="بيان الحاجة المالية")
+    
+    # المستندات
+    supporting_documents = models.JSONField(default=list, verbose_name="المستندات المؤيدة")
+    
+    # حالة الطلب
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='SUBMITTED',
+                            verbose_name="حالة الطلب")
+    review_comments = models.TextField(blank=True, verbose_name="تعليقات المراجعة")
+    
+    # قرار اللجنة
+    decision_date = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ القرار")
+    approved_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                        verbose_name="المبلغ المعتمد")
+    approved_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
+                                            verbose_name="النسبة المعتمدة")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                  related_name='reviewed_applications',
+                                  verbose_name="راجعه")
+    
+    class Meta:
+        verbose_name = "طلب منحة دراسية"
+        verbose_name_plural = "طلبات المنح الدراسية"
+        ordering = ['-application_date']
+        unique_together = ['student', 'scholarship', 'academic_year']
+        indexes = [
+            models.Index(fields=['student', 'status']),
+            models.Index(fields=['scholarship', 'status']),
+            models.Index(fields=['application_date']),
+            models.Index(fields=['status']),
+        ]
+    
+    def __str__(self):
+        return f"{self.student.get_full_name()} - {self.scholarship.name_ar}"

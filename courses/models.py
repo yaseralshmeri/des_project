@@ -26,7 +26,7 @@ class University(models.Model):
                                          ('NONPROFIT', 'غير ربحية')
                                      ], default='PUBLIC', verbose_name="نوع الجامعة")
     
-    # معلومات الاتصال
+    # العنوان ومعلومات الاتصال
     address = models.TextField(verbose_name="العنوان")
     phone = models.CharField(max_length=20, verbose_name="الهاتف")
     email = models.EmailField(verbose_name="البريد الإلكتروني")
@@ -99,15 +99,10 @@ class College(models.Model):
     email = models.EmailField(blank=True, verbose_name="البريد الإلكتروني")
     website = models.URLField(blank=True, verbose_name="الموقع الإلكتروني")
     
-    # الوصف والرؤية
-    description = models.TextField(blank=True, verbose_name="وصف الكلية")
-    vision = models.TextField(blank=True, verbose_name="الرؤية")
-    mission = models.TextField(blank=True, verbose_name="الرسالة")
-    objectives = models.TextField(blank=True, verbose_name="الأهداف")
-    
-    # الإحصائيات
-    total_students = models.IntegerField(default=0, verbose_name="إجمالي الطلاب")
-    total_faculty = models.IntegerField(default=0, verbose_name="إجمالي أعضاء هيئة التدريس")
+    # إحصائيات
+    total_departments = models.IntegerField(default=0, verbose_name="عدد الأقسام")
+    total_students = models.IntegerField(default=0, verbose_name="عدد الطلاب")
+    total_faculty = models.IntegerField(default=0, verbose_name="عدد أعضاء هيئة التدريس")
     
     # الحالة
     is_active = models.BooleanField(default=True, verbose_name="نشطة")
@@ -119,11 +114,8 @@ class College(models.Model):
     class Meta:
         verbose_name = "كلية"
         verbose_name_plural = "الكليات"
-        ordering = ['name_ar']
+        ordering = ['university', 'name_ar']
         unique_together = ['university', 'code']
-        indexes = [
-            models.Index(fields=['university', 'is_active']),
-        ]
     
     def __str__(self):
         return f"{self.name_ar} - {self.university.name_ar}"
@@ -151,17 +143,17 @@ class Department(models.Model):
     location = models.CharField(max_length=200, blank=True, verbose_name="الموقع")
     
     # معلومات الاتصال
-    phone = models.CharField(max_length=20, blank=True, verbose_name="الهاتف")
-    email = models.EmailField(blank=True, verbose_name="البريد الإلكتروني")
+    phone = models.CharField(max_length=20, blank=True, verbose_name="هاتف القسم")
+    email = models.EmailField(blank=True, verbose_name="بريد القسم الإلكتروني")
+    website = models.URLField(blank=True, verbose_name="موقع القسم")
     
-    # الوصف والأهداف
-    description = models.TextField(blank=True, verbose_name="وصف القسم")
+    # الأهداف والرؤية
     objectives = models.TextField(blank=True, verbose_name="أهداف القسم")
     
-    # الإحصائيات
-    total_students = models.IntegerField(default=0, verbose_name="إجمالي الطلاب")
-    total_faculty = models.IntegerField(default=0, verbose_name="إجمالي أعضاء هيئة التدريس")
-    total_majors = models.IntegerField(default=0, verbose_name="إجمالي التخصصات")
+    # إحصائيات
+    total_students = models.IntegerField(default=0, verbose_name="عدد الطلاب")
+    total_faculty = models.IntegerField(default=0, verbose_name="عدد أعضاء هيئة التدريس")
+    total_majors = models.IntegerField(default=0, verbose_name="عدد التخصصات")
     
     # الحالة
     is_active = models.BooleanField(default=True, verbose_name="نشط")
@@ -188,61 +180,41 @@ class Major(models.Model):
     
     DEGREE_TYPE_CHOICES = [
         ('DIPLOMA', 'دبلوم'),
+        ('ASSOCIATE', 'درجة مشارك'),
         ('BACHELOR', 'بكالوريوس'),
         ('MASTER', 'ماجستير'),
         ('DOCTORATE', 'دكتوراه'),
         ('CERTIFICATE', 'شهادة'),
     ]
     
-    STUDY_MODE_CHOICES = [
-        ('FULL_TIME', 'دوام كامل'),
-        ('PART_TIME', 'دوام جزئي'),
-        ('ONLINE', 'تعليم إلكتروني'),
-        ('HYBRID', 'مختلط'),
-    ]
-    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, 
+    department = models.ForeignKey(Department, on_delete=models.CASCADE,
                                  related_name='majors', verbose_name="القسم")
     
-    name_ar = models.CharField(max_length=200, verbose_name="اسم التخصص - عربي")
+    name_ar = models.CharField(max_length=200, verbose_name="اسم التخصص - عربي") 
     name_en = models.CharField(max_length=200, verbose_name="اسم التخصص - إنجليزي")
-    code = models.CharField(max_length=10, verbose_name="رمز التخصص")
+    code = models.CharField(max_length=15, verbose_name="رمز التخصص")
     
-    # نوع الدرجة ونمط الدراسة
+    # نوع الدرجة والمدة
     degree_type = models.CharField(max_length=15, choices=DEGREE_TYPE_CHOICES,
                                  verbose_name="نوع الدرجة")
-    study_mode = models.CharField(max_length=15, choices=STUDY_MODE_CHOICES,
-                                default='FULL_TIME', verbose_name="نمط الدراسة")
-    
-    # متطلبات التخرج
-    required_credit_hours = models.IntegerField(default=132, verbose_name="الساعات المطلوبة للتخرج")
-    min_gpa_to_graduate = models.DecimalField(max_digits=4, decimal_places=3, default=2.000,
-                                            verbose_name="الحد الأدنى للمعدل للتخرج")
-    max_study_duration = models.IntegerField(default=8, verbose_name="الحد الأقصى لمدة الدراسة (فصول)")
+    duration_years = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(8)],
+                                       verbose_name="مدة الدراسة بالسنوات")
+    total_credit_hours = models.IntegerField(validators=[MinValueValidator(30), MaxValueValidator(200)],
+                                           verbose_name="إجمالي الساعات المعتمدة")
     
     # متطلبات القبول
-    min_high_school_gpa = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
-                                            verbose_name="الحد الأدنى لمعدل الثانوية")
-    requires_aptitude_test = models.BooleanField(default=False, verbose_name="يتطلب اختبار قدرات")
-    requires_achievement_test = models.BooleanField(default=False, verbose_name="يتطلب اختبار تحصيلي")
+    min_gpa_requirement = models.DecimalField(max_digits=4, decimal_places=3, default=0.000,
+                                            verbose_name="الحد الأدنى للمعدل المطلوب")
+    max_students_per_year = models.IntegerField(default=100, verbose_name="الحد الأقصى للطلاب سنوياً")
     
-    # الوصف والأهداف
-    description = models.TextField(blank=True, verbose_name="وصف التخصص")
-    objectives = models.TextField(blank=True, verbose_name="أهداف التخصص")
+    # الوصف والمعلومات
+    description = models.TextField(verbose_name="وصف التخصص")
     career_prospects = models.TextField(blank=True, verbose_name="الفرص الوظيفية")
+    admission_requirements = models.TextField(blank=True, verbose_name="متطلبات القبول")
     
-    # منسق التخصص
-    coordinator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
-                                  related_name='coordinated_majors', verbose_name="منسق التخصص")
-    
-    # الإحصائيات
-    total_enrolled_students = models.IntegerField(default=0, verbose_name="إجمالي الطلاب المسجلين")
-    total_graduated_students = models.IntegerField(default=0, verbose_name="إجمالي الخريجين")
-    
-    # الحالة والإعدادات
+    # الحالة
     is_active = models.BooleanField(default=True, verbose_name="نشط")
-    accepts_new_students = models.BooleanField(default=True, verbose_name="يقبل طلاب جدد")
     
     # معلومات تقنية
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
@@ -393,42 +365,6 @@ class Course(models.Model):
         return self.theory_hours + self.practical_hours
 
 
-class MajorCourse(models.Model):
-    """ربط التخصص بالمقرر مع تفاصيل إضافية"""
-    
-    major = models.ForeignKey(Major, on_delete=models.CASCADE, verbose_name="التخصص")
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="المقرر")
-    
-    # تفاصيل العلاقة
-    is_required = models.BooleanField(default=True, verbose_name="مطلوب")
-    semester_offered = models.IntegerField(default=1, 
-                                         validators=[MinValueValidator(1), MaxValueValidator(8)],
-                                         verbose_name="الفصل المُقدم فيه")
-    year_offered = models.IntegerField(default=1,
-                                     validators=[MinValueValidator(1), MaxValueValidator(4)],
-                                     verbose_name="السنة المُقدم فيها")
-    
-    # ترتيب المقرر في الخطة الدراسية
-    sequence_order = models.IntegerField(default=1, verbose_name="ترتيب المتسلسل")
-    
-    # معلومات تقنية
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
-    
-    class Meta:
-        verbose_name = "مقرر التخصص"
-        verbose_name_plural = "مقررات التخصصات"
-        unique_together = ['major', 'course']
-        ordering = ['major', 'year_offered', 'semester_offered', 'sequence_order']
-        indexes = [
-            models.Index(fields=['major', 'is_required']),
-            models.Index(fields=['semester_offered', 'year_offered']),
-        ]
-    
-    def __str__(self):
-        return f"{self.major.name_ar} - {self.course.code}"
-
-
 class AcademicYear(models.Model):
     """السنة الأكاديمية"""
     
@@ -547,42 +483,39 @@ class CourseOffering(models.Model):
     
     # أعضاء هيئة التدريس
     instructor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
-                                 related_name='taught_course_offerings',
-                                 verbose_name="أستاذ المقرر")
-    co_instructors = models.ManyToManyField(User, blank=True,
-                                          related_name='co_taught_course_offerings',
-                                          verbose_name="الأساتذة المشاركون")
+                                 related_name='course_offerings', verbose_name="المدرس")
+    co_instructors = models.ManyToManyField(User, through='CourseInstructor',
+                                          related_name='co_instructor_offerings', blank=True,
+                                          verbose_name="المدرسون المساعدون")
     
-    # التسجيل والسعة
-    max_enrollment = models.IntegerField(verbose_name="الحد الأقصى للتسجيل")
-    current_enrollment = models.IntegerField(default=0, verbose_name="التسجيل الحالي")
-    waitlist_capacity = models.IntegerField(default=10, verbose_name="سعة قائمة الانتظار")
-    current_waitlist = models.IntegerField(default=0, verbose_name="قائمة الانتظار الحالية")
-    
-    # معلومات القاعة والوقت
-    classroom = models.ForeignKey('Classroom', on_delete=models.SET_NULL, null=True, blank=True,
-                                verbose_name="القاعة الدراسية")
-    meeting_days = models.CharField(max_length=20, verbose_name="أيام الاجتماع")  # "UMTWRF"
+    # التوقيت والمكان
+    schedule_days = models.JSONField(default=list, verbose_name="أيام التدريس")  # ['SUNDAY', 'TUESDAY']
     start_time = models.TimeField(verbose_name="وقت البداية")
     end_time = models.TimeField(verbose_name="وقت النهاية")
+    classroom = models.CharField(max_length=50, blank=True, verbose_name="القاعة")
+    building = models.CharField(max_length=50, blank=True, verbose_name="المبنى")
     
-    # الحالة والإعدادات
+    # إعدادات التسجيل
+    max_enrollment = models.IntegerField(verbose_name="الحد الأقصى للتسجيل")
+    current_enrollment = models.IntegerField(default=0, verbose_name="عدد المسجلين الحالي")
+    waitlist_capacity = models.IntegerField(default=10, verbose_name="سعة قائمة الانتظار")
+    current_waitlist = models.IntegerField(default=0, verbose_name="عدد قائمة الانتظار الحالي")
+    
+    # الحالة
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='SCHEDULED',
                             verbose_name="الحالة")
-    is_online = models.BooleanField(default=False, verbose_name="إلكتروني")
-    is_hybrid = models.BooleanField(default=False, verbose_name="مختلط")
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    registration_open = models.BooleanField(default=True, verbose_name="التسجيل مفتوح")
     
-    # تفاصيل إضافية
-    special_instructions = models.TextField(blank=True, verbose_name="تعليمات خاصة")
-    grading_method = models.CharField(max_length=20, default='LETTER_GRADE',
-                                    verbose_name="طريقة التقدير")
+    # ملاحظات خاصة
+    special_notes = models.TextField(blank=True, verbose_name="ملاحظات خاصة")
+    prerequisites_enforced = models.BooleanField(default=True, verbose_name="فرض المتطلبات السابقة")
     
     # معلومات تقنية
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
-                                 related_name='created_course_offerings',
-                                 verbose_name="أُنشأ بواسطة")
+                                 related_name='created_offerings', verbose_name="أُنشأ بواسطة")
     
     class Meta:
         verbose_name = "عرض مقرر"
@@ -591,8 +524,8 @@ class CourseOffering(models.Model):
         unique_together = ['course', 'semester', 'section_number']
         indexes = [
             models.Index(fields=['semester', 'status']),
-            models.Index(fields=['instructor']),
             models.Index(fields=['course', 'semester']),
+            models.Index(fields=['instructor']),
         ]
     
     def __str__(self):
@@ -603,116 +536,179 @@ class CourseOffering(models.Model):
         return self.current_enrollment >= self.max_enrollment
     
     @property
-    def available_seats(self):
-        return max(self.max_enrollment - self.current_enrollment, 0)
-    
-    @property
     def is_waitlist_full(self):
         return self.current_waitlist >= self.waitlist_capacity
     
     @property
-    def display_time(self):
-        return f"{self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')}"
+    def available_spots(self):
+        return max(0, self.max_enrollment - self.current_enrollment)
+    
+    @property
+    def available_waitlist_spots(self):
+        return max(0, self.waitlist_capacity - self.current_waitlist)
 
 
-class Building(models.Model):
-    """نموذج المبنى"""
+class Assignment(models.Model):
+    """نموذج التكليفات والواجبات"""
     
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name_ar = models.CharField(max_length=100, verbose_name="اسم المبنى - عربي")
-    name_en = models.CharField(max_length=100, verbose_name="اسم المبنى - إنجليزي")
-    code = models.CharField(max_length=10, unique=True, verbose_name="رمز المبنى")
+    ASSIGNMENT_TYPE_CHOICES = [
+        ('HOMEWORK', 'واجب منزلي'),
+        ('PROJECT', 'مشروع'),
+        ('QUIZ', 'اختبار قصير'),
+        ('MIDTERM', 'امتحان منتصف الفصل'),
+        ('FINAL', 'امتحان نهائي'),
+        ('LAB', 'تجربة معملية'),
+        ('PRESENTATION', 'عرض تقديمي'),
+        ('RESEARCH', 'بحث'),
+        ('CASE_STUDY', 'دراسة حالة'),
+        ('GROUP_WORK', 'عمل جماعي'),
+    ]
     
-    # معلومات المبنى
-    floors_count = models.IntegerField(default=1, verbose_name="عدد الطوابق")
-    total_rooms = models.IntegerField(default=0, verbose_name="إجمالي الغرف")
-    
-    # الموقع
-    address = models.TextField(blank=True, verbose_name="العنوان")
-    gps_coordinates = models.CharField(max_length=50, blank=True, verbose_name="الإحداثيات")
-    
-    # معلومات إضافية
-    description = models.TextField(blank=True, verbose_name="وصف المبنى")
-    facilities = models.TextField(blank=True, verbose_name="المرافق المتاحة")
-    
-    # الحالة
-    is_active = models.BooleanField(default=True, verbose_name="نشط")
-    
-    # معلومات تقنية
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
-    
-    class Meta:
-        verbose_name = "مبنى"
-        verbose_name_plural = "المباني"
-        ordering = ['code']
-    
-    def __str__(self):
-        return f"{self.code} - {self.name_ar}"
-
-
-class Classroom(models.Model):
-    """نموذج القاعة الدراسية"""
-    
-    ROOM_TYPE_CHOICES = [
-        ('LECTURE', 'قاعة محاضرات'),
-        ('LAB', 'معمل'),
-        ('COMPUTER_LAB', 'معمل حاسوب'),
-        ('CONFERENCE', 'قاعة اجتماعات'),
-        ('SEMINAR', 'قاعة ندوات'),
-        ('OFFICE', 'مكتب'),
+    STATUS_CHOICES = [
+        ('DRAFT', 'مسودة'),
+        ('PUBLISHED', 'منشور'),
+        ('CLOSED', 'مغلق'),
+        ('GRADED', 'مصحح'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    building = models.ForeignKey(Building, on_delete=models.CASCADE,
-                               related_name='classrooms', verbose_name="المبنى")
+    course_offering = models.ForeignKey(CourseOffering, on_delete=models.CASCADE,
+                                       related_name='assignments', verbose_name="عرض المقرر")
     
-    room_number = models.CharField(max_length=20, verbose_name="رقم الغرفة")
-    room_name = models.CharField(max_length=100, blank=True, verbose_name="اسم الغرفة")
-    room_type = models.CharField(max_length=15, choices=ROOM_TYPE_CHOICES,
-                               default='LECTURE', verbose_name="نوع الغرفة")
+    # معلومات التكليف
+    title = models.CharField(max_length=200, verbose_name="عنوان التكليف")
+    description = models.TextField(verbose_name="وصف التكليف")
+    assignment_type = models.CharField(max_length=20, choices=ASSIGNMENT_TYPE_CHOICES,
+                                     verbose_name="نوع التكليف")
     
-    # خصائص القاعة
-    capacity = models.IntegerField(verbose_name="السعة")
-    floor_number = models.IntegerField(verbose_name="رقم الطابق")
-    area_sqm = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True,
-                                 verbose_name="المساحة (متر مربع)")
+    # التقييم
+    max_score = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="الدرجة العظمى")
+    weight_percentage = models.DecimalField(max_digits=5, decimal_places=2,
+                                          verbose_name="الوزن النسبي %")
     
-    # التجهيزات المتاحة
-    has_projector = models.BooleanField(default=False, verbose_name="جهاز عرض")
-    has_computer = models.BooleanField(default=False, verbose_name="حاسوب")
-    has_internet = models.BooleanField(default=True, verbose_name="إنترنت")
-    has_microphone = models.BooleanField(default=False, verbose_name="ميكروفون")
-    has_air_conditioning = models.BooleanField(default=True, verbose_name="تكييف")
-    has_whiteboard = models.BooleanField(default=True, verbose_name="سبورة بيضاء")
+    # التواريخ
+    published_date = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ النشر")
+    due_date = models.DateTimeField(verbose_name="تاريخ التسليم")
+    late_submission_allowed = models.BooleanField(default=True, verbose_name="السماح بالتسليم المتأخر")
+    late_penalty_per_day = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                             verbose_name="خصم التأخير لكل يوم")
+    
+    # الإعدادات
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='DRAFT',
+                            verbose_name="الحالة")
+    is_group_assignment = models.BooleanField(default=False, verbose_name="تكليف جماعي")
+    max_group_size = models.IntegerField(default=1, verbose_name="الحد الأقصى لحجم المجموعة")
+    
+    # الملفات والمرفقات
+    instructions_file = models.FileField(upload_to='assignments/instructions/', null=True, blank=True,
+                                       verbose_name="ملف التعليمات")
+    submission_format = models.CharField(max_length=100, blank=True,
+                                       verbose_name="تنسيق التسليم المطلوب")
     
     # معلومات إضافية
-    equipment_list = models.TextField(blank=True, verbose_name="قائمة التجهيزات")
-    special_features = models.TextField(blank=True, verbose_name="مميزات خاصة")
-    accessibility_features = models.TextField(blank=True, verbose_name="مميزات إمكانية الوصول")
+    rubric = models.JSONField(default=dict, blank=True, verbose_name="معايير التقييم")
+    estimated_time_hours = models.IntegerField(default=2, verbose_name="الوقت المقدر بالساعات")
     
-    # الحالة
-    is_active = models.BooleanField(default=True, verbose_name="نشطة")
-    is_bookable = models.BooleanField(default=True, verbose_name="قابلة للحجز")
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                 related_name='created_assignments', verbose_name="أُنشأ بواسطة")
+    
+    class Meta:
+        verbose_name = "تكليف"
+        verbose_name_plural = "التكليفات"
+        ordering = ['-due_date']
+        indexes = [
+            models.Index(fields=['course_offering', 'status']),
+            models.Index(fields=['due_date']),
+            models.Index(fields=['assignment_type']),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} - {self.course_offering.course.code}"
+    
+    @property
+    def is_overdue(self):
+        return timezone.now() > self.due_date and self.status != 'CLOSED'
+    
+    @property
+    def days_until_due(self):
+        if self.due_date:
+            delta = self.due_date - timezone.now()
+            return delta.days
+        return None
+    
+    @property
+    def is_published(self):
+        return self.status == 'PUBLISHED' and self.published_date and self.published_date <= timezone.now()
+
+
+class CourseInstructor(models.Model):
+    """ربط المدرسين بعروض المقررات"""
+    
+    ROLE_CHOICES = [
+        ('PRIMARY', 'مدرس رئيسي'),
+        ('SECONDARY', 'مدرس مساعد'),
+        ('ASSISTANT', 'مساعد تدريس'),
+        ('GUEST', 'مدرس زائر'),
+    ]
+    
+    course_offering = models.ForeignKey(CourseOffering, on_delete=models.CASCADE,
+                                       verbose_name="عرض المقرر")
+    instructor = models.ForeignKey(User, on_delete=models.CASCADE,
+                                 verbose_name="المدرس")
+    role = models.CharField(max_length=15, choices=ROLE_CHOICES, default='SECONDARY',
+                          verbose_name="الدور")
+    
+    # الصلاحيات
+    can_grade = models.BooleanField(default=True, verbose_name="يمكنه التقييم")
+    can_manage_assignments = models.BooleanField(default=False, verbose_name="يمكنه إدارة التكليفات")
+    can_manage_attendance = models.BooleanField(default=True, verbose_name="يمكنه إدارة الحضور")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    
+    class Meta:
+        verbose_name = "مدرس المقرر"
+        verbose_name_plural = "مدرسو المقررات"
+        unique_together = ['course_offering', 'instructor']
+    
+    def __str__(self):
+        return f"{self.instructor.get_full_name() if hasattr(self.instructor, 'get_full_name') else self.instructor.username} - {self.course_offering}"
+
+
+class MajorCourse(models.Model):
+    """ربط التخصص بالمقرر مع تفاصيل إضافية"""
+    
+    major = models.ForeignKey(Major, on_delete=models.CASCADE, verbose_name="التخصص")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="المقرر")
+    
+    # تفاصيل العلاقة
+    is_required = models.BooleanField(default=True, verbose_name="مطلوب")
+    semester_offered = models.IntegerField(default=1, 
+                                         validators=[MinValueValidator(1), MaxValueValidator(8)],
+                                         verbose_name="الفصل المُقدم فيه")
+    year_offered = models.IntegerField(default=1,
+                                     validators=[MinValueValidator(1), MaxValueValidator(4)],
+                                     verbose_name="السنة المُقدم فيها")
+    
+    # ترتيب المقرر في الخطة الدراسية
+    sequence_order = models.IntegerField(default=1, verbose_name="ترتيب المتسلسل")
     
     # معلومات تقنية
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
     
     class Meta:
-        verbose_name = "قاعة دراسية"
-        verbose_name_plural = "القاعات الدراسية"
-        ordering = ['building', 'floor_number', 'room_number']
-        unique_together = ['building', 'room_number']
+        verbose_name = "مقرر التخصص"
+        verbose_name_plural = "مقررات التخصصات"
+        unique_together = ['major', 'course']
+        ordering = ['major', 'year_offered', 'semester_offered', 'sequence_order']
         indexes = [
-            models.Index(fields=['building', 'is_active']),
-            models.Index(fields=['room_type']),
-            models.Index(fields=['capacity']),
+            models.Index(fields=['major', 'is_required']),
+            models.Index(fields=['semester_offered', 'year_offered']),
         ]
     
     def __str__(self):
-        return f"{self.building.code}-{self.room_number}"
-    
-    @property
-    def full_name(self):
-        return f"{self.building.name_ar} - غرفة {self.room_number}"
+        return f"{self.major.name_ar} - {self.course.code}"
