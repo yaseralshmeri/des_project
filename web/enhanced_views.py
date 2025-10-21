@@ -21,7 +21,8 @@ import json
 import logging
 
 # Import models from different apps
-from students.models import User, Student, Department
+from students.models import User
+from courses.models import Department
 from courses.models import Course
 from academic.models import Enrollment, Grade, Semester, AcademicYear
 from notifications.models import Notification

@@ -13,7 +13,8 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 import logging
 
-from .models import User, Student, Department
+from .models import User, Student
+from courses.models import Department
 from .serializers import UserSerializer, UserCreateSerializer, StudentSerializer, DepartmentSerializer
 from .permissions import IsAdmin, IsAdminOrStaff
 
@@ -153,7 +154,7 @@ class StudentViewSet(viewsets.ModelViewSet):
         'fees',  # Prefetch related fees
         'enrollments',  # Prefetch enrollments
         'scholarship_applications'  # Prefetch scholarship applications
-    ).order_by('-enrollment_date')
+    ).order_by('-user__date_joined')
 
     def get_queryset(self):
         """FIX: Performance - Add select_related and prefetch_related to avoid N+1 queries"""

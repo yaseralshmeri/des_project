@@ -1,7 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import date, timedelta
-from students.models import User, Student, Department
+from students.models import User
+from courses.models import Department
 from courses.models import Course, CourseOffering
 from hr.models import Employee, Teacher
 

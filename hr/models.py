@@ -1,5 +1,6 @@
 from django.db import models
-from students.models import User, Department
+from students.models import User
+from courses.models import Department
 from django.core.validators import MinValueValidator
 
 class Employee(models.Model):

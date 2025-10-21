@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import User, Student, Department
+from .models import User, Student
+from courses.models import Department
 
 class UserSerializer(serializers.ModelSerializer):
     """

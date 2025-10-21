@@ -17,7 +17,7 @@ import logging
 
 # Import models
 from students.models import User, Student
-from notifications.models import Notification
+from notifications.models import InAppNotification
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
-from students.enhanced_models import User, Department, AcademicProgram, Student
+from students.models import User, Student
+from .models import Department
 import json
 
 class Semester(models.Model):

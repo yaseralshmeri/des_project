@@ -9,7 +9,8 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 import random
 
-from students.models import Student, Department
+from students.models import User
+from courses.models import Department
 from courses.models import Course
 from academic.models import (
     AcademicYear, Semester, Enrollment, Grade, Attendance, 

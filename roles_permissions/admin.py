@@ -3,7 +3,8 @@ Admin interface for Roles and Permissions
 واجهة إدارية للأدوار والصلاحيات
 """
 from django.contrib import admin
-from .models import Department, Role, Permission, RolePermission, UserRole
+from .models import Role, Permission, RolePermission, UserRole
+from courses.models import Department
 
 
 @admin.register(Department)

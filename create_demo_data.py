@@ -15,7 +15,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'university_system.settings')
 django.setup()
 
 from django.contrib.auth import get_user_model
-from students.models import Student, Department
+from students.models import User
+from courses.models import Department
 from courses.models import Course, CourseOffering
 from academic.models import AcademicYear, Semester, Enrollment, Grade, Attendance
 from finance.models import FeeStructure, StudentFee, Payment, Scholarship

@@ -1,229 +1,272 @@
+# واجهة إدارية لنظام الإشعارات
+# Admin Interface for Notification System
+
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import timezone
+from django.db.models import Count
 from .models import (
-    NotificationTemplate, Notification, NotificationPreference,
-    Announcement, NotificationQueue, EmailLog
+    InAppNotification, NotificationTemplate, NotificationLog,
+    UserDeviceToken, UserTelegramAccount, NotificationPreference,
+    ScheduledNotification
 )
 
-
-@admin.register(NotificationTemplate)
-class NotificationTemplateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'template_type', 'is_active', 'created_at']
-    list_filter = ['template_type', 'is_active', 'created_at']
-    search_fields = ['name', 'template_type']
-    ordering = ['name']
-    
-    fieldsets = (
-        ('Basic Information', {
-            'fields': ('name', 'template_type', 'is_active')
-        }),
-        ('Email Template', {
-            'fields': ('subject_template', 'email_template'),
-            'classes': ('wide',)
-        }),
-        ('SMS Template', {
-            'fields': ('sms_template',),
-            'description': 'Keep SMS messages under 160 characters for best delivery rates.'
-        }),
-    )
-
-
-@admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
-    list_display = ['title', 'recipient_name', 'notification_type', 'delivery_method', 'status', 'scheduled_for', 'sent_at']
-    list_filter = ['notification_type', 'delivery_method', 'status', 'scheduled_for', 'sent_at']
-    search_fields = ['title', 'message', 'recipient__username', 'recipient__first_name', 'recipient__last_name']
-    readonly_fields = ['sent_at', 'read_at', 'created_at', 'updated_at']
+@admin.register(InAppNotification)
+class InAppNotificationAdmin(admin.ModelAdmin):
+    list_display = ['title', 'user', 'category', 'priority', 'is_read', 'created_at']
+    list_filter = ['category', 'priority', 'is_read', 'created_at']
+    search_fields = ['title', 'message', 'user__first_name_ar', 'user__last_name_ar']
+    readonly_fields = ['id', 'created_at', 'updated_at', 'read_at']
     ordering = ['-created_at']
     date_hierarchy = 'created_at'
     
     fieldsets = (
-        ('Recipient & Content', {
-            'fields': ('recipient', 'template', 'title', 'message')
+        ('معلومات أساسية', {
+            'fields': ('id', 'user', 'title', 'message')
         }),
-        ('Settings', {
-            'fields': ('notification_type', 'delivery_method', 'scheduled_for')
+        ('التصنيف والأولوية', {
+            'fields': ('category', 'priority')
         }),
-        ('Status', {
-            'fields': ('status', 'sent_at', 'read_at'),
+        ('الإجراءات', {
+            'fields': ('action_url', 'action_text'),
             'classes': ('collapse',)
         }),
-        ('Metadata', {
-            'fields': ('related_object_type', 'related_object_id', 'context_data'),
+        ('الحالة', {
+            'fields': ('is_read', 'read_at', 'is_active', 'expires_at'),
             'classes': ('collapse',)
         }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
+        ('معلومات إضافية', {
+            'fields': ('metadata', 'created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
     
-    def recipient_name(self, obj):
-        return obj.recipient.get_full_name() or obj.recipient.username
-    recipient_name.short_description = 'Recipient'
-    recipient_name.admin_order_field = 'recipient__first_name'
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
     
-    actions = ['mark_as_sent', 'mark_as_read', 'resend_notification']
-    
-    def mark_as_sent(self, request, queryset):
-        updated = queryset.update(status='SENT', sent_at=timezone.now())
-        self.message_user(request, f'{updated} notifications marked as sent.')
-    mark_as_sent.short_description = 'Mark selected notifications as sent'
+    actions = ['mark_as_read', 'mark_as_unread', 'deactivate_notifications']
     
     def mark_as_read(self, request, queryset):
-        updated = queryset.update(status='READ', read_at=timezone.now())
-        self.message_user(request, f'{updated} notifications marked as read.')
-    mark_as_read.short_description = 'Mark selected notifications as read'
-
-
-@admin.register(NotificationPreference)
-class NotificationPreferenceAdmin(admin.ModelAdmin):
-    list_display = ['user_name', 'email_enabled', 'sms_enabled', 'in_app_enabled', 'push_enabled']
-    list_filter = ['email_enabled', 'sms_enabled', 'in_app_enabled', 'push_enabled']
-    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'user__email']
-    ordering = ['user__username']
+        updated = queryset.update(is_read=True, read_at=timezone.now())
+        self.message_user(request, f'تم تمييز {updated} إشعار كمقروء.')
+    mark_as_read.short_description = "تمييز كمقروء"
     
-    fieldsets = (
-        ('User', {
-            'fields': ('user',)
-        }),
-        ('Email Preferences', {
-            'fields': ('email_enabled', 'email_enrollment', 'email_grades', 'email_payments', 'email_reminders', 'email_announcements')
-        }),
-        ('SMS Preferences', {
-            'fields': ('sms_enabled', 'sms_urgent_only', 'sms_payments', 'sms_reminders')
-        }),
-        ('In-App Preferences', {
-            'fields': ('in_app_enabled', 'in_app_sound')
-        }),
-        ('Push Notification Preferences', {
-            'fields': ('push_enabled', 'push_grades', 'push_reminders')
-        }),
-    )
+    def mark_as_unread(self, request, queryset):
+        updated = queryset.update(is_read=False, read_at=None)
+        self.message_user(request, f'تم تمييز {updated} إشعار كغير مقروء.')
+    mark_as_unread.short_description = "تمييز كغير مقروء"
     
-    def user_name(self, obj):
-        return obj.user.get_full_name() or obj.user.username
-    user_name.short_description = 'User'
-    user_name.admin_order_field = 'user__first_name'
+    def deactivate_notifications(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'تم إلغاء تفعيل {updated} إشعار.')
+    deactivate_notifications.short_description = "إلغاء التفعيل"
 
-
-@admin.register(Announcement)
-class AnnouncementAdmin(admin.ModelAdmin):
-    list_display = ['title', 'audience', 'priority', 'is_published', 'publish_at', 'created_by', 'created_at']
-    list_filter = ['audience', 'priority', 'is_published', 'publish_at', 'created_at']
-    search_fields = ['title', 'content', 'created_by__username']
+@admin.register(NotificationTemplate)
+class NotificationTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'template_id', 'category', 'is_active', 'created_at']
+    list_filter = ['category', 'is_active', 'created_at']
+    search_fields = ['name', 'template_id', 'description']
     readonly_fields = ['created_at', 'updated_at']
-    ordering = ['-created_at']
-    date_hierarchy = 'publish_at'
+    ordering = ['name']
     
     fieldsets = (
-        ('Content', {
-            'fields': ('title', 'content')
+        ('معلومات أساسية', {
+            'fields': ('template_id', 'name', 'description', 'category')
         }),
-        ('Audience & Priority', {
-            'fields': ('audience', 'priority', 'is_urgent')
+        ('محتوى القالب', {
+            'fields': ('title_template', 'message_template', 'html_template'),
+            'classes': ('wide',)
         }),
-        ('Targeting', {
-            'fields': ('target_roles', 'target_users', 'target_department', 'target_program'),
-            'classes': ('collapse',),
-            'description': 'Configure specific targeting when audience is set to specific options.'
+        ('الإعدادات', {
+            'fields': ('required_variables', 'default_channels', 'is_active'),
+            'classes': ('collapse',)
         }),
-        ('Publishing', {
-            'fields': ('is_published', 'publish_at', 'expire_at')
-        }),
-        ('Metadata', {
+        ('معلومات النظام', {
             'fields': ('created_by', 'created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
     
-    def save_model(self, request, obj, form, change):
-        if not change:  # New object
-            obj.created_by = request.user
-        super().save_model(request, obj, form, change)
-    
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('created_by', 'target_department', 'target_program')
-    
-    actions = ['publish_announcements', 'unpublish_announcements', 'mark_as_urgent']
-    
-    def publish_announcements(self, request, queryset):
-        updated = queryset.update(is_published=True)
-        self.message_user(request, f'{updated} announcements published.')
-    publish_announcements.short_description = 'Publish selected announcements'
-    
-    def unpublish_announcements(self, request, queryset):
-        updated = queryset.update(is_published=False)
-        self.message_user(request, f'{updated} announcements unpublished.')
-    unpublish_announcements.short_description = 'Unpublish selected announcements'
-    
-    def mark_as_urgent(self, request, queryset):
-        updated = queryset.update(priority='URGENT', is_urgent=True)
-        self.message_user(request, f'{updated} announcements marked as urgent.')
-    mark_as_urgent.short_description = 'Mark selected announcements as urgent'
+        return super().get_queryset(request).select_related('created_by')
 
-
-@admin.register(NotificationQueue)
-class NotificationQueueAdmin(admin.ModelAdmin):
-    list_display = ['notification_title', 'recipient', 'priority', 'retry_count', 'max_retries', 'last_attempt', 'created_at']
-    list_filter = ['priority', 'retry_count', 'last_attempt', 'created_at']
-    search_fields = ['notification__title', 'notification__recipient__username']
-    readonly_fields = ['created_at']
-    ordering = ['-priority', 'created_at']
+@admin.register(NotificationLog)
+class NotificationLogAdmin(admin.ModelAdmin):
+    list_display = ['title', 'recipient_user_id', 'template_id', 'status', 'priority', 'created_at']
+    list_filter = ['status', 'priority', 'category', 'created_at']
+    search_fields = ['title', 'message', 'recipient_user_id', 'template_id']
+    readonly_fields = ['id', 'created_at', 'sent_at']
+    ordering = ['-created_at']
+    date_hierarchy = 'created_at'
     
-    def notification_title(self, obj):
-        return obj.notification.title
-    notification_title.short_description = 'Notification'
-    notification_title.admin_order_field = 'notification__title'
-    
-    def recipient(self, obj):
-        return obj.notification.recipient.get_full_name() or obj.notification.recipient.username
-    recipient.short_description = 'Recipient'
-    recipient.admin_order_field = 'notification__recipient__first_name'
-    
-    actions = ['retry_notifications', 'increase_priority']
-    
-    def retry_notifications(self, request, queryset):
-        for item in queryset:
-            item.retry_count = 0
-            item.last_attempt = None
-            item.error_message = ''
-            item.save()
-        self.message_user(request, f'{queryset.count()} notifications queued for retry.')
-    retry_notifications.short_description = 'Reset and retry selected notifications'
-    
-    def increase_priority(self, request, queryset):
-        for item in queryset:
-            item.priority = min(item.priority + 1, 10)
-            item.save()
-        self.message_user(request, f'{queryset.count()} notifications priority increased.')
-    increase_priority.short_description = 'Increase priority of selected notifications'
-
-
-@admin.register(EmailLog)
-class EmailLogAdmin(admin.ModelAdmin):
-    list_display = ['recipient_email', 'subject', 'status', 'notification_title', 'sent_at']
-    list_filter = ['status', 'sent_at']
-    search_fields = ['recipient_email', 'subject', 'notification__title']
-    readonly_fields = ['sent_at']
-    ordering = ['-sent_at']
-    date_hierarchy = 'sent_at'
-    
-    def notification_title(self, obj):
-        return obj.notification.title if obj.notification else '-'
-    notification_title.short_description = 'Related Notification'
+    fieldsets = (
+        ('معلومات الإشعار', {
+            'fields': ('id', 'template_id', 'title', 'message')
+        }),
+        ('المستلم', {
+            'fields': ('recipient_user_id', 'recipient_email', 'recipient_phone')
+        }),
+        ('الإعدادات', {
+            'fields': ('priority', 'category', 'channels_used'),
+            'classes': ('collapse',)
+        }),
+        ('نتائج التسليم', {
+            'fields': ('status', 'delivery_results', 'sent_at'),
+            'classes': ('collapse',)
+        }),
+        ('بيانات إضافية', {
+            'fields': ('metadata', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
     
     def has_add_permission(self, request):
-        return False  # Email logs are created programmatically
+        return False
     
     def has_change_permission(self, request, obj=None):
-        return False  # Email logs should not be modified
+        return False
+
+@admin.register(UserDeviceToken)
+class UserDeviceTokenAdmin(admin.ModelAdmin):
+    list_display = ['user', 'device_type', 'device_name', 'is_active', 'last_used']
+    list_filter = ['device_type', 'is_active', 'created_at']
+    search_fields = ['user__first_name_ar', 'user__last_name_ar', 'device_name', 'device_id']
+    readonly_fields = ['created_at', 'updated_at', 'last_used']
+    ordering = ['-last_used']
     
-    actions = ['export_email_logs']
+    fieldsets = (
+        ('معلومات المستخدم', {
+            'fields': ('user', 'device_type', 'token')
+        }),
+        ('معلومات الجهاز', {
+            'fields': ('device_id', 'device_name', 'app_version'),
+            'classes': ('collapse',)
+        }),
+        ('الحالة', {
+            'fields': ('is_active', 'last_used', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
     
-    def export_email_logs(self, request, queryset):
-        # TODO: Implement CSV export functionality
-        self.message_user(request, f'{queryset.count()} email logs selected for export.')
-    export_email_logs.short_description = 'Export selected email logs'
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
+    
+    actions = ['activate_tokens', 'deactivate_tokens']
+    
+    def activate_tokens(self, request, queryset):
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'تم تفعيل {updated} رمز جهاز.')
+    activate_tokens.short_description = "تفعيل الرموز"
+    
+    def deactivate_tokens(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'تم إلغاء تفعيل {updated} رمز جهاز.')
+    deactivate_tokens.short_description = "إلغاء تفعيل الرموز"
+
+@admin.register(UserTelegramAccount)
+class UserTelegramAccountAdmin(admin.ModelAdmin):
+    list_display = ['user', 'username', 'chat_id', 'notifications_enabled', 'is_active', 'is_verified']
+    list_filter = ['notifications_enabled', 'is_active', 'is_verified', 'preferred_language']
+    search_fields = ['user__first_name_ar', 'user__last_name_ar', 'username', 'chat_id']
+    readonly_fields = ['created_at', 'last_interaction']
+    ordering = ['-created_at']
+    
+    fieldsets = (
+        ('معلومات الحساب', {
+            'fields': ('user', 'chat_id', 'username')
+        }),
+        ('الإعدادات', {
+            'fields': ('notifications_enabled', 'preferred_language')
+        }),
+        ('الحالة', {
+            'fields': ('is_active', 'is_verified', 'created_at', 'last_interaction'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
+
+@admin.register(NotificationPreference)
+class NotificationPreferenceAdmin(admin.ModelAdmin):
+    list_display = ['user', 'email_enabled', 'sms_enabled', 'push_enabled', 'quiet_hours_enabled']
+    list_filter = ['email_enabled', 'sms_enabled', 'push_enabled', 'urgent_only', 'quiet_hours_enabled']
+    search_fields = ['user__first_name_ar', 'user__last_name_ar']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['user']
+    
+    fieldsets = (
+        ('المستخدم', {
+            'fields': ('user',)
+        }),
+        ('تفضيلات القنوات', {
+            'fields': ('email_enabled', 'sms_enabled', 'push_enabled', 'in_app_enabled', 'telegram_enabled'),
+            'classes': ('wide',)
+        }),
+        ('تفضيلات الفئات', {
+            'fields': ('academic_notifications', 'financial_notifications', 'administrative_notifications',
+                      'security_notifications', 'system_notifications'),
+            'classes': ('wide',)
+        }),
+        ('إعدادات متقدمة', {
+            'fields': ('urgent_only', 'quiet_hours_enabled', 'quiet_start_time', 'quiet_end_time'),
+            'classes': ('collapse',)
+        }),
+        ('معلومات النظام', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
+
+@admin.register(ScheduledNotification)
+class ScheduledNotificationAdmin(admin.ModelAdmin):
+    list_display = ['template_id', 'scheduled_time', 'status', 'priority', 'created_by', 'created_at']
+    list_filter = ['status', 'priority', 'scheduled_time', 'created_at']
+    search_fields = ['template_id']
+    readonly_fields = ['id', 'created_at', 'sent_at', 'delivery_results']
+    ordering = ['scheduled_time']
+    date_hierarchy = 'scheduled_time'
+    
+    fieldsets = (
+        ('معلومات الإشعار', {
+            'fields': ('id', 'template_id', 'priority')
+        }),
+        ('المستلمون والمحتوى', {
+            'fields': ('recipients', 'variables', 'channels'),
+            'classes': ('wide',)
+        }),
+        ('الجدولة', {
+            'fields': ('scheduled_time', 'status')
+        }),
+        ('النتائج', {
+            'fields': ('delivery_results', 'error_message', 'sent_at'),
+            'classes': ('collapse',)
+        }),
+        ('معلومات النظام', {
+            'fields': ('created_by', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('created_by')
+    
+    actions = ['cancel_notifications', 'reschedule_notifications']
+    
+    def cancel_notifications(self, request, queryset):
+        updated = queryset.filter(status='scheduled').update(status='cancelled')
+        self.message_user(request, f'تم إلغاء {updated} إشعار مجدول.')
+    cancel_notifications.short_description = "إلغاء الإشعارات المجدولة"
+    
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.status in ['sent', 'failed']:
+            return False
+        return True
+
+# إعدادات إضافية للموقع الإداري
+admin.site.site_header = "إدارة نظام الإشعارات"
+admin.site.site_title = "نظام الإشعارات"
+admin.site.index_title = "لوحة تحكم الإشعارات"

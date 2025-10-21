@@ -533,3 +533,7 @@ class UserPreferences(models.Model):
     
     def __str__(self):
         return f"تفضيلات {self.user.display_name}"
+
+
+# Legacy compatibility - Student model alias
+Student = StudentProfile

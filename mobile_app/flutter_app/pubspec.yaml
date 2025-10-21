@@ -1,0 +1,171 @@
+name: university_system_mobile
+description: نظام إدارة الجامعة - تطبيق الهاتف المحمول
+
+# App version information
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # UI Components
+  cupertino_icons: ^1.0.6
+  material_design_icons_flutter: ^7.0.7296
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.0
+  shimmer: ^3.0.0
+  
+  # Navigation and State Management
+  go_router: ^12.1.3
+  provider: ^6.1.1
+  flutter_bloc: ^8.1.3
+  
+  # HTTP and API
+  http: ^1.1.0
+  dio: ^5.3.2
+  retrofit: ^4.0.3
+  json_annotation: ^4.8.1
+  
+  # Local Storage
+  shared_preferences: ^2.2.2
+  sqflite: ^2.3.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  
+  # Authentication and Security
+  local_auth: ^2.1.7
+  crypto: ^3.0.3
+  encrypt: ^5.0.3
+  
+  # Firebase Services
+  firebase_core: ^2.24.2
+  firebase_auth: ^4.15.3
+  firebase_messaging: ^14.7.10
+  firebase_analytics: ^10.7.4
+  firebase_crashlytics: ^3.4.9
+  cloud_firestore: ^4.13.6
+  
+  # QR Code
+  qr_code_scanner: ^1.0.1
+  qr_flutter: ^4.1.0
+  
+  # File handling
+  file_picker: ^6.1.1
+  path_provider: ^2.1.1
+  permission_handler: ^11.1.0
+  
+  # Media and Images
+  image_picker: ^1.0.4
+  image_cropper: ^5.0.1
+  photo_view: ^0.14.0
+  
+  # Location Services
+  geolocator: ^10.1.0
+  location: ^5.0.3
+  
+  # Internationalization
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.18.1
+  
+  # Charts and Graphs
+  fl_chart: ^0.65.0
+  syncfusion_flutter_charts: ^23.2.7
+  
+  # Date and Time
+  table_calendar: ^3.0.9
+  
+  # Utilities
+  url_launcher: ^6.2.1
+  share_plus: ^7.2.1
+  connectivity_plus: ^5.0.2
+  device_info_plus: ^9.1.1
+  package_info_plus: ^4.2.0
+  
+  # PDF and Documents
+  pdf: ^3.10.7
+  printing: ^5.11.1
+  open_filex: ^4.3.4
+  
+  # Biometric Authentication
+  local_auth_android: ^1.0.32
+  local_auth_ios: ^1.1.4
+  
+  # WebSocket
+  web_socket_channel: ^2.4.0
+  
+  # Arabic Text Support
+  arabic_font: ^1.0.0
+  bidi: ^2.0.9
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  # Code Generation
+  build_runner: ^2.4.7
+  json_serializable: ^6.7.1
+  retrofit_generator: ^8.0.4
+  hive_generator: ^2.0.1
+  
+  # Testing
+  mockito: ^5.4.2
+  bloc_test: ^9.1.5
+  
+  # Linting and Analysis
+  flutter_lints: ^3.0.0
+  very_good_analysis: ^5.1.0
+
+flutter:
+  uses-material-design: true
+  
+  # Assets
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/fonts/
+    - assets/config/
+  
+  # Fonts
+  fonts:
+    - family: Tajawal
+      fonts:
+        - asset: assets/fonts/Tajawal-Regular.ttf
+        - asset: assets/fonts/Tajawal-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Tajawal-Medium.ttf
+          weight: 500
+    
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo-Regular.ttf
+        - asset: assets/fonts/Cairo-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Cairo-SemiBold.ttf
+          weight: 600
+
+# Flutter configurations
+flutter_intl:
+  enabled: true
+  class_name: S
+  main_locale: ar
+  arb_dir: lib/l10n
+  output_dir: lib/generated
+  
+# App configuration
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  min_sdk_android: 21
+  
+flutter_native_splash:
+  color: "#1976D2"
+  image: assets/images/splash_logo.png
+  android_12:
+    image: assets/images/splash_logo.png
+    color: "#1976D2"

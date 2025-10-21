@@ -10,7 +10,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from unittest.mock import patch, MagicMock
 import json
 
-from .models import User, Student, Department
+from .models import User, Student
+from courses.models import Department
 from .serializers import UserSerializer, StudentSerializer
 
 User = get_user_model()
