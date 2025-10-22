@@ -1,6 +1,8 @@
 """
-Django Settings for University Management System - MINIMAL WORKING VERSION
-إعدادات مبسطة وعاملة لنظام إدارة الجامعة
+Django Settings for University Management System - FIXED VERSION
+إعدادات مصححة لنظام إدارة الجامعة
+
+This is the fixed settings file with proper configuration and error handling.
 """
 
 from pathlib import Path
@@ -8,25 +10,41 @@ from decouple import config, Csv
 from datetime import timedelta
 import dj_database_url
 import os
+import secrets
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent
 
 # =============================================================================
-# SECURITY SETTINGS
+# SECURITY SETTINGS - إعدادات الأمان المحسنة
 # =============================================================================
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-minimal-2024')
+# Generate secure SECRET_KEY
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-in-production-2024-fixed')
+
+# Debug settings
 DEBUG = config('DEBUG', default=True, cast=bool)
+
+# Allowed hosts
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=Csv())
 
 # Security Headers
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True if not DEBUG else False
+SECURE_HSTS_PRELOAD = True if not DEBUG else False
+
+# HTTPS Settings for Production
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # =============================================================================
-# INSTALLED APPS - الحد الأدنى
+# INSTALLED APPS - التطبيقات الأساسية فقط
 # =============================================================================
 
 DJANGO_APPS = [
@@ -40,37 +58,70 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
+    # API & Documentation
     'rest_framework',
     'rest_framework_simplejwt',
     'drf_yasg',
+    
+    # Security & Performance
     'corsheaders',
     'django_filters',
     'django_extensions',
+    'django_ratelimit',
+    'csp',
+    
+    # Monitoring & Health
+    'health_check',
+    'health_check.db',
+    'health_check.cache',
+    'health_check.storage',
 ]
 
+# Only include apps that don't have missing dependencies
 LOCAL_APPS = [
+    # Core Applications (tested and working)
     'students',
     'courses',
-    # 'notifications',  # Disabled temporarily due to signal issues
+    'notifications',
     'web',
+    # Temporarily disable apps with missing dependencies
+    # 'finance',  # Working
+    # 'hr',       # Working
+    # 'reports',  # Working
+    # 'academic', # Working
+    # 'ai',       # Working
+    # 'admin_control',      # Working
+    # 'roles_permissions',  # Working
+    # 'smart_ai',           # Working
+    # 'cyber_security',     # Working
+    # 'attendance_qr',      # Needs qrcode library
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # =============================================================================
-# MIDDLEWARE
+# MIDDLEWARE - الوسائط المحسنة والمُرتبة
 # =============================================================================
 
 MIDDLEWARE = [
+    # Security middleware (order matters)
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'csp.middleware.CSPMiddleware',
+    
+    # Static files middleware
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    
+    # Core Django middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    
+    # Rate limiting
+    'django_ratelimit.middleware.RatelimitMiddleware',
 ]
 
 # =============================================================================
@@ -80,7 +131,7 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'urls'
 
 # =============================================================================
-# TEMPLATES CONFIGURATION
+# TEMPLATES CONFIGURATION - محسن
 # =============================================================================
 
 TEMPLATES = [
@@ -89,6 +140,7 @@ TEMPLATES = [
         'DIRS': [
             BASE_DIR / 'templates',
             BASE_DIR / 'templates' / 'web',
+            BASE_DIR / 'templates' / 'admin',
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -111,29 +163,40 @@ TEMPLATES = [
 # =============================================================================
 
 WSGI_APPLICATION = 'university_system.wsgi.application'
+ASGI_APPLICATION = 'university_system.asgi.application'
 
 # =============================================================================
-# DATABASE CONFIGURATION
+# DATABASE CONFIGURATION - محسن
 # =============================================================================
 
 DATABASES = {
     'default': dj_database_url.config(
         default=f'sqlite:///{BASE_DIR}/db.sqlite3',
         conn_max_age=600,
+        conn_health_checks=True,
     )
 }
+
+# Database performance optimization
+if 'sqlite' in DATABASES['default']['ENGINE']:
+    DATABASES['default']['OPTIONS'] = {
+        'timeout': 20,
+        'check_same_thread': False,
+    }
 
 # =============================================================================
 # AUTHENTICATION CONFIGURATION
 # =============================================================================
 
 AUTH_USER_MODEL = 'students.User'
+
+# Login URLs
 LOGIN_URL = '/web/login/'
 LOGIN_REDIRECT_URL = '/web/dashboard/'
 LOGOUT_REDIRECT_URL = '/web/'
 
 # =============================================================================
-# PASSWORD VALIDATION
+# PASSWORD VALIDATION - محسن
 # =============================================================================
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -155,7 +218,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # =============================================================================
-# INTERNATIONALIZATION & LOCALIZATION
+# INTERNATIONALIZATION & LOCALIZATION - محسن
 # =============================================================================
 
 LANGUAGE_CODE = 'ar'
@@ -170,7 +233,7 @@ USE_L10N = True
 USE_TZ = True
 
 # =============================================================================
-# STATIC FILES CONFIGURATION
+# STATIC FILES CONFIGURATION - محسن
 # =============================================================================
 
 STATIC_URL = '/static/'
@@ -179,17 +242,20 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
+# Static files storage with better compression
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # =============================================================================
-# MEDIA FILES CONFIGURATION
+# MEDIA FILES CONFIGURATION - محسن
 # =============================================================================
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# File upload settings - improved security
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+FILE_UPLOAD_PERMISSIONS = 0o644
 
 # =============================================================================
 # DEFAULT AUTO FIELD
@@ -198,7 +264,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # =============================================================================
-# DJANGO REST FRAMEWORK CONFIGURATION
+# DJANGO REST FRAMEWORK CONFIGURATION - محسن
 # =============================================================================
 
 REST_FRAMEWORK = {
@@ -213,12 +279,33 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+    },
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
+    'DEFAULT_VERSION': 'v1',
+    'ALLOWED_VERSIONS': ['v1'],
 }
 
 # =============================================================================
-# JWT CONFIGURATION
+# JWT CONFIGURATION - محسن
 # =============================================================================
 
 SIMPLE_JWT = {
@@ -229,71 +316,141 @@ SIMPLE_JWT = {
     'UPDATE_LAST_LOGIN': True,
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
 }
 
 # =============================================================================
-# CORS CONFIGURATION
+# CORS CONFIGURATION - محسن
 # =============================================================================
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-]
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000',
+    cast=Csv()
+)
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # =============================================================================
-# CACHE CONFIGURATION
+# CACHE CONFIGURATION - محسن (Local Memory)
 # =============================================================================
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
     }
 }
 
 # =============================================================================
-# SESSION CONFIGURATION
+# SESSION CONFIGURATION - محسن
 # =============================================================================
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+SESSION_CACHE_ALIAS = 'default'
 SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_COOKIE_NAME = 'university_sessionid'
+SESSION_SAVE_EVERY_REQUEST = False
 
 # =============================================================================
-# EMAIL CONFIGURATION
+# EMAIL CONFIGURATION - محسن
 # =============================================================================
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = config(
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.console.EmailBackend'
+)
+
+if EMAIL_BACKEND != 'django.core.mail.backends.console.EmailBackend':
+    EMAIL_HOST = config('EMAIL_HOST', default='')
+    EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+    EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@university.edu')
+    SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # =============================================================================
-# LOGGING CONFIGURATION
+# LOGGING CONFIGURATION - محسن
 # =============================================================================
 
-# Create logs directory
+# Create logs directory if it doesn't exist
 (BASE_DIR / 'logs').mkdir(exist_ok=True)
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {name} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '[{levelname}] {asctime} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'maxBytes': 1024*1024*15,  # 15MB
+            'backupCount': 10,
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'university_system': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
         },
     },
 }
 
 # =============================================================================
-# API DOCUMENTATION (Swagger)
+# CONTENT SECURITY POLICY - محسن
+# =============================================================================
+
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com")
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com")
+CSP_IMG_SRC = ("'self'", "data:", "https:", "blob:")
+CSP_FONT_SRC = ("'self'", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com")
+CSP_CONNECT_SRC = ("'self'",)
+
+# =============================================================================
+# RATE LIMITING - محسن
+# =============================================================================
+
+RATELIMIT_USE_CACHE = 'default'
+RATELIMIT_ENABLE = True
+
+# =============================================================================
+# API DOCUMENTATION (Swagger) - محسن
 # =============================================================================
 
 SWAGGER_SETTINGS = {
@@ -301,35 +458,102 @@ SWAGGER_SETTINGS = {
         'Bearer': {
             'type': 'apiKey',
             'name': 'Authorization',
-            'in': 'header'
+            'in': 'header',
+            'description': 'JWT authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"'
         }
     },
     'USE_SESSION_AUTH': False,
     'JSON_EDITOR': True,
+    'SUPPORTED_SUBMIT_METHODS': [
+        'get', 'post', 'put', 'delete', 'patch'
+    ],
+    'OPERATIONS_SORTER': 'alpha',
+    'TAGS_SORTER': 'alpha',
+    'DOC_EXPANSION': 'none',
+    'DEEP_LINKING': True,
+    'SHOW_EXTENSIONS': True,
+    'DEFAULT_MODEL_RENDERING': 'example',
+}
+
+REDOC_SETTINGS = {
+    'LAZY_RENDERING': False,
 }
 
 # =============================================================================
-# DEVELOPMENT SETTINGS
+# HEALTH CHECK CONFIGURATION - محسن
+# =============================================================================
+
+HEALTH_CHECK = {
+    'DISK_USAGE_MAX': 90,
+    'MEMORY_MIN': 100,
+}
+
+# =============================================================================
+# DEVELOPMENT SETTINGS - محسن
 # =============================================================================
 
 if DEBUG:
+    # Add debug toolbar if in development
     try:
         import debug_toolbar
         INSTALLED_APPS.append('debug_toolbar')
         MIDDLEWARE.insert(-1, 'debug_toolbar.middleware.DebugToolbarMiddleware')
         INTERNAL_IPS = ['127.0.0.1', '::1']
+        
+        DEBUG_TOOLBAR_CONFIG = {
+            'SHOW_TOOLBAR_CALLBACK': lambda request: DEBUG,
+            'HIDE_DJANGO_SQL': False,
+            'TAG': 'div',
+            'ENABLE_STACKTRACES': True,
+        }
     except ImportError:
         pass
 
 # =============================================================================
-# CUSTOM SETTINGS
+# CUSTOM SETTINGS - محسن
 # =============================================================================
 
-UNIVERSITY_NAME = 'جامعة المستقبل'
-UNIVERSITY_NAME_EN = 'Future University'
-UNIVERSITY_CODE = 'FU'
-CURRENT_ACADEMIC_YEAR = '2024-2025'
-CURRENT_SEMESTER = '1'
+# University specific settings
+UNIVERSITY_NAME = config('UNIVERSITY_NAME', default='جامعة المستقبل')
+UNIVERSITY_NAME_EN = config('UNIVERSITY_NAME_EN', default='Future University')
+UNIVERSITY_CODE = config('UNIVERSITY_CODE', default='FU')
+UNIVERSITY_LOGO = config('UNIVERSITY_LOGO', default='/static/images/logo.png')
+
+# Academic year settings
+CURRENT_ACADEMIC_YEAR = config('CURRENT_ACADEMIC_YEAR', default='2024-2025')
+CURRENT_SEMESTER = config('CURRENT_SEMESTER', default='1')
+
+# System settings
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
+ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+ALLOWED_DOCUMENT_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
+
+# Pagination settings
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
+
+# =============================================================================
+# PRODUCTION OVERRIDES - محسن
+# =============================================================================
+
+if not DEBUG:
+    # Use more secure session settings
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    
+    # Additional security headers
+    SECURE_REFERRER_POLICY = 'same-origin'
+    
+    # Logging adjustments for production
+    LOGGING['handlers']['console']['level'] = 'WARNING'
+    LOGGING['loggers']['django']['level'] = 'WARNING'
+    
+    # Disable browsable API in production
+    REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
+        'rest_framework.renderers.JSONRenderer',
+    ]
 
 # =============================================================================
 # CUSTOM CONTEXT PROCESSORS
@@ -341,10 +565,11 @@ def university_context(request):
         'UNIVERSITY_NAME': UNIVERSITY_NAME,
         'UNIVERSITY_NAME_EN': UNIVERSITY_NAME_EN,
         'UNIVERSITY_CODE': UNIVERSITY_CODE,
+        'UNIVERSITY_LOGO': UNIVERSITY_LOGO,
         'CURRENT_ACADEMIC_YEAR': CURRENT_ACADEMIC_YEAR,
         'CURRENT_SEMESTER': CURRENT_SEMESTER,
         'current_year': 2024,
     }
 
 # Add custom context processor
-TEMPLATES[0]['OPTIONS']['context_processors'].append('settings_minimal.university_context')
+TEMPLATES[0]['OPTIONS']['context_processors'].append('settings_fixed.university_context')

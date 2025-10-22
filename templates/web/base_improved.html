@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- SEO Meta Tags -->
+    <title>{% block title %}{{ UNIVERSITY_NAME|default:"نظام إدارة الجامعة" }}{% endblock %}</title>
+    <meta name="description" content="{% block description %}نظام إدارة جامعي شامل ومتطور يوفر جميع الخدمات الأكاديمية والإدارية{% endblock %}">
+    <meta name="keywords" content="{% block keywords %}جامعة, إدارة, طلاب, أساتذة, مقررات, نظام أكاديمي{% endblock %}">
+    <meta name="author" content="{{ UNIVERSITY_NAME_EN|default:'Future University' }}">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="{% block og_title %}{{ UNIVERSITY_NAME|default:"نظام إدارة الجامعة" }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}نظام إدارة جامعي شامل ومتطور{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:image" content="{% block og_image %}{{ UNIVERSITY_LOGO|default:'/static/images/logo.png' }}{% endblock %}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
+    <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css" rel="stylesheet">
+    
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#1e3a8a">
+    <meta name="msapplication-TileColor" content="#1e3a8a">
+    
+    <!-- Base Styles -->
+    <style>
+        :root {
+            --primary-color: #1e3a8a;
+            --secondary-color: #3b82f6;
+            --accent-color: #f59e0b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #06b6d4;
+            --dark-color: #1f2937;
+            --light-color: #f8fafc;
+            --border-color: #e5e7eb;
+            --text-muted: #6b7280;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+            --shadow-xl: 0 20px 40px rgba(0,0,0,0.2);
+            --border-radius: 8px;
+            --border-radius-lg: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: var(--dark-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container-fluid {
+            max-width: 1400px;
+        }
+
+        /* Enhanced Navigation */
+        .navbar-custom {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            padding: 1rem 0;
+            box-shadow: var(--shadow-md);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: white !important;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .navbar-brand:hover {
+            color: #e0e7ff !important;
+        }
+
+        .navbar-nav .nav-link {
+            color: rgba(255,255,255,0.9) !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            margin: 0 0.25rem;
+        }
+
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white !important;
+        }
+
+        .dropdown-menu {
+            border: none;
+            box-shadow: var(--shadow-lg);
+            border-radius: var(--border-radius-lg);
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .dropdown-item {
+            border-radius: var(--border-radius);
+            padding: 0.75rem 1rem;
+            transition: var(--transition);
+        }
+
+        .dropdown-item:hover {
+            background: var(--light-color);
+            color: var(--primary-color);
+        }
+
+        /* User Menu */
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+            object-fit: cover;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            color: white;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        /* Enhanced Breadcrumbs */
+        .breadcrumb-custom {
+            background: white;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .breadcrumb {
+            background: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .breadcrumb-item {
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "/";
+            color: var(--text-muted);
+        }
+
+        .breadcrumb-item a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .breadcrumb-item a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb-item.active {
+            color: var(--text-muted);
+        }
+
+        /* Messages/Alerts */
+        .alert {
+            border: none;
+            border-radius: var(--border-radius-lg);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+            color: #065f46;
+            border-left: 4px solid var(--success-color);
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+            color: #991b1b;
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+            color: #92400e;
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05));
+            color: #155e75;
+            border-left: 4px solid var(--info-color);
+        }
+
+        /* Enhanced Footer */
+        .footer-custom {
+            background: var(--dark-color);
+            color: rgba(255,255,255,0.8);
+            padding: 3rem 0 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer-section {
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h6 {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .footer-section a {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-section a:hover {
+            color: var(--secondary-color);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 2rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        /* Utility Classes */
+        .card-custom {
+            border: none;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-md);
+            background: white;
+        }
+
+        .btn-custom {
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+            transition: var(--transition);
+            border: none;
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Loading State */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(4px);
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .user-info {
+                display: none;
+            }
+
+            .navbar-nav {
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(255,255,255,0.1);
+            }
+
+            .container-fluid {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --light-color: #1f2937;
+                --dark-color: #f9fafb;
+                --border-color: #374151;
+                --text-muted: #9ca3af;
+            }
+
+            body {
+                background-color: #111827;
+                color: var(--dark-color);
+            }
+
+            .card-custom {
+                background: #1f2937;
+                border: 1px solid var(--border-color);
+            }
+
+            .dropdown-menu {
+                background: #1f2937;
+                border: 1px solid var(--border-color);
+            }
+
+            .dropdown-item:hover {
+                background: #374151;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .navbar-custom,
+            .footer-custom,
+            .breadcrumb-custom {
+                display: none;
+            }
+
+            body {
+                background: white;
+                color: black;
+            }
+
+            .card-custom {
+                box-shadow: none;
+                border: 1px solid #ccc;
+            }
+        }
+
+        /* Accessibility Enhancements */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .focus-visible:focus {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+
+        /* Reduced motion for accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'web:home' %}">
+                <i class="fas fa-university"></i>
+                {{ UNIVERSITY_NAME|default:"نظام إدارة الجامعة" }}
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="تبديل القائمة">
+                <span class="navbar-toggler-icon">
+                    <i class="fas fa-bars" style="color: white;"></i>
+                </span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'web:dashboard' %}">
+                                <i class="fas fa-tachometer-alt me-1"></i>
+                                لوحة التحكم
+                            </a>
+                        </li>
+
+                        {% if user.role == 'STUDENT' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-graduation-cap me-1"></i>
+                                الخدمات الأكاديمية
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'web:student_courses' %}">
+                                    <i class="fas fa-book me-2"></i>مقرراتي
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:student_grades' %}">
+                                    <i class="fas fa-star me-2"></i>الدرجات
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:student_schedule' %}">
+                                    <i class="fas fa-calendar me-2"></i>الجدول الدراسي
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'web:student_payments' %}">
+                                    <i class="fas fa-credit-card me-2"></i>المدفوعات
+                                </a></li>
+                            </ul>
+                        </li>
+
+                        {% elif user.role in 'TEACHER,ASSISTANT_TEACHER' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-chalkboard-teacher me-1"></i>
+                                التدريس
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'web:teacher_courses' %}">
+                                    <i class="fas fa-book-open me-2"></i>مقرراتي التدريسية
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:teacher_students' %}">
+                                    <i class="fas fa-users me-2"></i>الطلاب
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:teacher_grading' %}">
+                                    <i class="fas fa-clipboard-list me-2"></i>رصد الدرجات
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'web:teacher_reports' %}">
+                                    <i class="fas fa-chart-bar me-2"></i>التقارير
+                                </a></li>
+                            </ul>
+                        </li>
+
+                        {% elif user.is_superuser or user.role in 'ADMIN,SUPER_ADMIN' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-cogs me-1"></i>
+                                الإدارة
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="/admin/">
+                                    <i class="fas fa-tools me-2"></i>لوحة الإدارة
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:admin_users' %}">
+                                    <i class="fas fa-users-cog me-2"></i>إدارة المستخدمين
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:admin_courses' %}">
+                                    <i class="fas fa-book-open me-2"></i>إدارة المقررات
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'web:admin_reports' %}">
+                                    <i class="fas fa-chart-line me-2"></i>التقارير المتقدمة
+                                </a></li>
+                            </ul>
+                        </li>
+                        {% endif %}
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'web:notifications' %}">
+                                <i class="fas fa-bell me-1"></i>
+                                الإشعارات
+                                <span class="badge bg-danger rounded-pill" id="notificationCount" style="display: none;"></span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle user-menu" href="#" role="button" data-bs-toggle="dropdown">
+                                {% if user.profile_picture %}
+                                    <img src="{{ user.profile_picture.url }}" alt="الصورة الشخصية" class="user-avatar">
+                                {% else %}
+                                    <div class="user-avatar" style="background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="user-info">
+                                    <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+                                    <div class="user-role">
+                                        {% if user.role == 'STUDENT' %}طالب
+                                        {% elif user.role == 'TEACHER' %}أستاذ
+                                        {% elif user.role == 'ASSISTANT_TEACHER' %}مساعد تدريس
+                                        {% elif user.role == 'ADMIN' %}مدير
+                                        {% elif user.role == 'SUPER_ADMIN' %}مدير عام
+                                        {% else %}مستخدم
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'web:profile' %}">
+                                    <i class="fas fa-user me-2"></i>الملف الشخصي
+                                </a></li>
+                                <li><a class="dropdown-item" href="#">
+                                    <i class="fas fa-cog me-2"></i>الإعدادات
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'web:logout' %}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>تسجيل الخروج
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'web:login' %}">
+                                <i class="fas fa-sign-in-alt me-1"></i>
+                                تسجيل الدخول
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumbs -->
+    {% if breadcrumbs %}
+    <div class="breadcrumb-custom">
+        <div class="container-fluid">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    {% for breadcrumb in breadcrumbs %}
+                        {% if breadcrumb.active %}
+                            <li class="breadcrumb-item active" aria-current="page">{{ breadcrumb.title }}</li>
+                        {% else %}
+                            <li class="breadcrumb-item">
+                                <a href="{{ breadcrumb.url }}">{{ breadcrumb.title }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                </ol>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="container-fluid">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {% if message.tags == 'success' %}
+                        <i class="fas fa-check-circle"></i>
+                    {% elif message.tags == 'error' or message.tags == 'danger' %}
+                        <i class="fas fa-exclamation-triangle"></i>
+                    {% elif message.tags == 'warning' %}
+                        <i class="fas fa-exclamation-circle"></i>
+                    {% else %}
+                        <i class="fas fa-info-circle"></i>
+                    {% endif %}
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer-custom">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="footer-section">
+                        <h6>{{ UNIVERSITY_NAME|default:"جامعة المستقبل" }}</h6>
+                        <p>نظام إدارة جامعي شامل ومتطور يوفر جميع الخدمات الأكاديمية والإدارية بأحدث التقنيات.</p>
+                        <div class="social-links">
+                            <a href="#" class="me-3"><i class="fab fa-facebook"></i></a>
+                            <a href="#" class="me-3"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="me-3"><i class="fab fa-linkedin"></i></a>
+                            <a href="#"><i class="fab fa-instagram"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2">
+                    <div class="footer-section">
+                        <h6>روابط سريعة</h6>
+                        <ul class="list-unstyled">
+                            <li><a href="{% url 'web:home' %}">الرئيسية</a></li>
+                            <li><a href="{% url 'web:courses_list' %}">المقررات</a></li>
+                            <li><a href="{% url 'web:departments' %}">الأقسام</a></li>
+                            <li><a href="{% url 'web:announcements' %}">الإعلانات</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-2">
+                    <div class="footer-section">
+                        <h6>الخدمات</h6>
+                        <ul class="list-unstyled">
+                            <li><a href="/api/docs/">API</a></li>
+                            <li><a href="{% url 'web:help' %}">المساعدة</a></li>
+                            <li><a href="{% url 'web:faq' %}">الأسئلة الشائعة</a></li>
+                            <li><a href="{% url 'web:contact' %}">اتصل بنا</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="footer-section">
+                        <h6>معلومات التواصل</h6>
+                        <p><i class="fas fa-phone me-2"></i> +966-11-xxx-xxxx</p>
+                        <p><i class="fas fa-envelope me-2"></i> info@university.edu.sa</p>
+                        <p><i class="fas fa-map-marker-alt me-2"></i> الرياض، المملكة العربية السعودية</p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; {{ current_year|default:"2024" }} {{ UNIVERSITY_NAME|default:"جامعة المستقبل" }}. جميع الحقوق محفوظة.</p>
+                <p>تم التطوير بواسطة فريق تقني متخصص 💻</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Base JavaScript -->
+    <script>
+        // Global variables
+        window.UNIVERSITY_NAME = "{{ UNIVERSITY_NAME|default:'نظام إدارة الجامعة' }}";
+        window.USER_AUTHENTICATED = {% if user.is_authenticated %}true{% else %}false{% endif %};
+        
+        // CSRF Token for AJAX requests
+        window.CSRF_TOKEN = '{{ csrf_token }}';
+        
+        // Configure AJAX defaults
+        if (window.jQuery) {
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader("X-CSRFToken", window.CSRF_TOKEN);
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show loading overlay for form submissions
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', function() {
+                    document.getElementById('loadingOverlay').style.display = 'flex';
+                });
+            });
+
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function() {
+                document.querySelectorAll('.alert').forEach(alert => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+
+            // Update notifications count
+            if (window.USER_AUTHENTICATED) {
+                updateNotificationsCount();
+                setInterval(updateNotificationsCount, 60000); // Every minute
+            }
+
+            // Add smooth scrolling to all internal links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+
+            console.log('🎓 University Management System initialized successfully!');
+        });
+
+        // Update notifications count
+        function updateNotificationsCount() {
+            fetch('/web/api/dashboard-stats/')
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.getElementById('notificationCount');
+                    if (data.notifications_count > 0) {
+                        badge.textContent = data.notifications_count;
+                        badge.style.display = 'inline';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                })
+                .catch(error => console.log('Error updating notifications:', error));
+        }
+
+        // Show loading overlay
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        // Hide loading overlay
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type} border-0`;
+            toast.role = 'alert';
+            toast.ariaLive = 'assertive';
+            toast.ariaAtomic = 'true';
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
+
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(container);
+            return container;
+        }
+
+        // Format number with Arabic locale
+        function formatNumber(num) {
+            return new Intl.NumberFormat('ar-SA').format(num);
+        }
+
+        // Format date with Arabic locale
+        function formatDate(date) {
+            return new Intl.DateTimeFormat('ar-SA', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }).format(new Date(date));
+        }
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

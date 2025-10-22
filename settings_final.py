@@ -1,6 +1,8 @@
 """
-Django Settings for University Management System - MINIMAL WORKING VERSION
-إعدادات مبسطة وعاملة لنظام إدارة الجامعة
+Django Settings for University Management System - FINAL WORKING VERSION
+إعدادات نهائية وعاملة لنظام إدارة الجامعة
+
+This is the final working settings file.
 """
 
 from pathlib import Path
@@ -16,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent
 # SECURITY SETTINGS
 # =============================================================================
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-minimal-2024')
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-final-2024')
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=Csv())
 
@@ -26,7 +28,7 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # =============================================================================
-# INSTALLED APPS - الحد الأدنى
+# INSTALLED APPS - التطبيقات الأساسية فقط
 # =============================================================================
 
 DJANGO_APPS = [
@@ -46,12 +48,15 @@ THIRD_PARTY_APPS = [
     'corsheaders',
     'django_filters',
     'django_extensions',
+    'health_check',
+    'health_check.db',
+    'health_check.storage',
 ]
 
 LOCAL_APPS = [
     'students',
     'courses',
-    # 'notifications',  # Disabled temporarily due to signal issues
+    'notifications',
     'web',
 ]
 
@@ -120,6 +125,7 @@ DATABASES = {
     'default': dj_database_url.config(
         default=f'sqlite:///{BASE_DIR}/db.sqlite3',
         conn_max_age=600,
+        conn_health_checks=True,
     )
 }
 
@@ -246,7 +252,7 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # =============================================================================
-# CACHE CONFIGURATION
+# CACHE CONFIGURATION - Simplified
 # =============================================================================
 
 CACHES = {
@@ -347,4 +353,4 @@ def university_context(request):
     }
 
 # Add custom context processor
-TEMPLATES[0]['OPTIONS']['context_processors'].append('settings_minimal.university_context')
+TEMPLATES[0]['OPTIONS']['context_processors'].append('settings_final.university_context')
