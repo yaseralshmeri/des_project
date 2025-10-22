@@ -4,14 +4,6 @@ Admin interface for Roles and Permissions
 """
 from django.contrib import admin
 from .models import Role, Permission, RolePermission, UserRole
-from courses.models import Department
-
-
-@admin.register(Department)
-class DepartmentAdmin(admin.ModelAdmin):
-    list_display = ['code', 'name', 'head_of_department', 'is_active']
-    list_filter = ['is_active', 'created_at']
-    search_fields = ['name', 'code', 'description']
 
 
 @admin.register(Role)

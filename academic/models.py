@@ -15,6 +15,7 @@ class AcademicYear(models.Model):
     is_current = models.BooleanField(default=False)
     
     class Meta:
+        app_label = 'academic'
         db_table = 'academic_years'
         ordering = ['-start_date']
     

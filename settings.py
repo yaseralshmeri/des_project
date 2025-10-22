@@ -51,7 +51,17 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     'students',
     'courses',
-    # 'notifications',  # Disabled temporarily due to signal issues
+    'academic',
+    'finance',
+    'hr',
+    'reports',
+    'notifications',
+    'ai',
+    'smart_ai',
+    'cyber_security',
+    'attendance_qr',
+    'admin_control',
+    'roles_permissions',
     'web',
 ]
 

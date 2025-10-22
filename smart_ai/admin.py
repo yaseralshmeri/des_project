@@ -1,57 +1,54 @@
 from django.contrib import admin
 from .models import (
-    AIAnalyticsModel, StudentPerformancePrediction, AIChatBot, 
-    ChatMessage, SmartRecommendation, PredictiveAnalytics,
-    AISecurityAlert, SmartScheduling
+    AIModel, StudentAIProfile, TeacherAIProfile, 
+    AIRecommendation, PredictiveAnalytics,
+    SmartAssistant, ConversationLog, LearningAnalytics
 )
 
-@admin.register(AIAnalyticsModel)
-class AIAnalyticsModelAdmin(admin.ModelAdmin):
-    list_display = ['name', 'model_type', 'accuracy_score', 'is_active', 'last_trained']
-    list_filter = ['model_type', 'is_active']
-    search_fields = ['name', 'description']
+@admin.register(AIModel)
+class AIModelAdmin(admin.ModelAdmin):
+    list_display = ['name_ar', 'model_type', 'accuracy', 'is_active', 'status']
+    list_filter = ['model_type', 'is_active', 'status']
+    search_fields = ['name_ar', 'name_en', 'description']
 
-@admin.register(StudentPerformancePrediction)
-class StudentPerformancePredictionAdmin(admin.ModelAdmin):
-    list_display = ['student', 'course', 'predicted_grade', 'success_probability', 'risk_level']
-    list_filter = ['risk_level', 'prediction_date']
-    search_fields = ['student__user__username', 'course__name']
+@admin.register(StudentAIProfile)
+class StudentAIProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'predicted_gpa', 'dropout_risk', 'learning_style']
+    list_filter = ['dropout_risk', 'learning_style', 'stress_level']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name']
 
-@admin.register(AIChatBot)
-class AIChatBotAdmin(admin.ModelAdmin):
-    list_display = ['user', 'chat_type', 'session_id', 'is_active', 'created_at']
-    list_filter = ['chat_type', 'is_active']
-    search_fields = ['user__username', 'session_id']
+@admin.register(TeacherAIProfile)
+class TeacherAIProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'teaching_effectiveness', 'student_satisfaction_avg', 'course_success_rate']
+    list_filter = ['teaching_effectiveness']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name']
 
-@admin.register(ChatMessage)
-class ChatMessageAdmin(admin.ModelAdmin):
-    list_display = ['chatbot', 'user_intent', 'confidence_score', 'is_resolved', 'timestamp']
-    list_filter = ['is_resolved', 'timestamp']
-    search_fields = ['message', 'response']
+@admin.register(AIRecommendation)
+class AIRecommendationAdmin(admin.ModelAdmin):
+    list_display = ['user', 'recommendation_type', 'title', 'priority', 'status']
+    list_filter = ['recommendation_type', 'priority', 'status']
+    search_fields = ['user__username', 'title']
 
-@admin.register(SmartRecommendation)
-class SmartRecommendationAdmin(admin.ModelAdmin):
-    list_display = ['student', 'recommendation_type', 'title', 'priority_score', 'is_accepted']
-    list_filter = ['recommendation_type', 'is_viewed', 'is_accepted']
-    search_fields = ['student__user__username', 'title']
+@admin.register(SmartAssistant)
+class SmartAssistantAdmin(admin.ModelAdmin):
+    list_display = ['name_ar', 'assistant_type', 'capability_level', 'is_active']
+    list_filter = ['assistant_type', 'capability_level', 'is_active']
+    search_fields = ['name_ar', 'name_en']
 
 @admin.register(PredictiveAnalytics)
 class PredictiveAnalyticsAdmin(admin.ModelAdmin):
-    list_display = ['title', 'analysis_type', 'created_by', 'is_approved', 'analysis_date']
-    list_filter = ['analysis_type', 'is_approved']
-    search_fields = ['title', 'created_by__username']
+    list_display = ['name', 'prediction_type', 'confidence_level', 'is_active']
+    list_filter = ['prediction_type', 'is_active']
+    search_fields = ['name', 'description']
 
-@admin.register(AISecurityAlert)
-class AISecurityAlertAdmin(admin.ModelAdmin):
-    list_display = ['title', 'alert_type', 'severity', 'is_resolved', 'detected_at']
-    list_filter = ['alert_type', 'severity', 'is_resolved']
-    search_fields = ['title', 'ip_address']
-    
-    def get_readonly_fields(self, request, obj=None):
-        return ['detected_at', 'ip_address', 'user_agent']
+@admin.register(ConversationLog)
+class ConversationLogAdmin(admin.ModelAdmin):
+    list_display = ['user', 'assistant', 'message_type', 'sentiment', 'timestamp']
+    list_filter = ['message_type', 'sentiment', 'timestamp']
+    search_fields = ['user__username', 'conversation_id']
 
-@admin.register(SmartScheduling)
-class SmartSchedulingAdmin(admin.ModelAdmin):
-    list_display = ['name', 'semester', 'algorithm_used', 'fitness_score', 'is_optimal', 'is_approved']
-    list_filter = ['algorithm_used', 'is_optimal', 'is_approved']
-    search_fields = ['name', 'semester']
+@admin.register(LearningAnalytics)
+class LearningAnalyticsAdmin(admin.ModelAdmin):
+    list_display = ['user', 'analytics_type', 'engagement_score', 'progress_percentage']
+    list_filter = ['analytics_type']
+    search_fields = ['user__username']

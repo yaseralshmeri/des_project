@@ -712,3 +712,7 @@ class MajorCourse(models.Model):
     
     def __str__(self):
         return f"{self.major.name_ar} - {self.course.code}"
+
+
+# استيراد نموذج التسجيل
+from .enrollment import Enrollment

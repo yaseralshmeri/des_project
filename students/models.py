@@ -54,32 +54,32 @@ class User(AbstractUser):
                                 verbose_name="رقم الطالب")
     
     # معلومات شخصية مطورة
-    first_name_ar = models.CharField(max_length=50, verbose_name="الاسم الأول - عربي")
-    last_name_ar = models.CharField(max_length=50, verbose_name="اسم العائلة - عربي")
-    first_name_en = models.CharField(max_length=50, verbose_name="الاسم الأول - إنجليزي")
-    last_name_en = models.CharField(max_length=50, verbose_name="اسم العائلة - إنجليزي")
+    first_name_ar = models.CharField(max_length=50, blank=True, verbose_name="الاسم الأول - عربي")
+    last_name_ar = models.CharField(max_length=50, blank=True, verbose_name="اسم العائلة - عربي")
+    first_name_en = models.CharField(max_length=50, blank=True, verbose_name="الاسم الأول - إنجليزي")
+    last_name_en = models.CharField(max_length=50, blank=True, verbose_name="اسم العائلة - إنجليزي")
     
     middle_name = models.CharField(max_length=50, blank=True, verbose_name="الاسم الأوسط")
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, verbose_name="الجنس")
-    date_of_birth = models.DateField(verbose_name="تاريخ الميلاد")
-    place_of_birth = models.CharField(max_length=100, verbose_name="مكان الميلاد")
-    nationality = models.CharField(max_length=50, verbose_name="الجنسية")
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, verbose_name="الجنس")
+    date_of_birth = models.DateField(null=True, blank=True, verbose_name="تاريخ الميلاد")
+    place_of_birth = models.CharField(max_length=100, blank=True, verbose_name="مكان الميلاد")
+    nationality = models.CharField(max_length=50, blank=True, verbose_name="الجنسية")
     
     # معلومات الاتصال المحسنة
     phone_regex = RegexValidator(
         regex=r'^\+?1?\d{9,15}$',
         message="رقم الهاتف يجب أن يكون بالصيغة: '+966501234567'. الحد الأقصى 15 رقم."
     )
-    phone_number = models.CharField(validators=[phone_regex], max_length=17, 
+    phone_number = models.CharField(validators=[phone_regex], max_length=17, blank=True,
                                   verbose_name="رقم الهاتف")
     phone_number_2 = models.CharField(validators=[phone_regex], max_length=17, 
                                     blank=True, verbose_name="رقم هاتف إضافي")
     
     # العنوان الكامل
-    address_line_1 = models.CharField(max_length=255, verbose_name="العنوان - السطر الأول")
+    address_line_1 = models.CharField(max_length=255, blank=True, verbose_name="العنوان - السطر الأول")
     address_line_2 = models.CharField(max_length=255, blank=True, verbose_name="العنوان - السطر الثاني")
-    city = models.CharField(max_length=100, verbose_name="المدينة")
-    state_province = models.CharField(max_length=100, verbose_name="المنطقة/المحافظة")
+    city = models.CharField(max_length=100, blank=True, verbose_name="المدينة")
+    state_province = models.CharField(max_length=100, blank=True, verbose_name="المنطقة/المحافظة")
     postal_code = models.CharField(max_length=10, blank=True, verbose_name="الرمز البريدي")
     country = models.CharField(max_length=100, default="السعودية", verbose_name="البلد")
     
