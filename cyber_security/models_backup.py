@@ -982,6 +982,46 @@ class UserBehaviorProfile(models.Model):
 
 
 # إضافة نموذج تقييم الثغرات
+class VulnerabilityAssessment(models.Model):
+    """تقييم الثغرات الأمنية - نموذج التوافق"""
+    
+    SEVERITY_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('IDENTIFIED', 'محدد'),
+        ('ANALYZING', 'تحت التحليل'),
+        ('CONFIRMED', 'مؤكد'),
+        ('RESOLVED', 'مُحلول'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات الثغرة
+    vulnerability_id = models.CharField(max_length=50, unique=True, verbose_name="معرف الثغرة")
+    title = models.CharField(max_length=200, verbose_name="عنوان الثغرة")
+    description = models.TextField(verbose_name="وصف الثغرة")
+    
+    # تقييم الخطورة
+    severity = models.CharField(max_length=10, choices=SEVERITY_LEVELS, verbose_name="درجة الخطورة")
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='IDENTIFIED', verbose_name="حالة الثغرة")
+    
+    # التواريخ
+    discovered_date = models.DateTimeField(default=timezone.now, verbose_name="تاريخ الاكتشاف")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "تقييم ثغرة أمنية"
+        verbose_name_plural = "تقييمات الثغرات الأمنية"
+        ordering = ['-severity', '-discovered_date']
+    
+    def __str__(self):
+        return f"{self.vulnerability_id} - {self.title}"
 
 class SecurityRule(models.Model):
     """قواعد الأمان السيبراني"""

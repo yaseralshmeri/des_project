@@ -1464,3 +1464,218 @@ class SmartRecommendation(models.Model):
         self.status = 'IMPLEMENTED'
         self.implemented_at = timezone.now()
         self.save(update_fields=['status', 'implemented_at'])
+
+
+class AISecurityAlert(models.Model):
+    """تنبيهات أمنية ذكية"""
+    
+    ALERT_TYPES = [
+        ('THREAT_DETECTED', 'تهديد مكتشف'),
+        ('ANOMALY_DETECTED', 'شذوذ مكتشف'),
+        ('BREACH_ATTEMPT', 'محاولة اختراق'),
+        ('SUSPICIOUS_ACTIVITY', 'نشاط مشبوه'),
+        ('POLICY_VIOLATION', 'انتهاك سياسة'),
+        ('MALWARE_DETECTED', 'برمجية خبيثة مكتشفة'),
+        ('UNAUTHORIZED_ACCESS', 'وصول غير مصرح'),
+        ('DATA_LEAK', 'تسريب بيانات'),
+        ('SYSTEM_COMPROMISE', 'اختراق نظام'),
+        ('BEHAVIORAL_ANOMALY', 'شذوذ سلوكي'),
+    ]
+    
+    SEVERITY_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+        ('EMERGENCY', 'طوارئ'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('NEW', 'جديد'),
+        ('ACKNOWLEDGED', 'مُؤكد'),
+        ('INVESTIGATING', 'قيد التحقيق'),
+        ('RESOLVED', 'محلول'),
+        ('FALSE_POSITIVE', 'إيجابي كاذب'),
+        ('ESCALATED', 'مُصعد'),
+        ('CLOSED', 'مُغلق'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات التنبيه الأساسية
+    alert_id = models.CharField(max_length=50, unique=True, verbose_name="معرف التنبيه")
+    alert_type = models.CharField(max_length=25, choices=ALERT_TYPES, verbose_name="نوع التنبيه")
+    title = models.CharField(max_length=200, verbose_name="عنوان التنبيه")
+    description = models.TextField(verbose_name="وصف التنبيه")
+    
+    # الخطورة والحالة
+    severity = models.CharField(max_length=15, choices=SEVERITY_LEVELS, verbose_name="مستوى الخطورة")
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='NEW',
+                            verbose_name="حالة التنبيه")
+    
+    # النموذج الذكي المكتشف
+    ai_model = models.ForeignKey(AIModel, on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name='security_alerts', verbose_name="النموذج المكتشف")
+    
+    # بيانات الكشف
+    detection_data = models.JSONField(default=dict, verbose_name="بيانات الكشف")
+    confidence_score = models.DecimalField(max_digits=5, decimal_places=4,
+                                         validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                         verbose_name="نقاط الثقة")
+    risk_score = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                   validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                   verbose_name="نقاط المخاطر")
+    
+    # المصدر والهدف
+    source_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name="عنوان IP المصدر")
+    source_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='security_alerts_as_source',
+                                  verbose_name="المستخدم المصدر")
+    affected_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='security_alerts_affected',
+                                    verbose_name="المستخدم المتأثر")
+    affected_systems = models.JSONField(default=list, verbose_name="الأنظمة المتأثرة")
+    
+    # تفاصيل التحليل
+    analysis_results = models.JSONField(default=dict, verbose_name="نتائج التحليل")
+    indicators_of_compromise = models.JSONField(default=list, verbose_name="مؤشرات الاختراق")
+    attack_vector = models.CharField(max_length=100, blank=True, verbose_name="متجه الهجوم")
+    mitigation_suggestions = models.JSONField(default=list, verbose_name="اقتراحات التخفيف")
+    
+    # الاستجابة التلقائية
+    auto_response_taken = models.BooleanField(default=False, verbose_name="تم اتخاذ استجابة تلقائية")
+    response_actions = models.JSONField(default=list, verbose_name="إجراءات الاستجابة")
+    containment_status = models.CharField(max_length=20, default='NONE',
+                                        choices=[
+                                            ('NONE', 'لا يوجد'),
+                                            ('PARTIAL', 'جزئي'),
+                                            ('COMPLETE', 'كامل'),
+                                        ], verbose_name="حالة الاحتواء")
+    
+    # التصعيد والتعيين
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='assigned_security_alerts',
+                                  verbose_name="مُعيّن إلى")
+    escalated_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name='escalated_security_alerts',
+                                   verbose_name="مُصعد إلى")
+    escalation_reason = models.TextField(blank=True, verbose_name="سبب التصعيد")
+    
+    # التوقيت
+    detected_at = models.DateTimeField(auto_now_add=True, verbose_name="وقت الكشف")
+    acknowledged_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت التأكيد")
+    resolved_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت الحل")
+    
+    # المتابعة والتحقيق
+    investigation_notes = models.TextField(blank=True, verbose_name="ملاحظات التحقيق")
+    resolution_notes = models.TextField(blank=True, verbose_name="ملاحظات الحل")
+    lessons_learned = models.TextField(blank=True, verbose_name="الدروس المستفادة")
+    
+    # التنبيهات والإشعارات
+    notifications_sent = models.JSONField(default=list, verbose_name="الإشعارات المرسلة")
+    notification_channels = models.JSONField(default=list, verbose_name="قنوات الإشعارات")
+    
+    # معلومات إضافية
+    tags = models.JSONField(default=list, verbose_name="العلامات")
+    related_alerts = models.JSONField(default=list, verbose_name="التنبيهات المرتبطة")
+    evidence_collected = models.JSONField(default=list, verbose_name="الأدلة المجمعة")
+    
+    # التقييم والتحسين
+    false_positive_feedback = models.TextField(blank=True, verbose_name="تعليق الإيجابي الكاذب")
+    accuracy_rating = models.IntegerField(null=True, blank=True,
+                                        validators=[MinValueValidator(1), MaxValueValidator(5)],
+                                        verbose_name="تقييم الدقة")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='created_ai_security_alerts',
+                                 verbose_name="أُنشأ بواسطة")
+    
+    class Meta:
+        verbose_name = "تنبيه أمني ذكي"
+        verbose_name_plural = "التنبيهات الأمنية الذكية"
+        ordering = ['-severity', '-detected_at']
+        indexes = [
+            models.Index(fields=['alert_type', 'severity']),
+            models.Index(fields=['status']),
+            models.Index(fields=['detected_at']),
+            models.Index(fields=['source_ip']),
+            models.Index(fields=['assigned_to']),
+            models.Index(fields=['confidence_score']),
+        ]
+    
+    def __str__(self):
+        return f"{self.alert_id} - {self.title}"
+    
+    def save(self, *args, **kwargs):
+        if not self.alert_id:
+            self.alert_id = self.generate_alert_id()
+        super().save(*args, **kwargs)
+    
+    def generate_alert_id(self):
+        """توليد معرف تنبيه فريد"""
+        timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+        alert_code = self.alert_type[:3].upper()
+        return f"SA-{alert_code}-{timestamp}"
+    
+    @property
+    def is_critical(self):
+        """هل التنبيه حرج"""
+        return self.severity in ['CRITICAL', 'EMERGENCY']
+    
+    @property
+    def is_active(self):
+        """هل التنبيه نشط"""
+        return self.status not in ['RESOLVED', 'FALSE_POSITIVE', 'CLOSED']
+    
+    @property
+    def response_time(self):
+        """وقت الاستجابة"""
+        if self.acknowledged_at:
+            return self.acknowledged_at - self.detected_at
+        return None
+    
+    @property
+    def resolution_time(self):
+        """وقت الحل"""
+        if self.resolved_at:
+            return self.resolved_at - self.detected_at
+        return None
+    
+    @property
+    def is_high_confidence(self):
+        """تنبيه عالي الثقة"""
+        return float(self.confidence_score) >= 0.8
+    
+    def acknowledge(self, user, notes=""):
+        """تأكيد التنبيه"""
+        self.status = 'ACKNOWLEDGED'
+        self.acknowledged_at = timezone.now()
+        self.assigned_to = user
+        if notes:
+            self.investigation_notes = notes
+        self.save(update_fields=['status', 'acknowledged_at', 'assigned_to', 'investigation_notes'])
+    
+    def resolve(self, user, notes=""):
+        """حل التنبيه"""
+        self.status = 'RESOLVED'
+        self.resolved_at = timezone.now()
+        if notes:
+            self.resolution_notes = notes
+        self.save(update_fields=['status', 'resolved_at', 'resolution_notes'])
+    
+    def mark_false_positive(self, user, feedback=""):
+        """تمييز كإيجابي كاذب"""
+        self.status = 'FALSE_POSITIVE'
+        self.resolved_at = timezone.now()
+        self.false_positive_feedback = feedback
+        self.save(update_fields=['status', 'resolved_at', 'false_positive_feedback'])
+    
+    def escalate(self, user, reason=""):
+        """تصعيد التنبيه"""
+        self.status = 'ESCALATED'
+        self.escalated_to = user
+        self.escalation_reason = reason
+        self.save(update_fields=['status', 'escalated_to', 'escalation_reason'])
