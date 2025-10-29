@@ -616,3 +616,48 @@ class RolePermissionAPIViewSet(BaseAPIViewSet):
         ]
         
         return Response(user_data)
+
+
+# Simple API functions for basic endpoints
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.utils import timezone
+from django.db import connection
+
+@api_view(['GET'])
+def api_root(request):
+    """
+    API Root endpoint
+    نقطة البداية للواجهة البرمجية
+    """
+    return Response({
+        'message': 'مرحباً بك في واجهة برمجة تطبيقات نظام إدارة الجامعة',
+        'version': '2.0.1',
+        'endpoints': {
+            'documentation': '/api/docs/',
+            'health': '/api/health/',
+        },
+        'status': 'active'
+    })
+
+
+@api_view(['GET'])
+def health_check(request):
+    """
+    Health check endpoint
+    نقطة فحص صحة النظام
+    """
+    try:
+        # Test database connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            db_status = True
+    except Exception:
+        db_status = False
+    
+    return Response({
+        'status': 'healthy' if db_status else 'unhealthy',
+        'timestamp': timezone.now(),
+        'database': 'connected' if db_status else 'disconnected',
+        'version': '2.0.1'
+    })

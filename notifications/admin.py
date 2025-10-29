@@ -6,7 +6,7 @@ from django.utils.html import format_html
 from django.utils import timezone
 from django.db.models import Count
 from .models import (
-    InAppNotification, NotificationTemplate, NotificationLog,
+    InAppNotification, NotificationLog,
     UserDeviceToken, UserTelegramAccount, NotificationPreference,
     ScheduledNotification
 )
@@ -61,34 +61,7 @@ class InAppNotificationAdmin(admin.ModelAdmin):
         self.message_user(request, f'تم إلغاء تفعيل {updated} إشعار.')
     deactivate_notifications.short_description = "إلغاء التفعيل"
 
-@admin.register(NotificationTemplate)
-class NotificationTemplateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'template_id', 'category', 'is_active', 'created_at']
-    list_filter = ['category', 'is_active', 'created_at']
-    search_fields = ['name', 'template_id', 'description']
-    readonly_fields = ['created_at', 'updated_at']
-    ordering = ['name']
-    
-    fieldsets = (
-        ('معلومات أساسية', {
-            'fields': ('template_id', 'name', 'description', 'category')
-        }),
-        ('محتوى القالب', {
-            'fields': ('title_template', 'message_template', 'html_template'),
-            'classes': ('wide',)
-        }),
-        ('الإعدادات', {
-            'fields': ('required_variables', 'default_channels', 'is_active'),
-            'classes': ('collapse',)
-        }),
-        ('معلومات النظام', {
-            'fields': ('created_by', 'created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('created_by')
+# NotificationTemplate admin removed - model was deleted
 
 @admin.register(NotificationLog)
 class NotificationLogAdmin(admin.ModelAdmin):
