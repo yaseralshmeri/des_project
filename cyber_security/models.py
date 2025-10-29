@@ -817,6 +817,60 @@ class ThreatIntelligence(models.Model):
         return 0
 
 
+# إضافة النموذج المطلوب للتوافق
+class SecurityRule(models.Model):
+    """قواعد الأمان - نموذج التوافق"""
+    
+    RULE_TYPES = [
+        ('FIREWALL', 'جدار ناري'),
+        ('ACCESS_CONTROL', 'تحكم الوصول'),
+        ('AUTHENTICATION', 'مصادقة'),
+        ('AUTHORIZATION', 'تفويض'),
+        ('MONITORING', 'مراقبة'),
+        ('COMPLIANCE', 'امتثال'),
+    ]
+    
+    PRIORITY_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات القاعدة
+    name = models.CharField(max_length=200, verbose_name="اسم القاعدة")
+    rule_type = models.CharField(max_length=20, choices=RULE_TYPES, verbose_name="نوع القاعدة")
+    description = models.TextField(verbose_name="وصف القاعدة")
+    
+    # إعدادات القاعدة
+    rule_config = models.JSONField(default=dict, verbose_name="إعدادات القاعدة")
+    conditions = models.JSONField(default=list, verbose_name="الشروط")
+    actions = models.JSONField(default=list, verbose_name="الإجراءات")
+    
+    # الأولوية والحالة
+    priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='MEDIUM',
+                              verbose_name="الأولوية")
+    is_active = models.BooleanField(default=True, verbose_name="نشطة")
+    is_mandatory = models.BooleanField(default=False, verbose_name="إلزامية")
+    
+    # التواريخ
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                 related_name='created_security_rules',
+                                 verbose_name="أُنشأت بواسطة")
+    
+    class Meta:
+        verbose_name = "قاعدة أمان"
+        verbose_name_plural = "قواعد الأمان"
+        ordering = ['priority', 'name']
+    
+    def __str__(self):
+        return f"{self.name} - {self.get_rule_type_display()}"
+
+
 class SecurityDashboard(models.Model):
     """لوحة معلومات الأمان"""
     
@@ -880,3 +934,702 @@ class SecurityDashboard(models.Model):
     
     def __str__(self):
         return f"{self.name} - {self.get_dashboard_type_display()}"
+
+
+# إضافة النموذج المطلوب للتوافق
+class UserBehaviorProfile(models.Model):
+    """ملف سلوك المستخدم - نموذج التوافق"""
+    
+    RISK_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE,
+                               related_name='behavior_profile', verbose_name="المستخدم")
+    
+    # تحليل السلوك
+    login_patterns = models.JSONField(default=dict, verbose_name="أنماط تسجيل الدخول")
+    access_patterns = models.JSONField(default=dict, verbose_name="أنماط الوصول")
+    activity_patterns = models.JSONField(default=dict, verbose_name="أنماط النشاط")
+    
+    # تقييم المخاطر
+    risk_score = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                   validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                   verbose_name="نقاط المخاطر")
+    risk_level = models.CharField(max_length=10, choices=RISK_LEVELS, default='LOW',
+                                verbose_name="مستوى المخاطر")
+    
+    # التنبيهات والتوصيات
+    anomalies_detected = models.JSONField(default=list, verbose_name="الشذوذ المكتشف")
+    security_recommendations = models.JSONField(default=list, verbose_name="توصيات أمنية")
+    
+    # التواريخ
+    last_analysis_date = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ آخر تحليل")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "ملف سلوك مستخدم"
+        verbose_name_plural = "ملفات سلوك المستخدمين"
+        ordering = ['-risk_score']
+    
+    def __str__(self):
+        return f"ملف سلوك - {self.user.get_full_name() if hasattr(self.user, 'get_full_name') else self.user.username}"
+
+
+# إضافة نموذج تقييم الثغرات
+class VulnerabilityAssessment(models.Model):
+    """تقييم الثغرات الأمنية - نموذج التوافق"""
+    
+    SEVERITY_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('IDENTIFIED', 'محدد'),
+        ('ANALYZING', 'تحت التحليل'),
+        ('CONFIRMED', 'مؤكد'),
+        ('RESOLVED', 'مُحلول'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات الثغرة
+    vulnerability_id = models.CharField(max_length=50, unique=True, verbose_name="معرف الثغرة")
+    title = models.CharField(max_length=200, verbose_name="عنوان الثغرة")
+    description = models.TextField(verbose_name="وصف الثغرة")
+    
+    # تقييم الخطورة
+    severity = models.CharField(max_length=10, choices=SEVERITY_LEVELS, verbose_name="درجة الخطورة")
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='IDENTIFIED', verbose_name="حالة الثغرة")
+    
+    # التواريخ
+    discovered_date = models.DateTimeField(default=timezone.now, verbose_name="تاريخ الاكتشاف")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "تقييم ثغرة أمنية"
+        verbose_name_plural = "تقييمات الثغرات الأمنية"
+        ordering = ['-severity', '-discovered_date']
+    
+    def __str__(self):
+        return f"{self.vulnerability_id} - {self.title}"
+
+class SecurityRule(models.Model):
+    """قواعد الأمان السيبراني"""
+    
+    RULE_TYPES = [
+        ('FIREWALL', 'جدار حماية'),
+        ('IDS', 'كشف تسلل'),
+        ('IPS', 'منع تسلل'),
+        ('DLP', 'منع تسريب البيانات'),
+        ('ANTIVIRUS', 'مكافح فيروسات'),
+        ('WEB_FILTER', 'مرشح ويب'),
+        ('EMAIL_SECURITY', 'أمان البريد'),
+        ('ACCESS_CONTROL', 'التحكم في الوصول'),
+        ('BEHAVIOR_ANALYSIS', 'تحليل السلوك'),
+        ('THREAT_DETECTION', 'كشف التهديدات'),
+    ]
+    
+    RULE_ACTIONS = [
+        ('ALLOW', 'سماح'),
+        ('BLOCK', 'حجب'),
+        ('ALERT', 'تنبيه'),
+        ('LOG', 'تسجيل'),
+        ('QUARANTINE', 'حجر صحي'),
+        ('REDIRECT', 'إعادة توجيه'),
+        ('RATE_LIMIT', 'تحديد معدل'),
+        ('MONITOR', 'مراقبة'),
+    ]
+    
+    SEVERITY_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات القاعدة الأساسية
+    rule_id = models.CharField(max_length=50, unique=True, verbose_name="معرف القاعدة")
+    name_ar = models.CharField(max_length=200, verbose_name="اسم القاعدة - عربي")
+    name_en = models.CharField(max_length=200, verbose_name="اسم القاعدة - إنجليزي")
+    description = models.TextField(verbose_name="وصف القاعدة")
+    
+    # نوع القاعدة والإجراء
+    rule_type = models.CharField(max_length=20, choices=RULE_TYPES, verbose_name="نوع القاعدة")
+    action = models.CharField(max_length=15, choices=RULE_ACTIONS, verbose_name="الإجراء")
+    severity = models.CharField(max_length=10, choices=SEVERITY_LEVELS, default='MEDIUM',
+                              verbose_name="مستوى الخطورة")
+    
+    # شروط القاعدة
+    conditions = models.JSONField(default=dict, verbose_name="الشروط")
+    source_criteria = models.JSONField(default=dict, verbose_name="معايير المصدر")
+    destination_criteria = models.JSONField(default=dict, verbose_name="معايير الوجهة")
+    protocol_criteria = models.JSONField(default=dict, verbose_name="معايير البروتوكول")
+    
+    # أنماط البحث
+    signature_patterns = models.JSONField(default=list, verbose_name="أنماط البصمة")
+    regex_patterns = models.JSONField(default=list, verbose_name="أنماط التعبيرات النمطية")
+    hash_values = models.JSONField(default=list, verbose_name="قيم الهاش")
+    
+    # إعدادات الاستجابة
+    response_actions = models.JSONField(default=dict, verbose_name="إجراءات الاستجابة")
+    notification_settings = models.JSONField(default=dict, verbose_name="إعدادات الإشعارات")
+    escalation_rules = models.JSONField(default=dict, verbose_name="قواعد التصعيد")
+    
+    # التوقيت والجدولة
+    effective_from = models.DateTimeField(default=timezone.now, verbose_name="ساري من")
+    effective_until = models.DateTimeField(null=True, blank=True, verbose_name="ساري حتى")
+    schedule = models.JSONField(default=dict, verbose_name="الجدولة")
+    
+    # الحالة والتكوين
+    is_active = models.BooleanField(default=True, verbose_name="نشطة")
+    is_enabled_globally = models.BooleanField(default=True, verbose_name="مفعلة عمومياً")
+    priority = models.IntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(10)],
+                                 verbose_name="الأولوية")
+    
+    # إحصائيات التطبيق
+    hits_count = models.IntegerField(default=0, verbose_name="عدد الإصابات")
+    last_hit = models.DateTimeField(null=True, blank=True, verbose_name="آخر إصابة")
+    false_positives = models.IntegerField(default=0, verbose_name="الإيجابيات الكاذبة")
+    effectiveness_score = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                            validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                            verbose_name="نقاط الفعالية")
+    
+    # التحديث والصيانة
+    last_updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                      related_name='updated_security_rules',
+                                      verbose_name="آخر تحديث بواسطة")
+    version = models.CharField(max_length=20, default='1.0', verbose_name="الإصدار")
+    change_log = models.JSONField(default=list, verbose_name="سجل التغييرات")
+    
+    # التصنيف والعلامات
+    tags = models.JSONField(default=list, verbose_name="العلامات")
+    categories = models.JSONField(default=list, verbose_name="الفئات")
+    threat_types = models.JSONField(default=list, verbose_name="أنواع التهديدات")
+    
+    # معلومات المصدر
+    source = models.CharField(max_length=200, blank=True, verbose_name="المصدر")
+    reference_urls = models.JSONField(default=list, verbose_name="روابط المراجع")
+    related_cve = models.JSONField(default=list, verbose_name="CVE المرتبطة")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='created_security_rules',
+                                 verbose_name="أُنشأت بواسطة")
+    
+    class Meta:
+        verbose_name = "قاعدة أمان"
+        verbose_name_plural = "قواعد الأمان"
+        ordering = ['-priority', 'rule_type', 'name_ar']
+        indexes = [
+            models.Index(fields=['rule_type', 'is_active']),
+            models.Index(fields=['action', 'severity']),
+            models.Index(fields=['priority']),
+            models.Index(fields=['effective_from', 'effective_until']),
+            models.Index(fields=['hits_count']),
+        ]
+    
+    def __str__(self):
+        return f"{self.rule_id} - {self.name_ar}"
+    
+    def save(self, *args, **kwargs):
+        if not self.rule_id:
+            self.rule_id = self.generate_rule_id()
+        super().save(*args, **kwargs)
+    
+    def generate_rule_id(self):
+        """توليد معرف قاعدة فريد"""
+        timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+        rule_code = self.rule_type[:3].upper()
+        return f"SR-{rule_code}-{timestamp}"
+    
+    @property
+    def is_effective(self):
+        """هل القاعدة سارية حالياً"""
+        now = timezone.now()
+        if now < self.effective_from:
+            return False
+        if self.effective_until and now > self.effective_until:
+            return False
+        return self.is_active
+    
+    @property
+    def detection_rate(self):
+        """معدل الكشف"""
+        total_attempts = self.hits_count + self.false_positives
+        if total_attempts > 0:
+            return (self.hits_count / total_attempts) * 100
+        return 0
+    
+    @property
+    def needs_review(self):
+        """تحتاج لمراجعة"""
+        # إذا كانت الفعالية منخفضة أو الإيجابيات الكاذبة عالية
+        return (float(self.effectiveness_score) < 50 or 
+                self.false_positives > self.hits_count * 0.3)
+
+
+class UserBehaviorProfile(models.Model):
+    """ملف سلوك المستخدم"""
+    
+    RISK_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+    ]
+    
+    BEHAVIOR_STATUS = [
+        ('NORMAL', 'طبيعي'),
+        ('SUSPICIOUS', 'مشبوه'),
+        ('ANOMALOUS', 'شاذ'),
+        ('FLAGGED', 'مُعلم'),
+        ('BLOCKED', 'محجوب'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # المستخدم المرتبط
+    user = models.OneToOneField(User, on_delete=models.CASCADE,
+                               related_name='behavior_profile', verbose_name="المستخدم")
+    
+    # الملف السلوكي الأساسي
+    baseline_established = models.BooleanField(default=False, verbose_name="الخط الأساسي مُحدد")
+    baseline_data = models.JSONField(default=dict, verbose_name="بيانات الخط الأساسي")
+    learning_period_days = models.IntegerField(default=30, verbose_name="فترة التعلم (أيام)")
+    
+    # أنماط تسجيل الدخول
+    typical_login_times = models.JSONField(default=list, verbose_name="أوقات الدخول المعتادة")
+    typical_devices = models.JSONField(default=list, verbose_name="الأجهزة المعتادة")
+    typical_ip_ranges = models.JSONField(default=list, verbose_name="نطاقات IP المعتادة")
+    typical_locations = models.JSONField(default=list, verbose_name="المواقع المعتادة")
+    
+    # أنماط الاستخدام
+    typical_usage_patterns = models.JSONField(default=dict, verbose_name="أنماط الاستخدام المعتادة")
+    session_duration_stats = models.JSONField(default=dict, verbose_name="إحصائيات مدة الجلسة")
+    activity_frequency = models.JSONField(default=dict, verbose_name="تكرار النشاط")
+    resource_access_patterns = models.JSONField(default=dict, verbose_name="أنماط الوصول للموارد")
+    
+    # المقاييس السلوكية
+    anomaly_score = models.DecimalField(max_digits=5, decimal_places=4, default=0.0000,
+                                      validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                      verbose_name="نقاط الشذوذ")
+    risk_score = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                   validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                   verbose_name="نقاط المخاطر")
+    confidence_level = models.DecimalField(max_digits=5, decimal_places=4, default=0.0000,
+                                         validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                         verbose_name="مستوى الثقة")
+    
+    # التصنيف والحالة
+    risk_level = models.CharField(max_length=10, choices=RISK_LEVELS, default='LOW',
+                                verbose_name="مستوى المخاطر")
+    behavior_status = models.CharField(max_length=15, choices=BEHAVIOR_STATUS, default='NORMAL',
+                                     verbose_name="حالة السلوك")
+    
+    # الشذوذات المكتشفة
+    recent_anomalies = models.JSONField(default=list, verbose_name="الشذوذات الأخيرة")
+    anomaly_history = models.JSONField(default=list, verbose_name="تاريخ الشذوذات")
+    false_positive_count = models.IntegerField(default=0, verbose_name="عدد الإيجابيات الكاذبة")
+    
+    # التحليل الزمني
+    analysis_window_days = models.IntegerField(default=30, verbose_name="نافذة التحليل (أيام)")
+    last_significant_change = models.DateTimeField(null=True, blank=True,
+                                                 verbose_name="آخر تغيير مهم")
+    trend_direction = models.CharField(max_length=20, blank=True,
+                                     verbose_name="اتجاه الاتجاه")
+    
+    # إعدادات المراقبة
+    monitoring_enabled = models.BooleanField(default=True, verbose_name="المراقبة مُفعلة")
+    alert_threshold = models.DecimalField(max_digits=5, decimal_places=4, default=0.7000,
+                                        validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                        verbose_name="عتبة التنبيه")
+    notification_frequency = models.CharField(max_length=20, default='IMMEDIATE',
+                                            choices=[
+                                                ('IMMEDIATE', 'فوري'),
+                                                ('HOURLY', 'كل ساعة'),
+                                                ('DAILY', 'يومي'),
+                                                ('WEEKLY', 'أسبوعي'),
+                                            ], verbose_name="تكرار الإشعارات")
+    
+    # إعدادات التكيف
+    auto_learning_enabled = models.BooleanField(default=True, verbose_name="التعلم التلقائي مُفعل")
+    adaptation_rate = models.DecimalField(max_digits=3, decimal_places=2, default=0.10,
+                                        validators=[MinValueValidator(0.01), MaxValueValidator(1.00)],
+                                        verbose_name="معدل التكيف")
+    sensitivity_level = models.CharField(max_length=10, default='MEDIUM',
+                                       choices=[
+                                           ('LOW', 'منخفض'),
+                                           ('MEDIUM', 'متوسط'),
+                                           ('HIGH', 'عالي'),
+                                       ], verbose_name="مستوى الحساسية")
+    
+    # الإجراءات التلقائية
+    auto_response_enabled = models.BooleanField(default=False, verbose_name="الاستجابة التلقائية مُفعلة")
+    response_actions = models.JSONField(default=dict, verbose_name="إجراءات الاستجابة")
+    escalation_rules = models.JSONField(default=dict, verbose_name="قواعد التصعيد")
+    
+    # إحصائيات الأداء
+    total_sessions_analyzed = models.IntegerField(default=0, verbose_name="إجمالي الجلسات المُحللة")
+    anomalies_detected = models.IntegerField(default=0, verbose_name="الشذوذات المكتشفة")
+    true_positives = models.IntegerField(default=0, verbose_name="الإيجابيات الحقيقية")
+    accuracy_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                      validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                      verbose_name="معدل الدقة")
+    
+    # معلومات التحديث
+    last_analysis_run = models.DateTimeField(null=True, blank=True, verbose_name="آخر تشغيل للتحليل")
+    last_baseline_update = models.DateTimeField(null=True, blank=True,
+                                              verbose_name="آخر تحديث للخط الأساسي")
+    next_scheduled_analysis = models.DateTimeField(null=True, blank=True,
+                                                 verbose_name="التحليل المجدول القادم")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "ملف سلوك مستخدم"
+        verbose_name_plural = "ملفات سلوك المستخدمين"
+        ordering = ['-risk_score', '-anomaly_score']
+        indexes = [
+            models.Index(fields=['risk_level', 'behavior_status']),
+            models.Index(fields=['anomaly_score']),
+            models.Index(fields=['monitoring_enabled']),
+            models.Index(fields=['last_analysis_run']),
+        ]
+    
+    def __str__(self):
+        return f"ملف سلوك {self.user.display_name} - {self.get_risk_level_display()}"
+    
+    @property
+    def is_high_risk(self):
+        """هل المستخدم عالي المخاطر"""
+        return self.risk_level in ['HIGH', 'CRITICAL'] or float(self.anomaly_score) > 0.8
+    
+    @property
+    def needs_attention(self):
+        """يحتاج لانتباه"""
+        return (self.behavior_status in ['SUSPICIOUS', 'ANOMALOUS', 'FLAGGED'] or
+                self.is_high_risk or
+                float(self.anomaly_score) >= float(self.alert_threshold))
+    
+    @property
+    def baseline_age_days(self):
+        """عمر الخط الأساسي بالأيام"""
+        if self.last_baseline_update:
+            return (timezone.now() - self.last_baseline_update).days
+        return None
+    
+    @property
+    def needs_baseline_update(self):
+        """يحتاج لتحديث الخط الأساسي"""
+        age_days = self.baseline_age_days
+        if age_days and age_days > 90:  # أكثر من 3 أشهر
+            return True
+        return not self.baseline_established
+    
+    def update_risk_score(self):
+        """تحديث نقاط المخاطر"""
+        # حساب نقاط المخاطر بناءً على عوامل متعددة
+        base_score = float(self.anomaly_score) * 100
+        
+        # تعديل بناءً على تاريخ الشذوذات
+        if len(self.recent_anomalies) > 5:
+            base_score += 20
+        
+        # تعديل بناءً على الإيجابيات الكاذبة
+        if self.false_positive_count > 10:
+            base_score -= 10
+        
+        # تأكد من أن النتيجة في النطاق الصحيح
+        self.risk_score = max(0, min(100, base_score))
+        
+        # تحديث مستوى المخاطر
+        if self.risk_score >= 80:
+            self.risk_level = 'CRITICAL'
+        elif self.risk_score >= 60:
+            self.risk_level = 'HIGH'
+        elif self.risk_score >= 30:
+            self.risk_level = 'MEDIUM'
+        else:
+            self.risk_level = 'LOW'
+    
+    def add_anomaly(self, anomaly_data):
+        """إضافة شذوذ جديد"""
+        anomaly_entry = {
+            'timestamp': timezone.now().isoformat(),
+            'data': anomaly_data,
+            'score': anomaly_data.get('score', 0)
+        }
+        
+        # إضافة للشذوذات الأخيرة (الاحتفاظ بآخر 50)
+        self.recent_anomalies.append(anomaly_entry)
+        if len(self.recent_anomalies) > 50:
+            self.recent_anomalies = self.recent_anomalies[-50:]
+        
+        # إضافة للتاريخ
+        self.anomaly_history.append(anomaly_entry)
+        
+        # تحديث العدادات
+        self.anomalies_detected += 1
+        
+        # تحديث نقاط المخاطر
+        self.update_risk_score()
+
+
+class VulnerabilityAssessment(models.Model):
+    """تقييم الثغرات الأمنية"""
+    
+    VULNERABILITY_TYPES = [
+        ('CRITICAL', 'حرج'),
+        ('HIGH', 'عالي'),
+        ('MEDIUM', 'متوسط'),
+        ('LOW', 'منخفض'),
+        ('INFO', 'معلوماتي'),
+    ]
+    
+    ASSESSMENT_STATUS = [
+        ('PLANNED', 'مخطط'),
+        ('IN_PROGRESS', 'قيد التنفيذ'),
+        ('COMPLETED', 'مكتمل'),
+        ('FAILED', 'فاشل'),
+        ('PAUSED', 'متوقف'),
+        ('CANCELLED', 'ملغي'),
+    ]
+    
+    SCAN_TYPES = [
+        ('NETWORK', 'شبكة'),
+        ('WEB_APPLICATION', 'تطبيق ويب'),
+        ('DATABASE', 'قاعدة بيانات'),
+        ('SYSTEM', 'نظام'),
+        ('WIRELESS', 'لاسلكي'),
+        ('SOCIAL_ENGINEERING', 'هندسة اجتماعية'),
+        ('PHYSICAL', 'فيزيائي'),
+        ('COMPREHENSIVE', 'شامل'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات التقييم الأساسية
+    assessment_id = models.CharField(max_length=50, unique=True, verbose_name="معرف التقييم")
+    name = models.CharField(max_length=200, verbose_name="اسم التقييم")
+    description = models.TextField(verbose_name="وصف التقييم")
+    
+    # نوع وحالة التقييم
+    scan_type = models.CharField(max_length=20, choices=SCAN_TYPES, verbose_name="نوع المسح")
+    status = models.CharField(max_length=15, choices=ASSESSMENT_STATUS, default='PLANNED',
+                            verbose_name="حالة التقييم")
+    
+    # نطاق التقييم
+    target_systems = models.JSONField(default=list, verbose_name="الأنظمة المستهدفة")
+    ip_ranges = models.JSONField(default=list, verbose_name="نطاقات IP")
+    excluded_targets = models.JSONField(default=list, verbose_name="الأهداف المستبعدة")
+    
+    # إعدادات المسح
+    scan_configuration = models.JSONField(default=dict, verbose_name="إعدادات المسح")
+    tools_used = models.JSONField(default=list, verbose_name="الأدوات المستخدمة")
+    scan_intensity = models.CharField(max_length=10, default='NORMAL',
+                                    choices=[
+                                        ('LOW', 'منخفض'),
+                                        ('NORMAL', 'عادي'),
+                                        ('HIGH', 'عالي'),
+                                        ('AGGRESSIVE', 'عدواني'),
+                                    ], verbose_name="شدة المسح")
+    
+    # التوقيت
+    scheduled_start = models.DateTimeField(verbose_name="البداية المجدولة")
+    scheduled_end = models.DateTimeField(verbose_name="النهاية المجدولة")
+    actual_start = models.DateTimeField(null=True, blank=True, verbose_name="البداية الفعلية")
+    actual_end = models.DateTimeField(null=True, blank=True, verbose_name="النهاية الفعلية")
+    
+    # الفريق المسؤول
+    assessor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                               related_name='led_assessments', verbose_name="المقيم الرئيسي")
+    team_members = models.ManyToManyField(User, related_name='assessment_teams',
+                                        blank=True, verbose_name="أعضاء الفريق")
+    
+    # النتائج والإحصائيات
+    vulnerabilities_found = models.IntegerField(default=0, verbose_name="الثغرات المكتشفة")
+    critical_vulnerabilities = models.IntegerField(default=0, verbose_name="الثغرات الحرجة")
+    high_vulnerabilities = models.IntegerField(default=0, verbose_name="الثغرات العالية")
+    medium_vulnerabilities = models.IntegerField(default=0, verbose_name="الثغرات المتوسطة")
+    low_vulnerabilities = models.IntegerField(default=0, verbose_name="الثغرات المنخفضة")
+    info_vulnerabilities = models.IntegerField(default=0, verbose_name="الثغرات المعلوماتية")
+    
+    # تفاصيل النتائج
+    detailed_findings = models.JSONField(default=list, verbose_name="النتائج التفصيلية")
+    recommendations = models.JSONField(default=list, verbose_name="التوصيات")
+    executive_summary = models.TextField(blank=True, verbose_name="الملخص التنفيذي")
+    
+    # المخاطر والتقييم
+    overall_risk_score = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                           validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                           verbose_name="نقاط المخاطر الإجمالية")
+    risk_level = models.CharField(max_length=10, choices=VULNERABILITY_TYPES, default='LOW',
+                                verbose_name="مستوى المخاطر")
+    
+    # التوثيق والتقارير
+    report_generated = models.BooleanField(default=False, verbose_name="تم إنشاء التقرير")
+    report_path = models.CharField(max_length=500, blank=True, verbose_name="مسار التقرير")
+    evidence_collected = models.JSONField(default=list, verbose_name="الأدلة المجمعة")
+    
+    # المتابعة والعلاج
+    remediation_plan = models.JSONField(default=dict, verbose_name="خطة العلاج")
+    follow_up_required = models.BooleanField(default=False, verbose_name="يتطلب متابعة")
+    next_assessment_date = models.DateTimeField(null=True, blank=True,
+                                              verbose_name="تاريخ التقييم القادم")
+    
+    # الامتثال والمعايير
+    compliance_frameworks = models.JSONField(default=list, verbose_name="إطارات الامتثال")
+    standards_checked = models.JSONField(default=list, verbose_name="المعايير المفحوصة")
+    compliance_score = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                         validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                         verbose_name="نقاط الامتثال")
+    
+    # معلومات إضافية
+    false_positives = models.IntegerField(default=0, verbose_name="الإيجابيات الكاذبة")
+    scan_coverage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                      validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                      verbose_name="تغطية المسح")
+    performance_impact = models.CharField(max_length=10, default='LOW',
+                                        choices=[
+                                            ('NONE', 'لا يوجد'),
+                                            ('LOW', 'منخفض'),
+                                            ('MEDIUM', 'متوسط'),
+                                            ('HIGH', 'عالي'),
+                                        ], verbose_name="تأثير الأداء")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='created_assessments',
+                                 verbose_name="أُنشأ بواسطة")
+    
+    class Meta:
+        verbose_name = "تقييم ثغرات أمنية"
+        verbose_name_plural = "تقييمات الثغرات الأمنية"
+        ordering = ['-scheduled_start']
+        indexes = [
+            models.Index(fields=['scan_type', 'status']),
+            models.Index(fields=['risk_level']),
+            models.Index(fields=['scheduled_start']),
+            models.Index(fields=['assessor']),
+            models.Index(fields=['overall_risk_score']),
+        ]
+    
+    def __str__(self):
+        return f"{self.assessment_id} - {self.name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.assessment_id:
+            self.assessment_id = self.generate_assessment_id()
+        super().save(*args, **kwargs)
+    
+    def generate_assessment_id(self):
+        """توليد معرف تقييم فريد"""
+        timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+        scan_code = self.scan_type[:3].upper()
+        return f"VA-{scan_code}-{timestamp}"
+    
+    @property
+    def duration(self):
+        """مدة التقييم"""
+        if self.actual_start and self.actual_end:
+            return self.actual_end - self.actual_start
+        elif self.scheduled_start and self.scheduled_end:
+            return self.scheduled_end - self.scheduled_start
+        return None
+    
+    @property
+    def is_completed(self):
+        """هل التقييم مكتمل"""
+        return self.status == 'COMPLETED'
+    
+    @property
+    def is_in_progress(self):
+        """هل التقييم قيد التنفيذ"""
+        return self.status == 'IN_PROGRESS'
+    
+    @property
+    def high_risk_vulnerabilities(self):
+        """الثغرات عالية المخاطر"""
+        return self.critical_vulnerabilities + self.high_vulnerabilities
+    
+    def calculate_risk_score(self):
+        """حساب نقاط المخاطر"""
+        # وزن مختلف لكل نوع ثغرة
+        weights = {
+            'critical': 10,
+            'high': 7,
+            'medium': 4,
+            'low': 2,
+            'info': 1
+        }
+        
+        total_score = (
+            self.critical_vulnerabilities * weights['critical'] +
+            self.high_vulnerabilities * weights['high'] +
+            self.medium_vulnerabilities * weights['medium'] +
+            self.low_vulnerabilities * weights['low'] +
+            self.info_vulnerabilities * weights['info']
+        )
+        
+        # تطبيع النتيجة إلى مقياس 0-100
+        max_possible = len(self.target_systems) * 50  # افتراض حد أقصى
+        if max_possible > 0:
+            normalized_score = min(100, (total_score / max_possible) * 100)
+        else:
+            normalized_score = total_score
+        
+        self.overall_risk_score = normalized_score
+        
+        # تحديد مستوى المخاطر
+        if normalized_score >= 80:
+            self.risk_level = 'CRITICAL'
+        elif normalized_score >= 60:
+            self.risk_level = 'HIGH'
+        elif normalized_score >= 30:
+            self.risk_level = 'MEDIUM'
+        else:
+            self.risk_level = 'LOW'
+    
+    def update_vulnerability_counts(self):
+        """تحديث عدادات الثغرات من النتائج التفصيلية"""
+        counts = {
+            'CRITICAL': 0,
+            'HIGH': 0,
+            'MEDIUM': 0,
+            'LOW': 0,
+            'INFO': 0
+        }
+        
+        for finding in self.detailed_findings:
+            severity = finding.get('severity', 'LOW').upper()
+            if severity in counts:
+                counts[severity] += 1
+        
+        self.critical_vulnerabilities = counts['CRITICAL']
+        self.high_vulnerabilities = counts['HIGH']
+        self.medium_vulnerabilities = counts['MEDIUM']
+        self.low_vulnerabilities = counts['LOW']
+        self.info_vulnerabilities = counts['INFO']
+        
+        self.vulnerabilities_found = sum(counts.values())
+        
+        # إعادة حساب نقاط المخاطر
+        self.calculate_risk_score()

@@ -730,6 +730,49 @@ class ConversationLog(models.Model):
         return f"{self.user.display_name} - {self.assistant.name_ar} - {self.timestamp}"
 
 
+# إضافة النموذج المطلوب للتوافق
+class StudentPerformancePrediction(models.Model):
+    """تنبؤات أداء الطلاب - نموذج التوافق"""
+    
+    RISK_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                           related_name='smart_ai_performance_predictions', verbose_name="الطالب")
+    
+    # تنبؤات الأداء
+    predicted_gpa = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True,
+                                      verbose_name="المعدل المتوقع")
+    success_probability = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True,
+                                            validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                            verbose_name="احتمالية النجاح")
+    dropout_risk = models.CharField(max_length=10, choices=RISK_LEVELS, default='LOW',
+                                  verbose_name="خطر التسرب")
+    
+    # بيانات التنبؤ
+    prediction_data = models.JSONField(default=dict, verbose_name="بيانات التنبؤ")
+    confidence_score = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True,
+                                         validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                         verbose_name="مستوى الثقة")
+    
+    # التواريخ
+    prediction_date = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ التنبؤ")
+    valid_until = models.DateTimeField(null=True, blank=True, verbose_name="صالح حتى")
+    
+    class Meta:
+        verbose_name = "تنبؤ أداء طالب"
+        verbose_name_plural = "تنبؤات أداء الطلاب"
+        ordering = ['-prediction_date']
+    
+    def __str__(self):
+        return f"تنبؤ أداء - {self.user.get_full_name() if hasattr(self.user, 'get_full_name') else self.user.username}"
+
+
 class LearningAnalytics(models.Model):
     """تحليلات التعلم"""
     
@@ -794,4 +837,630 @@ class LearningAnalytics(models.Model):
     
     def __str__(self):
         course_name = f" - {self.course.name_ar}" if self.course else ""
-        return f"{self.user.display_name} - {self.get_analytics_type_display()}{course_name}"
+        return f"{self.user.get_full_name() if hasattr(self.user, 'get_full_name') else self.user.username} - {self.get_analytics_type_display()}{course_name}"
+
+
+# إضافة النموذج المطلوب للتوافق
+class AIChatBot(models.Model):
+    """روبوت الدردشة الذكي - نموذج التوافق"""
+    
+    BOT_TYPES = [
+        ('STUDENT_SUPPORT', 'دعم طلابي'),
+        ('ACADEMIC_ADVISOR', 'مستشار أكاديمي'),
+        ('TECHNICAL_SUPPORT', 'دعم تقني'),
+        ('GENERAL_INFO', 'معلومات عامة'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات الروبوت
+    name = models.CharField(max_length=100, verbose_name="اسم الروبوت")
+    bot_type = models.CharField(max_length=20, choices=BOT_TYPES, verbose_name="نوع الروبوت")
+    description = models.TextField(verbose_name="وصف الروبوت")
+    
+    # إعدادات الروبوت
+    personality_traits = models.JSONField(default=dict, verbose_name="سمات الشخصية")
+    knowledge_base = models.JSONField(default=dict, verbose_name="قاعدة المعرفة")
+    response_templates = models.JSONField(default=list, verbose_name="قوالب الرد")
+    
+    # الفريق والصيانة
+    developers = models.ManyToManyField(User, related_name='developed_chatbots', blank=True,
+                                      verbose_name="المطورون")
+    maintainers = models.ManyToManyField(User, related_name='maintained_chatbots', blank=True,
+                                       verbose_name="فريق الصيانة")
+    
+    # إحصائيات
+    total_conversations = models.IntegerField(default=0, verbose_name="إجمالي المحادثات")
+    satisfaction_score = models.DecimalField(max_digits=4, decimal_places=2, default=0.00,
+                                           validators=[MinValueValidator(0), MaxValueValidator(5)],
+                                           verbose_name="نقاط الرضا")
+    
+    # الحالة
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    
+    # التواريخ
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "روبوت دردشة ذكي"
+        verbose_name_plural = "روبوتات الدردشة الذكية"
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"{self.name} - {self.get_bot_type_display()}"
+
+
+# إضافة نموذج رسائل الدردشة
+class ChatMessage(models.Model):
+    """رسائل الدردشة - نموذج التوافق"""
+    
+    SENDER_TYPES = [
+        ('USER', 'مستخدم'),
+        ('BOT', 'روبوت'),
+        ('SYSTEM', 'نظام'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات الرسالة
+    chatbot = models.ForeignKey(AIChatBot, on_delete=models.CASCADE,
+                              related_name='messages', verbose_name="روبوت الدردشة")
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                           related_name='chat_messages', verbose_name="المستخدم")
+    
+    # محتوى الرسالة
+    sender_type = models.CharField(max_length=10, choices=SENDER_TYPES, verbose_name="نوع المرسل")
+    message = models.TextField(verbose_name="نص الرسالة")
+    
+    # بيانات إضافية
+    metadata = models.JSONField(default=dict, verbose_name="بيانات إضافية")
+    conversation_id = models.CharField(max_length=100, verbose_name="معرف المحادثة")
+    
+    # التوقيت
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإرسال")
+    
+    class Meta:
+        verbose_name = "رسالة دردشة"
+        verbose_name_plural = "رسائل الدردشة"
+        ordering = ['created_at']
+    
+    def __str__(self):
+        return f"{self.user.get_full_name() if hasattr(self.user, 'get_full_name') else self.user.username} - {self.chatbot.name}"
+
+class StudentPerformancePrediction(models.Model):
+    """توقع أداء الطلاب"""
+    
+    RISK_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+    ]
+    
+    PERFORMANCE_LEVELS = [
+        ('EXCELLENT', 'ممتاز'),
+        ('VERY_GOOD', 'جيد جداً'),
+        ('GOOD', 'جيد'),
+        ('SATISFACTORY', 'مرضي'),
+        ('POOR', 'ضعيف'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # الطالب والمقرr
+    student = models.ForeignKey(User, on_delete=models.CASCADE,
+                               related_name='smart_ai_performance_predictions', verbose_name="الطالب")
+    course = models.ForeignKey('courses.Course', on_delete=models.CASCADE, null=True, blank=True,
+                             related_name='smart_ai_performance_predictions', verbose_name="المقرر")
+    
+    # التنبؤات
+    predicted_grade = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
+                                        validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                        verbose_name="الدرجة المتوقعة")
+    predicted_gpa = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True,
+                                      validators=[MinValueValidator(0), MaxValueValidator(4)],
+                                      verbose_name="المعدل المتوقع")
+    performance_level = models.CharField(max_length=15, choices=PERFORMANCE_LEVELS,
+                                       verbose_name="مستوى الأداء المتوقع")
+    dropout_risk = models.CharField(max_length=10, choices=RISK_LEVELS, default='LOW',
+                                  verbose_name="خطر التسرب")
+    
+    # مقاييس الثقة
+    confidence_score = models.DecimalField(max_digits=5, decimal_places=4,
+                                         validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                         verbose_name="نقاط الثقة")
+    model_accuracy = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True,
+                                       validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                       verbose_name="دقة النموذج")
+    
+    # العوامل المؤثرة
+    influencing_factors = models.JSONField(default=dict, verbose_name="العوامل المؤثرة")
+    feature_importance = models.JSONField(default=dict, verbose_name="أهمية الميزات")
+    
+    # التوصيات
+    recommendations = models.JSONField(default=list, verbose_name="التوصيات")
+    intervention_suggestions = models.JSONField(default=list, verbose_name="اقتراحات التدخل")
+    
+    # فترة التنبؤ
+    prediction_horizon = models.CharField(max_length=50, verbose_name="أفق التنبؤ")
+    valid_from = models.DateTimeField(verbose_name="صالح من")
+    valid_until = models.DateTimeField(verbose_name="صالح حتى")
+    
+    # النموذج المستخدم
+    ai_model = models.ForeignKey(AIModel, on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name='student_predictions', verbose_name="النموذج المستخدم")
+    
+    # التحقق من الدقة
+    actual_grade = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
+                                     validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                     verbose_name="الدرجة الفعلية")
+    actual_gpa = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True,
+                                   validators=[MinValueValidator(0), MaxValueValidator(4)],
+                                   verbose_name="المعدل الفعلي")
+    prediction_accuracy = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True,
+                                            validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                            verbose_name="دقة التنبؤ")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='created_student_predictions',
+                                 verbose_name="أُنشأ بواسطة")
+    
+    class Meta:
+        verbose_name = "توقع أداء طالب"
+        verbose_name_plural = "توقعات أداء الطلاب"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['student', 'course']),
+            models.Index(fields=['dropout_risk']),
+            models.Index(fields=['performance_level']),
+            models.Index(fields=['valid_from', 'valid_until']),
+        ]
+    
+    def __str__(self):
+        course_name = f" - {self.course.name_ar}" if self.course else ""
+        return f"{self.student.display_name} - {self.get_performance_level_display()}{course_name}"
+    
+    @property
+    def is_valid(self):
+        """هل التنبؤ ساري"""
+        now = timezone.now()
+        return self.valid_from <= now <= self.valid_until
+    
+    @property
+    def needs_intervention(self):
+        """يحتاج لتدخل"""
+        return (self.dropout_risk in ['HIGH', 'CRITICAL'] or 
+                self.performance_level in ['POOR', 'SATISFACTORY'])
+
+
+class AIChatBot(models.Model):
+    """روبوت المحادثة الذكي"""
+    
+    BOT_TYPES = [
+        ('GENERAL', 'عام'),
+        ('ACADEMIC', 'أكاديمي'),
+        ('ADMINISTRATIVE', 'إداري'),
+        ('TECHNICAL_SUPPORT', 'دعم تقني'),
+        ('FINANCIAL', 'مالي'),
+        ('STUDENT_SERVICES', 'خدمات طلابية'),
+        ('ADMISSIONS', 'قبول'),
+        ('LIBRARY', 'مكتبة'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('ACTIVE', 'نشط'),
+        ('INACTIVE', 'غير نشط'),
+        ('TRAINING', 'تحت التدريب'),
+        ('MAINTENANCE', 'صيانة'),
+        ('TESTING', 'اختبار'),
+    ]
+    
+    LANGUAGE_CODES = [
+        ('ar', 'العربية'),
+        ('en', 'English'),
+        ('ar-en', 'العربية والإنجليزية'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات البوت الأساسية
+    name_ar = models.CharField(max_length=100, verbose_name="اسم البوت - عربي")
+    name_en = models.CharField(max_length=100, verbose_name="اسم البوت - إنجليزي")
+    bot_type = models.CharField(max_length=20, choices=BOT_TYPES, default='GENERAL',
+                              verbose_name="نوع البوت")
+    description_ar = models.TextField(verbose_name="وصف البوت - عربي")
+    description_en = models.TextField(verbose_name="وصف البوت - إنجليزي")
+    
+    # إعدادات البوت
+    avatar = models.ImageField(upload_to='chatbots/avatars/', blank=True, null=True,
+                             verbose_name="صورة البوت")
+    welcome_message_ar = models.TextField(verbose_name="رسالة الترحيب - عربي")
+    welcome_message_en = models.TextField(verbose_name="رسالة الترحيب - إنجليزي")
+    
+    # إعدادات اللغة والسلوك
+    supported_languages = models.CharField(max_length=10, choices=LANGUAGE_CODES,
+                                         default='ar-en', verbose_name="اللغات المدعومة")
+    personality_traits = models.JSONField(default=dict, verbose_name="سمات الشخصية")
+    response_style = models.CharField(max_length=50, default='FRIENDLY',
+                                    verbose_name="أسلوب الرد")
+    
+    # النماذج المستخدمة
+    nlp_model = models.ForeignKey(AIModel, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name='chatbots', verbose_name="نموذج معالجة اللغة")
+    knowledge_base = models.JSONField(default=dict, verbose_name="قاعدة المعرفة")
+    training_data = models.JSONField(default=list, verbose_name="بيانات التدريب")
+    
+    # القدرات والمهارات
+    capabilities = models.JSONField(default=list, verbose_name="القدرات")
+    integrations = models.JSONField(default=list, verbose_name="التكاملات")
+    api_endpoints = models.JSONField(default=list, verbose_name="نقاط API")
+    
+    # إعدادات الحوار
+    max_conversation_length = models.IntegerField(default=50, verbose_name="الحد الأقصى للمحادثة")
+    context_memory_size = models.IntegerField(default=10, verbose_name="حجم ذاكرة السياق")
+    response_timeout = models.IntegerField(default=30, verbose_name="مهلة الرد (ثانية)")
+    
+    # الحالة والإعدادات
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='INACTIVE',
+                            verbose_name="الحالة")
+    is_public = models.BooleanField(default=True, verbose_name="عام")
+    is_learning_enabled = models.BooleanField(default=True, verbose_name="التعلم مُفعل")
+    is_multilingual = models.BooleanField(default=True, verbose_name="متعدد اللغات")
+    
+    # إحصائيات الاستخدام
+    total_conversations = models.IntegerField(default=0, verbose_name="إجمالي المحادثات")
+    total_messages = models.IntegerField(default=0, verbose_name="إجمالي الرسائل")
+    successful_responses = models.IntegerField(default=0, verbose_name="الردود الناجحة")
+    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00,
+                                       validators=[MinValueValidator(0), MaxValueValidator(5)],
+                                       verbose_name="متوسط التقييم")
+    
+    # إعدادات المطورين
+    
+    # معلومات الأمان
+    access_permissions = models.JSONField(default=dict, verbose_name="صلاحيات الوصول")
+    security_settings = models.JSONField(default=dict, verbose_name="إعدادات الأمان")
+    rate_limiting = models.JSONField(default=dict, verbose_name="تحديد المعدل")
+    
+    # التسجيل والمراقبة
+    logging_enabled = models.BooleanField(default=True, verbose_name="التسجيل مُفعل")
+    analytics_enabled = models.BooleanField(default=True, verbose_name="التحليلات مُفعلة")
+    monitoring_settings = models.JSONField(default=dict, verbose_name="إعدادات المراقبة")
+    
+    # معلومات الإصدار
+    version = models.CharField(max_length=20, default='1.0.0', verbose_name="الإصدار")
+    last_trained = models.DateTimeField(null=True, blank=True, verbose_name="آخر تدريب")
+    next_maintenance = models.DateTimeField(null=True, blank=True, verbose_name="الصيانة القادمة")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='created_chatbots',
+                                 verbose_name="أُنشأ بواسطة")
+    
+    class Meta:
+        verbose_name = "روبوت محادثة ذكي"
+        verbose_name_plural = "روبوتات المحادثة الذكية"
+        ordering = ['bot_type', 'name_ar']
+        indexes = [
+            models.Index(fields=['bot_type', 'status']),
+            models.Index(fields=['status', 'is_public']),
+            models.Index(fields=['supported_languages']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name_ar} ({self.get_bot_type_display()})"
+    
+    @property
+    def is_active(self):
+        """هل البوت نشط"""
+        return self.status == 'ACTIVE'
+    
+    @property
+    def success_rate(self):
+        """معدل النجاح"""
+        if self.total_messages > 0:
+            return (self.successful_responses / self.total_messages) * 100
+        return 0
+    
+    @property
+    def needs_training(self):
+        """يحتاج لتدريب"""
+        if not self.last_trained:
+            return True
+        # إذا لم يتم التدريب لأكثر من شهر
+        one_month_ago = timezone.now() - timezone.timedelta(days=30)
+        return self.last_trained < one_month_ago
+    
+    def get_welcome_message(self, language='ar'):
+        """الحصول على رسالة الترحيب باللغة المحددة"""
+        if language == 'en':
+            return self.welcome_message_en
+        return self.welcome_message_ar
+    
+    def get_name(self, language='ar'):
+        """الحصول على اسم البوت باللغة المحددة"""
+        if language == 'en':
+            return self.name_en
+        return self.name_ar
+    
+    def get_description(self, language='ar'):
+        """الحصول على وصف البوت باللغة المحددة"""
+        if language == 'en':
+            return self.description_en
+        return self.description_ar
+
+
+class ChatMessage(models.Model):
+    """رسائل المحادثة مع البوت"""
+    
+    MESSAGE_TYPES = [
+        ('USER', 'مستخدم'),
+        ('BOT', 'بوت'),
+        ('SYSTEM', 'نظام'),
+    ]
+    
+    SENTIMENT_TYPES = [
+        ('POSITIVE', 'إيجابي'),
+        ('NEGATIVE', 'سلبي'),
+        ('NEUTRAL', 'محايد'),
+        ('MIXED', 'مختلط'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات المحادثة
+    conversation_id = models.CharField(max_length=100, verbose_name="معرف المحادثة")
+    session_id = models.CharField(max_length=100, blank=True, verbose_name="معرف الجلسة")
+    
+    # المشاركون
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                           related_name='chat_messages', verbose_name="المستخدم")
+    chatbot = models.ForeignKey(AIChatBot, on_delete=models.CASCADE,
+                              related_name='messages', verbose_name="البوت")
+    
+    # محتوى الرسالة
+    message_type = models.CharField(max_length=10, choices=MESSAGE_TYPES,
+                                  verbose_name="نوع الرسالة")
+    content = models.TextField(verbose_name="محتوى الرسالة")
+    language = models.CharField(max_length=5, default='ar', verbose_name="اللغة")
+    
+    # تحليل المحتوى
+    sentiment = models.CharField(max_length=10, choices=SENTIMENT_TYPES, null=True, blank=True,
+                               verbose_name="المشاعر")
+    sentiment_score = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True,
+                                        validators=[MinValueValidator(-1), MaxValueValidator(1)],
+                                        verbose_name="نقاط المشاعر")
+    intent = models.CharField(max_length=100, blank=True, verbose_name="النية")
+    entities = models.JSONField(default=list, verbose_name="الكيانات المستخرجة")
+    
+    # معلومات الاستجابة (للرسائل من البوت)
+    response_time_ms = models.IntegerField(null=True, blank=True,
+                                         verbose_name="وقت الرد (ميلي ثانية)")
+    confidence_score = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True,
+                                         validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                         verbose_name="نقاط الثقة")
+    is_fallback = models.BooleanField(default=False, verbose_name="رد احتياطي")
+    
+    # تقييم المستخدم
+    user_feedback = models.CharField(max_length=20, blank=True,
+                                   choices=[
+                                       ('HELPFUL', 'مفيد'),
+                                       ('NOT_HELPFUL', 'غير مفيد'),
+                                       ('IRRELEVANT', 'غير ذي صلة'),
+                                       ('INCORRECT', 'غير صحيح'),
+                                   ], verbose_name="تقييم المستخدم")
+    rating = models.IntegerField(null=True, blank=True,
+                               validators=[MinValueValidator(1), MaxValueValidator(5)],
+                               verbose_name="التقييم")
+    
+    # السياق والبيانات الإضافية
+    context_data = models.JSONField(default=dict, verbose_name="بيانات السياق")
+    metadata = models.JSONField(default=dict, verbose_name="بيانات إضافية")
+    
+    # المرفقات
+    attachments = models.JSONField(default=list, verbose_name="المرفقات")
+    
+    # معلومات تقنية
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="الوقت")
+    is_flagged = models.BooleanField(default=False, verbose_name="مُعلم")
+    is_deleted = models.BooleanField(default=False, verbose_name="محذوف")
+    
+    class Meta:
+        verbose_name = "رسالة محادثة"
+        verbose_name_plural = "رسائل المحادثة"
+        ordering = ['timestamp']
+        indexes = [
+            models.Index(fields=['conversation_id', 'timestamp']),
+            models.Index(fields=['user', 'timestamp']),
+            models.Index(fields=['chatbot', 'timestamp']),
+            models.Index(fields=['message_type']),
+            models.Index(fields=['sentiment']),
+        ]
+    
+    def __str__(self):
+        return f"{self.conversation_id} - {self.get_message_type_display()} - {self.timestamp}"
+    
+    @property
+    def is_from_user(self):
+        """هل الرسالة من المستخدم"""
+        return self.message_type == 'USER'
+    
+    @property
+    def is_from_bot(self):
+        """هل الرسالة من البوت"""
+        return self.message_type == 'BOT'
+    
+    @property
+    def content_preview(self):
+        """معاينة المحتوى"""
+        if len(self.content) > 100:
+            return self.content[:97] + "..."
+        return self.content
+
+
+class SmartRecommendation(models.Model):
+    """التوصيات الذكية للمستخدمين"""
+    
+    RECOMMENDATION_TYPES = [
+        ('COURSE', 'مقرر دراسي'),
+        ('STUDY_PATH', 'مسار دراسي'),
+        ('CAREER', 'مسار مهني'),
+        ('SKILL', 'مهارة'),
+        ('ACTIVITY', 'نشاط'),
+        ('RESOURCE', 'مورد تعليمي'),
+        ('MENTOR', 'مرشد'),
+        ('GROUP', 'مجموعة دراسية'),
+        ('EVENT', 'فعالية'),
+        ('IMPROVEMENT', 'تحسين'),
+    ]
+    
+    PRIORITY_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('URGENT', 'عاجل'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'في الانتظار'),
+        ('VIEWED', 'تم عرضه'),
+        ('ACCEPTED', 'مقبول'),
+        ('REJECTED', 'مرفوض'),
+        ('IMPLEMENTED', 'مُنفذ'),
+        ('EXPIRED', 'منتهي الصلاحية'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # المستخدم المستهدف
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                           related_name='smart_recommendations', verbose_name="المستخدم")
+    
+    # نوع التوصية
+    recommendation_type = models.CharField(max_length=20, choices=RECOMMENDATION_TYPES,
+                                         verbose_name="نوع التوصية")
+    title = models.CharField(max_length=200, verbose_name="عنوان التوصية")
+    description = models.TextField(verbose_name="وصف التوصية")
+    
+    # تفاصيل التوصية
+    recommendation_data = models.JSONField(default=dict, verbose_name="بيانات التوصية")
+    reasoning = models.TextField(verbose_name="المبرر")
+    expected_benefits = models.JSONField(default=list, verbose_name="الفوائد المتوقعة")
+    
+    # مقاييس الثقة والأولوية
+    confidence_score = models.DecimalField(max_digits=5, decimal_places=4,
+                                         validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                         verbose_name="نقاط الثقة")
+    priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='MEDIUM',
+                              verbose_name="الأولوية")
+    relevance_score = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
+                                        validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                        verbose_name="نقاط الصلة")
+    
+    # الحالة والحياة
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING',
+                            verbose_name="الحالة")
+    valid_until = models.DateTimeField(null=True, blank=True, verbose_name="صالح حتى")
+    
+    # النموذج المستخدم
+    ai_model = models.ForeignKey(AIModel, on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name='smart_recommendations', verbose_name="النموذج المستخدم")
+    
+    # البيانات المستخدمة في التوصية
+    input_features = models.JSONField(default=dict, verbose_name="الميزات المدخلة")
+    feature_importance = models.JSONField(default=dict, verbose_name="أهمية الميزات")
+    
+    # تقييم المستخدم
+    user_rating = models.IntegerField(null=True, blank=True,
+                                    validators=[MinValueValidator(1), MaxValueValidator(5)],
+                                    verbose_name="تقييم المستخدم")
+    user_feedback = models.TextField(blank=True, verbose_name="تعليق المستخدم")
+    was_helpful = models.BooleanField(null=True, blank=True, verbose_name="كانت مفيدة")
+    
+    # تتبع التفاعل
+    viewed_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ العرض")
+    responded_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الرد")
+    implemented_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ التنفيذ")
+    
+    # معلومات إضافية
+    tags = models.JSONField(default=list, verbose_name="العلامات")
+    related_recommendations = models.JSONField(default=list, verbose_name="التوصيات المرتبطة")
+    success_metrics = models.JSONField(default=dict, verbose_name="مقاييس النجاح")
+    
+    # الإعدادات
+    auto_implement = models.BooleanField(default=False, verbose_name="تنفيذ تلقائي")
+    notification_sent = models.BooleanField(default=False, verbose_name="تم إرسال الإشعار")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "توصية ذكية"
+        verbose_name_plural = "التوصيات الذكية"
+        ordering = ['-priority', '-confidence_score', '-created_at']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['recommendation_type', 'priority']),
+            models.Index(fields=['confidence_score']),
+            models.Index(fields=['valid_until']),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} - {self.user.username}"
+    
+    @property
+    def is_valid(self):
+        """هل التوصية سارية"""
+        if self.valid_until:
+            return timezone.now() <= self.valid_until
+        return True
+    
+    @property
+    def is_high_confidence(self):
+        """توصية عالية الثقة"""
+        return float(self.confidence_score) >= 0.8
+    
+    @property
+    def is_urgent(self):
+        """توصية عاجلة"""
+        return self.priority == 'URGENT'
+    
+    @property
+    def days_until_expiry(self):
+        """عدد الأيام حتى انتهاء الصلاحية"""
+        if self.valid_until:
+            delta = self.valid_until - timezone.now()
+            return max(0, delta.days)
+        return None
+    
+    def mark_as_viewed(self):
+        """تمييز كمُشاهدة"""
+        if self.status == 'PENDING':
+            self.status = 'VIEWED'
+            self.viewed_at = timezone.now()
+            self.save(update_fields=['status', 'viewed_at'])
+    
+    def accept(self):
+        """قبول التوصية"""
+        self.status = 'ACCEPTED'
+        self.responded_at = timezone.now()
+        self.save(update_fields=['status', 'responded_at'])
+    
+    def reject(self):
+        """رفض التوصية"""
+        self.status = 'REJECTED'
+        self.responded_at = timezone.now()
+        self.save(update_fields=['status', 'responded_at'])
+    
+    def implement(self):
+        """تنفيذ التوصية"""
+        self.status = 'IMPLEMENTED'
+        self.implemented_at = timezone.now()
+        self.save(update_fields=['status', 'implemented_at'])

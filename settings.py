@@ -20,10 +20,20 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-minimal-2024')
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=Csv())
 
-# Security Headers
+# Security Headers - محسنة
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True if not DEBUG else False
+SECURE_HSTS_PRELOAD = True if not DEBUG else False
+
+# HTTPS Settings for Production
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # =============================================================================
 # INSTALLED APPS - الحد الأدنى
@@ -63,6 +73,8 @@ LOCAL_APPS = [
     'admin_control',
     'roles_permissions',
     'web',
+    'mobile_app',
+    'management',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -259,9 +271,17 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG
 # CACHE CONFIGURATION
 # =============================================================================
 
+# =============================================================================
+# CACHE CONFIGURATION - محسنة
+# =============================================================================
+
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache' if DEBUG else 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': config('REDIS_URL', default='redis://127.0.0.1:6379/1') if not DEBUG else '',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        } if not DEBUG else {},
     }
 }
 
@@ -319,6 +339,34 @@ SWAGGER_SETTINGS = {
 }
 
 # =============================================================================
+# CELERY CONFIGURATION - محسنة
+# =============================================================================
+
+# Celery settings
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# =============================================================================
+# EMAIL CONFIGURATION - محسنة
+# =============================================================================
+
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+    EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+    EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+    EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@university.edu')
+
+# =============================================================================
 # DEVELOPMENT SETTINGS
 # =============================================================================
 
@@ -357,4 +405,4 @@ def university_context(request):
     }
 
 # Add custom context processor
-TEMPLATES[0]['OPTIONS']['context_processors'].append('settings_minimal.university_context')
+TEMPLATES[0]['OPTIONS']['context_processors'].append(__name__ + '.university_context')

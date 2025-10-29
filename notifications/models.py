@@ -373,6 +373,37 @@ class UserTelegramAccount(models.Model):
         return f"{self.user.display_name} - {self.chat_id}"
 
 
+# إضافة النموذج المطلوب للتوافق
+class UserNotificationPreference(models.Model):
+    """تفضيلات إشعارات المستخدم - نموذج التوافق"""
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_notification_preference',
+                               verbose_name="المستخدم")
+    
+    # تفضيلات القنوات
+    email_enabled = models.BooleanField(default=True, verbose_name="البريد الإلكتروني")
+    sms_enabled = models.BooleanField(default=False, verbose_name="الرسائل النصية")
+    push_enabled = models.BooleanField(default=True, verbose_name="الإشعارات المدفوعة")
+    in_app_enabled = models.BooleanField(default=True, verbose_name="الإشعارات داخل التطبيق")
+    
+    # تفضيلات الفئات
+    academic_notifications = models.BooleanField(default=True, verbose_name="الإشعارات الأكاديمية")
+    financial_notifications = models.BooleanField(default=True, verbose_name="الإشعارات المالية")
+    administrative_notifications = models.BooleanField(default=True, verbose_name="الإشعارات الإدارية")
+    security_notifications = models.BooleanField(default=True, verbose_name="الإشعارات الأمنية")
+    
+    # التواريخ
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "تفضيلات إشعارات المستخدم"
+        verbose_name_plural = "تفضيلات إشعارات المستخدمين"
+    
+    def __str__(self):
+        return f"تفضيلات {self.user.get_full_name() if hasattr(self.user, 'get_full_name') else self.user.username}"
+
+
 class NotificationPreference(models.Model):
     """تفضيلات الإشعارات للمستخدمين"""
     
@@ -461,3 +492,169 @@ class ScheduledNotification(models.Model):
     
     def __str__(self):
         return f"إشعار مجدول - {self.template_id} - {self.scheduled_time}"
+
+
+# إضافة النموذج المطلوب للتوافق
+class NotificationDelivery(models.Model):
+    """تسليم الإشعارات - نموذج التوافق"""
+    
+    DELIVERY_CHANNELS = [
+        ('EMAIL', 'بريد إلكتروني'),
+        ('SMS', 'رسالة نصية'),
+        ('PUSH', 'إشعار فوري'),
+        ('IN_APP', 'داخل التطبيق'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'في الانتظار'),
+        ('SENT', 'مُرسل'),
+        ('DELIVERED', 'مُسلم'),
+        ('FAILED', 'فاشل'),
+        ('BOUNCED', 'مرتد'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    notification = models.ForeignKey(Notification, on_delete=models.CASCADE,
+                                   related_name='deliveries', verbose_name="الإشعار")
+    
+    # معلومات التسليم
+    channel = models.CharField(max_length=10, choices=DELIVERY_CHANNELS,
+                             verbose_name="قناة التسليم")
+    recipient_address = models.CharField(max_length=255, verbose_name="عنوان المستلم")
+    
+    # حالة التسليم
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING',
+                            verbose_name="حالة التسليم")
+    delivery_attempts = models.IntegerField(default=0, verbose_name="محاولات التسليم")
+    
+    # معلومات الاستجابة
+    response_data = models.JSONField(default=dict, verbose_name="بيانات الاستجابة")
+    error_message = models.TextField(blank=True, verbose_name="رسالة الخطأ")
+    
+    # التوقيتات
+    sent_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت الإرسال")
+    delivered_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت التسليم")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "تسليم إشعار"
+        verbose_name_plural = "تسليمات الإشعارات"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"تسليم {self.notification.title} - {self.get_channel_display()}"
+
+class UserNotificationPreference(models.Model):
+    """تفضيلات إشعارات المستخدم المحسنة"""
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_notification_preferences',
+                               verbose_name="المستخدم")
+    
+    # تفضيلات القنوات
+    email_enabled = models.BooleanField(default=True, verbose_name="البريد الإلكتروني")
+    sms_enabled = models.BooleanField(default=False, verbose_name="الرسائل النصية")
+    push_enabled = models.BooleanField(default=True, verbose_name="الإشعارات المدفوعة")
+    in_app_enabled = models.BooleanField(default=True, verbose_name="الإشعارات داخل التطبيق")
+    
+    # تفضيلات الفئات
+    academic_notifications = models.BooleanField(default=True, verbose_name="الإشعارات الأكاديمية")
+    financial_notifications = models.BooleanField(default=True, verbose_name="الإشعارات المالية")
+    administrative_notifications = models.BooleanField(default=True, verbose_name="الإشعارات الإدارية")
+    
+    # التواريخ
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "تفضيلات إشعارات المستخدم"
+        verbose_name_plural = "تفضيلات إشعارات المستخدمين"
+    
+    def __str__(self):
+        return f"تفضيلات {self.user.username}"
+
+
+class NotificationDelivery(models.Model):
+    """تسليم الإشعارات"""
+    
+    DELIVERY_CHANNELS = [
+        ('EMAIL', 'بريد إلكتروني'),
+        ('SMS', 'رسالة نصية'),
+        ('PUSH', 'إشعار فوري'),
+        ('IN_APP', 'داخل التطبيق'),
+        ('TELEGRAM', 'تليجرام'),
+        ('WHATSAPP', 'واتساب'),
+    ]
+    
+    DELIVERY_STATUS = [
+        ('PENDING', 'في الانتظار'),
+        ('SENT', 'مُرسل'),
+        ('DELIVERED', 'مُسلم'),
+        ('FAILED', 'فاشل'),
+        ('BOUNCED', 'مرتد'),
+        ('OPENED', 'مفتوح'),
+        ('CLICKED', 'مُنقر عليه'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # الإشعار المرتبط
+    notification = models.ForeignKey(InAppNotification, on_delete=models.CASCADE,
+                                   related_name='deliveries', verbose_name="الإشعار")
+    
+    # قناة التسليم
+    channel = models.CharField(max_length=10, choices=DELIVERY_CHANNELS, verbose_name="القناة")
+    recipient_address = models.CharField(max_length=255, verbose_name="عنوان المستلم")
+    
+    # حالة التسليم
+    status = models.CharField(max_length=15, choices=DELIVERY_STATUS, default='PENDING',
+                            verbose_name="حالة التسليم")
+    attempts = models.IntegerField(default=0, verbose_name="عدد المحاولات")
+    max_attempts = models.IntegerField(default=3, verbose_name="الحد الأقصى للمحاولات")
+    
+    # تفاصيل التسليم
+    delivery_details = models.JSONField(default=dict, verbose_name="تفاصيل التسليم")
+    error_message = models.TextField(blank=True, verbose_name="رسالة الخطأ")
+    provider_response = models.JSONField(default=dict, verbose_name="رد المزود")
+    
+    # التوقيت
+    scheduled_at = models.DateTimeField(null=True, blank=True, verbose_name="مجدول في")
+    sent_at = models.DateTimeField(null=True, blank=True, verbose_name="مُرسل في")
+    delivered_at = models.DateTimeField(null=True, blank=True, verbose_name="مُسلم في")
+    opened_at = models.DateTimeField(null=True, blank=True, verbose_name="مفتوح في")
+    clicked_at = models.DateTimeField(null=True, blank=True, verbose_name="مُنقر عليه في")
+    
+    # معلومات إضافية
+    tracking_id = models.CharField(max_length=100, blank=True, verbose_name="معرف التتبع")
+    cost = models.DecimalField(max_digits=10, decimal_places=4, default=0.0000,
+                             verbose_name="التكلفة")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "تسليم إشعار"
+        verbose_name_plural = "تسليم الإشعارات"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['notification', 'channel']),
+            models.Index(fields=['status']),
+            models.Index(fields=['scheduled_at']),
+            models.Index(fields=['recipient_address']),
+        ]
+    
+    def __str__(self):
+        return f"{self.notification.title} - {self.get_channel_display()} - {self.get_status_display()}"
+    
+    @property
+    def is_delivered(self):
+        """هل تم التسليم بنجاح"""
+        return self.status in ['DELIVERED', 'OPENED', 'CLICKED']
+    
+    @property
+    def can_retry(self):
+        """هل يمكن إعادة المحاولة"""
+        return self.attempts < self.max_attempts and self.status == 'FAILED'
