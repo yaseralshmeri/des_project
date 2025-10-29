@@ -13,6 +13,104 @@ import hashlib
 
 User = get_user_model()
 
+
+class SecurityEvent(models.Model):
+    """أحداث الأمان السيبراني"""
+    
+    EVENT_TYPES = [
+        ('LOGIN_ATTEMPT', 'محاولة تسجيل دخول'),
+        ('FAILED_LOGIN', 'فشل تسجيل دخول'),
+        ('SUSPICIOUS_ACTIVITY', 'نشاط مشبوه'),
+        ('DATA_ACCESS', 'الوصول للبيانات'),
+        ('SECURITY_VIOLATION', 'انتهاك أمني'),
+        ('MALWARE_DETECTED', 'اكتشاف برمجيات خبيثة'),
+        ('INTRUSION_ATTEMPT', 'محاولة اختراق'),
+        ('POLICY_VIOLATION', 'انتهاك سياسة'),
+        ('SYSTEM_ANOMALY', 'شذوذ في النظام'),
+    ]
+    
+    SEVERITY_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('OPEN', 'مفتوح'),
+        ('INVESTIGATING', 'قيد التحقيق'),
+        ('RESOLVED', 'محلول'),
+        ('CLOSED', 'مغلق'),
+        ('FALSE_POSITIVE', 'إنذار كاذب'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات الحدث
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPES, verbose_name="نوع الحدث")
+    title = models.CharField(max_length=200, verbose_name="عنوان الحدث")
+    description = models.TextField(verbose_name="وصف الحدث")
+    
+    # معلومات المصدر
+    source_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name="عنوان IP المصدر")
+    user_agent = models.TextField(blank=True, verbose_name="متصفح المستخدم")
+    affected_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='security_events_affected',
+                                    verbose_name="المستخدم المتأثر")
+    
+    # تصنيف الحدث
+    severity = models.CharField(max_length=10, choices=SEVERITY_LEVELS, default='MEDIUM',
+                              verbose_name="درجة الخطورة")
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='OPEN',
+                            verbose_name="حالة الحدث")
+    
+    # تفاصيل إضافية
+    additional_data = models.JSONField(default=dict, verbose_name="بيانات إضافية")
+    risk_score = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                   verbose_name="درجة المخاطر")
+    
+    # معلومات المعالجة
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='assigned_security_events',
+                                  verbose_name="مُعيّن إلى")
+    resolution_notes = models.TextField(blank=True, verbose_name="ملاحظات الحل")
+    resolved_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الحل")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    detected_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='detected_security_events',
+                                  verbose_name="اكتُشِف بواسطة")
+    
+    class Meta:
+        verbose_name = "حدث أمني"
+        verbose_name_plural = "الأحداث الأمنية"
+        ordering = ['-created_at', '-severity']
+        indexes = [
+            models.Index(fields=['event_type', 'severity']),
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['source_ip']),
+            models.Index(fields=['affected_user']),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} ({self.get_severity_display()})"
+    
+    @property
+    def is_critical(self):
+        return self.severity == 'CRITICAL'
+    
+    @property
+    def is_resolved(self):
+        return self.status in ['RESOLVED', 'CLOSED']
+    
+    @property
+    def days_open(self):
+        if self.resolved_at:
+            return (self.resolved_at - self.created_at).days
+        return (timezone.now() - self.created_at).days
+
 class SecurityThreat(models.Model):
     """التهديدات الأمنية"""
     
@@ -545,7 +643,7 @@ class SecurityPolicy(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
-                                 related_name='created_security_policies',
+                                 related_name='created_cyber_security_policies',
                                  verbose_name="أُنشأت بواسطة")
     
     class Meta:

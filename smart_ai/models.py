@@ -12,6 +12,80 @@ import json
 
 User = get_user_model()
 
+
+class AIAnalyticsModel(models.Model):
+    """نموذج تحليلات الذكاء الاصطناعي"""
+    
+    ANALYTICS_TYPES = [
+        ('STUDENT_PERFORMANCE', 'أداء الطلاب'),
+        ('COURSE_ANALYTICS', 'تحليلات المقررات'),
+        ('FINANCIAL_FORECAST', 'تنبؤات مالية'),
+        ('ENROLLMENT_PREDICTION', 'تنبؤات التسجيل'),
+        ('RESOURCE_OPTIMIZATION', 'تحسين الموارد'),
+        ('RISK_ASSESSMENT', 'تقييم المخاطر'),
+        ('BEHAVIORAL_ANALYSIS', 'تحليل السلوك'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('ACTIVE', 'نشط'),
+        ('INACTIVE', 'غير نشط'),
+        ('TRAINING', 'تحت التدريب'),
+        ('MAINTENANCE', 'صيانة'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات النموذج
+    name_ar = models.CharField(max_length=200, verbose_name="اسم النموذج - عربي")
+    name_en = models.CharField(max_length=200, verbose_name="اسم النموذج - إنجليزي")
+    code = models.CharField(max_length=50, unique=True, verbose_name="رمز النموذج")
+    analytics_type = models.CharField(max_length=25, choices=ANALYTICS_TYPES,
+                                    verbose_name="نوع التحليل")
+    
+    # وصف والإعدادات
+    description = models.TextField(verbose_name="وصف النموذج")
+    configuration = models.JSONField(default=dict, verbose_name="إعدادات النموذج")
+    parameters = models.JSONField(default=dict, verbose_name="معاملات النموذج")
+    
+    # حالة النموذج
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='INACTIVE',
+                            verbose_name="حالة النموذج")
+    
+    # مقاييس الأداء
+    accuracy_score = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True,
+                                       validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                       verbose_name="درجة الدقة")
+    last_training_date = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ آخر تدريب")
+    total_predictions = models.IntegerField(default=0, verbose_name="إجمالي التنبؤات")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                 related_name='created_ai_analytics_models',
+                                 verbose_name="أُنشئ بواسطة")
+    
+    class Meta:
+        verbose_name = "نموذج تحليلات ذكية"
+        verbose_name_plural = "نماذج التحليلات الذكية"
+        ordering = ['analytics_type', 'name_ar']
+    
+    def __str__(self):
+        return f"{self.name_ar} ({self.get_analytics_type_display()})"
+    
+    @property
+    def is_active(self):
+        return self.status == 'ACTIVE'
+    
+    @property
+    def performance_summary(self):
+        return {
+            'accuracy': float(self.accuracy_score) if self.accuracy_score else None,
+            'total_predictions': self.total_predictions,
+            'last_training': self.last_training_date.isoformat() if self.last_training_date else None,
+            'status': self.status
+        }
+
 class AIModel(models.Model):
     """نماذج الذكاء الاصطناعي المستخدمة في النظام"""
     

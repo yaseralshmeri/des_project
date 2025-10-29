@@ -59,7 +59,7 @@ class UserActivity(models.Model):
         ('IMPORT', 'Import'),
     ]
     
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activities')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='admin_activities')
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
     model_name = models.CharField(max_length=100, blank=True)
     object_id = models.CharField(max_length=100, blank=True)

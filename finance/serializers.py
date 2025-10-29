@@ -74,6 +74,6 @@ class ScholarshipApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ScholarshipApplication
         fields = ['id', 'student', 'student_details', 'scholarship', 'scholarship_details', 
-                 'application_date', 'status', 'documents', 'reviewer', 'reviewer_details', 
+                 'submitted_date', 'status', 'documents', 'reviewer', 'reviewer_details', 
                  'review_notes', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'application_date', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'submitted_date', 'created_at', 'updated_at']

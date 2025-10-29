@@ -50,7 +50,7 @@ class Permission(models.Model):
     
     # النموذج المرتبط بالصلاحية
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE,
-                                   null=True, blank=True,
+                                   null=True, blank=True, related_name='custom_permissions',
                                    verbose_name="نوع المحتوى")
     
     # الأولوية والتدرج

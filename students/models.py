@@ -463,7 +463,7 @@ class UserActivity(models.Model):
         ('PRINT', 'طباعة'),
     ]
     
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activities',
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='student_activities',
                            verbose_name="المستخدم")
     action = models.CharField(max_length=10, choices=ACTION_CHOICES, verbose_name="الإجراء")
     description = models.CharField(max_length=255, verbose_name="الوصف")

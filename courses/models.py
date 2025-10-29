@@ -233,6 +233,88 @@ class Major(models.Model):
         return f"{self.name_ar} ({self.get_degree_type_display()}) - {self.department.name_ar}"
 
 
+class Classroom(models.Model):
+    """نموذج القاعة الدراسية"""
+    
+    CLASSROOM_TYPES = [
+        ('LECTURE', 'قاعة محاضرات'),
+        ('LAB', 'مختبر'),
+        ('COMPUTER_LAB', 'مختبر حاسوب'),
+        ('SEMINAR', 'قاعة ندوات'),
+        ('AUDITORIUM', 'مدرج'),
+        ('WORKSHOP', 'ورشة'),
+        ('STUDIO', 'استوديو'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات القاعة
+    name = models.CharField(max_length=100, verbose_name="اسم القاعة")
+    code = models.CharField(max_length=20, unique=True, verbose_name="رمز القاعة")
+    classroom_type = models.CharField(max_length=15, choices=CLASSROOM_TYPES,
+                                    verbose_name="نوع القاعة")
+    
+    # الموقع
+    building = models.CharField(max_length=100, verbose_name="المبنى")
+    floor = models.CharField(max_length=50, verbose_name="الطابق")
+    room_number = models.CharField(max_length=20, verbose_name="رقم الغرفة")
+    
+    # السعة والمواصفات
+    capacity = models.IntegerField(validators=[MinValueValidator(1)], verbose_name="السعة")
+    area_sqm = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True,
+                                 verbose_name="المساحة (متر مربع)")
+    
+    # التجهيزات
+    has_projector = models.BooleanField(default=False, verbose_name="يحتوي على بروجيكتر")
+    has_computer = models.BooleanField(default=False, verbose_name="يحتوي على حاسوب")
+    has_whiteboard = models.BooleanField(default=True, verbose_name="يحتوي على لوح أبيض")
+    has_blackboard = models.BooleanField(default=False, verbose_name="يحتوي على لوح أسود")
+    has_ac = models.BooleanField(default=True, verbose_name="يحتوي على تكييف")
+    has_wifi = models.BooleanField(default=True, verbose_name="يحتوي على واي فاي")
+    
+    # الحالة
+    is_active = models.BooleanField(default=True, verbose_name="نشطة")
+    is_available = models.BooleanField(default=True, verbose_name="متاحة")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "قاعة دراسية"
+        verbose_name_plural = "القاعات الدراسية"
+        ordering = ['building', 'floor', 'room_number']
+        unique_together = ['building', 'floor', 'room_number']
+        indexes = [
+            models.Index(fields=['classroom_type', 'is_active']),
+            models.Index(fields=['building', 'floor']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} ({self.building} - {self.room_number})"
+    
+    @property
+    def full_location(self):
+        return f"{self.building} - الطابق {self.floor} - غرفة {self.room_number}"
+    
+    @property
+    def equipment_list(self):
+        equipment = []
+        if self.has_projector:
+            equipment.append('بروجيكتر')
+        if self.has_computer:
+            equipment.append('حاسوب')
+        if self.has_whiteboard:
+            equipment.append('لوح أبيض')
+        if self.has_blackboard:
+            equipment.append('لوح أسود')
+        if self.has_ac:
+            equipment.append('تكييف')
+        if self.has_wifi:
+            equipment.append('واي فاي')
+        return equipment
+
+
 class Course(models.Model):
     """نموذج المقرر الدراسي"""
     
@@ -300,7 +382,7 @@ class Course(models.Model):
     
     # المتطلبات
     prerequisites = models.ManyToManyField('self', symmetrical=False, blank=True,
-                                         related_name='prerequisite_for',
+                                         related_name='course_prerequisite_for',
                                          verbose_name="المتطلبات السابقة")
     corequisites = models.ManyToManyField('self', symmetrical=False, blank=True,
                                         related_name='corequisite_for',

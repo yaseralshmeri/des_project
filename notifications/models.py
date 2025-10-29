@@ -11,6 +11,47 @@ import json
 
 User = get_user_model()
 
+
+class NotificationType(models.Model):
+    """أنواع الإشعارات"""
+    
+    DELIVERY_METHODS = [
+        ('EMAIL', 'بريد إلكتروني'),
+        ('SMS', 'رسالة نصية'),
+        ('PUSH', 'إشعار فوري'),
+        ('IN_APP', 'داخل التطبيق'),
+        ('DASHBOARD', 'لوحة التحكم'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name_ar = models.CharField(max_length=100, verbose_name="الاسم - عربي")
+    name_en = models.CharField(max_length=100, verbose_name="الاسم - إنجليزي")
+    code = models.CharField(max_length=50, unique=True, verbose_name="الرمز")
+    description = models.TextField(blank=True, verbose_name="الوصف")
+    
+    # طرق التوصيل
+    delivery_methods = models.JSONField(default=list, verbose_name="طرق التوصيل")
+    
+    # قالب الرسالة
+    default_title_template = models.CharField(max_length=255, blank=True, verbose_name="قالب العنوان")
+    default_message_template = models.TextField(blank=True, verbose_name="قالب الرسالة")
+    
+    # الحالة
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    requires_user_consent = models.BooleanField(default=False, verbose_name="يتطلب موافقة المستخدم")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "نوع إشعار"
+        verbose_name_plural = "أنواع الإشعارات"
+        ordering = ['name_ar']
+    
+    def __str__(self):
+        return self.name_ar
+
 # إضافة النموذج المطلوب - Notification مع اسم آخر للتوافق
 class Notification(models.Model):
     """نموذج الإشعارات الأساسي للتوافق"""

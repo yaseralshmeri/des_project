@@ -206,7 +206,7 @@ class ScholarshipApplicationViewSet(viewsets.ModelViewSet):
         'student__user',  # Join with User
         'scholarship',  # Join with Scholarship
         'reviewer'  # Join with reviewer User
-    ).order_by('-application_date')
+    ).order_by('-submitted_date')
     
     def get_queryset(self):
         """FIX: Performance - Add select_related to avoid N+1 queries"""

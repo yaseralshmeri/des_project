@@ -216,7 +216,7 @@ class AcademicProgram(models.Model):
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=20, unique=True)
     degree_type = models.CharField(max_length=15, choices=DEGREE_TYPES)
-    department = models.ForeignKey('students.Department', on_delete=models.CASCADE, related_name='programs')
+    department = models.ForeignKey('courses.Department', on_delete=models.CASCADE, related_name='academic_programs')
     required_credits = models.IntegerField(validators=[MinValueValidator(1)])
     duration_semesters = models.IntegerField(validators=[MinValueValidator(1)])
     description = models.TextField(blank=True)
@@ -235,8 +235,8 @@ class AcademicProgram(models.Model):
 
 class Prerequisite(models.Model):
     """Course prerequisites"""
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='prerequisites')
-    prerequisite_course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='prerequisite_for')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='academic_prerequisites')
+    prerequisite_course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='academic_prerequisite_for')
     min_grade = models.DecimalField(max_digits=5, decimal_places=2, default=60.0,
                                    validators=[MinValueValidator(0), MaxValueValidator(100)])
     
