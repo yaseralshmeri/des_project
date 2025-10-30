@@ -981,5 +981,339 @@ class UserBehaviorProfile(models.Model):
         return f"ملف سلوك - {self.user.get_full_name() if hasattr(self.user, 'get_full_name') else self.user.username}"
 
 
-# إضافة نموذج تقييم الثغرات
+class SecurityAuditLog(models.Model):
+    """سجل مراجعة الأمان"""
+    
+    ACTION_TYPES = [
+        ('LOGIN', 'تسجيل دخول'),
+        ('LOGOUT', 'تسجيل خروج'),
+        ('PASSWORD_CHANGE', 'تغيير كلمة مرور'),
+        ('PROFILE_UPDATE', 'تحديث الملف الشخصي'),
+        ('DATA_ACCESS', 'الوصول للبيانات'),
+        ('DATA_EXPORT', 'تصدير بيانات'),
+        ('DATA_DELETE', 'حذف بيانات'),
+        ('PERMISSION_CHANGE', 'تغيير صلاحية'),
+        ('SYSTEM_CONFIG', 'تكوين النظام'),
+        ('FILE_UPLOAD', 'رفع ملف'),
+        ('FILE_DOWNLOAD', 'تحميل ملف'),
+        ('API_ACCESS', 'الوصول لواجهة برمجية'),
+        ('SUSPICIOUS_ACTIVITY', 'نشاط مشبوه'),
+    ]
+    
+    RESULT_TYPES = [
+        ('SUCCESS', 'نجح'),
+        ('FAILED', 'فشل'),
+        ('BLOCKED', 'مُحظور'),
+        ('WARNING', 'تحذير'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات المستخدم والعملية
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                           related_name='audit_logs', verbose_name="المستخدم")
+    session_id = models.CharField(max_length=100, blank=True, verbose_name="معرف الجلسة")
+    
+    # نوع العملية والنتيجة
+    action_type = models.CharField(max_length=20, choices=ACTION_TYPES,
+                                 verbose_name="نوع العملية")
+    action_description = models.TextField(verbose_name="وصف العملية")
+    result = models.CharField(max_length=10, choices=RESULT_TYPES,
+                            verbose_name="نتيجة العملية")
+    
+    # معلومات الوصول
+    ip_address = models.GenericIPAddressField(verbose_name="عنوان IP")
+    user_agent = models.TextField(blank=True, verbose_name="متصفح المستخدم")
+    geolocation = models.JSONField(default=dict, verbose_name="الموقع الجغرافي")
+    
+    # تفاصيل إضافية
+    resource_accessed = models.CharField(max_length=200, blank=True,
+                                       verbose_name="المورد المُستخدَم")
+    additional_data = models.JSONField(default=dict, verbose_name="بيانات إضافية")
+    
+    # مستوى المخاطر
+    risk_score = models.IntegerField(default=0,
+                                   validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                   verbose_name="نقاط المخاطر")
+    
+    # معلومات تقنية
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="الوقت")
+    
+    class Meta:
+        verbose_name = "سجل مراجعة أمني"
+        verbose_name_plural = "سجلات المراجعة الأمنية"
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['user', 'timestamp']),
+            models.Index(fields=['action_type', 'result']),
+            models.Index(fields=['ip_address']),
+            models.Index(fields=['risk_score']),
+            models.Index(fields=['timestamp']),
+        ]
+    
+    def __str__(self):
+        username = self.user.username if self.user else "غير معروف"
+        return f"{username} - {self.get_action_type_display()} - {self.timestamp}"
+    
+    @property
+    def is_high_risk(self):
+        """هل العملية عالية المخاطر"""
+        return self.risk_score >= 70
+    
+    @property
+    def is_suspicious(self):
+        """هل العملية مشبوهة"""
+        return (self.action_type == 'SUSPICIOUS_ACTIVITY' or 
+                self.result in ['FAILED', 'BLOCKED'] or
+                self.risk_score >= 80)
+
+
+class VulnerabilityAssessment(models.Model):
+    """تقييم الثغرات الأمنية"""
+    
+    VULNERABILITY_TYPES = [
+        ('CRITICAL', 'حرج'),
+        ('HIGH', 'عالي'),
+        ('MEDIUM', 'متوسط'),
+        ('LOW', 'منخفض'),
+        ('INFO', 'معلوماتي'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('OPEN', 'مفتوح'),
+        ('IN_PROGRESS', 'قيد المعالجة'),
+        ('RESOLVED', 'مُحلول'),
+        ('ACCEPTED', 'مقبول'),
+        ('FALSE_POSITIVE', 'إنذار كاذب'),
+    ]
+    
+    ASSESSMENT_METHODS = [
+        ('AUTOMATED_SCAN', 'فحص آلي'), 
+        ('MANUAL_TESTING', 'اختبار يدوي'),
+        ('PENETRATION_TEST', 'اختبار اختراق'),
+        ('CODE_REVIEW', 'مراجعة كود'),
+        ('CONFIGURATION_AUDIT', 'مراجعة تكوين'),
+        ('THIRD_PARTY_REPORT', 'تقرير طرف ثالث'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات الثغرة الأساسية
+    vulnerability_id = models.CharField(max_length=50, unique=True,
+                                      verbose_name="معرف الثغرة")
+    title = models.CharField(max_length=200, verbose_name="عنوان الثغرة")
+    description = models.TextField(verbose_name="وصف الثغرة")
+    
+    # تصنيف الثغرة
+    vulnerability_type = models.CharField(max_length=10, choices=VULNERABILITY_TYPES,
+                                        verbose_name="نوع الثغرة")
+    cvss_score = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True,
+                                   validators=[MinValueValidator(0), MaxValueValidator(10)],
+                                   verbose_name="نقاط CVSS")
+    cve_id = models.CharField(max_length=50, blank=True, verbose_name="معرف CVE")
+    
+    # النظام المتأثر
+    affected_system = models.CharField(max_length=200, verbose_name="النظام المتأثر")
+    affected_component = models.CharField(max_length=200, blank=True,
+                                        verbose_name="المكون المتأثر")
+    affected_versions = models.JSONField(default=list, verbose_name="الإصدارات المتأثرة")
+    
+    # طريقة الاكتشاف
+    assessment_method = models.CharField(max_length=25, choices=ASSESSMENT_METHODS,
+                                       verbose_name="طريقة التقييم")
+    discovered_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='discovered_vulnerabilities',
+                                    verbose_name="اكتُشِف بواسطة")
+    discovery_date = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الاكتشاف")
+    
+    # التأثير والمخاطر
+    impact_assessment = models.TextField(verbose_name="تقييم التأثير")
+    exploitability = models.CharField(max_length=20, 
+                                    choices=[
+                                        ('NONE', 'لا يمكن استغلالها'),
+                                        ('DIFFICULT', 'صعب الاستغلال'),
+                                        ('MODERATE', 'متوسط الاستغلال'),
+                                        ('EASY', 'سهل الاستغلال'),
+                                    ], default='MODERATE', verbose_name="قابلية الاستغلال")
+    
+    # الحالة والمعالجة
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='OPEN',
+                            verbose_name="حالة الثغرة")
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='assigned_vulnerabilities',
+                                  verbose_name="مُعيّن إلى")
+    
+    # الحلول والتوصيات
+    remediation_steps = models.TextField(blank=True, verbose_name="خطوات المعالجة")
+    workaround = models.TextField(blank=True, verbose_name="الحل المؤقت")
+    vendor_patch_available = models.BooleanField(default=False,
+                                                verbose_name="يتوفر تصحيح من المورد")
+    patch_details = models.JSONField(default=dict, verbose_name="تفاصيل التصحيح")
+    
+    # التوقيت
+    due_date = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الاستحقاق")
+    resolved_date = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الحل")
+    
+    # المراجع والمصادر
+    references = models.JSONField(default=list, verbose_name="المراجع")
+    external_links = models.JSONField(default=list, verbose_name="الروابط الخارجية")
+    
+    # ملاحظات إضافية
+    notes = models.TextField(blank=True, verbose_name="ملاحظات")
+    false_positive_reason = models.TextField(blank=True,
+                                           verbose_name="سبب الإنذار الكاذب")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "تقييم ثغرة أمنية"
+        verbose_name_plural = "تقييمات الثغرات الأمنية"
+        ordering = ['-vulnerability_type', '-discovery_date']
+        indexes = [
+            models.Index(fields=['vulnerability_type', 'status']),
+            models.Index(fields=['affected_system']),
+            models.Index(fields=['assigned_to']),
+            models.Index(fields=['due_date']),
+            models.Index(fields=['cvss_score']),
+        ]
+    
+    def __str__(self):
+        return f"{self.vulnerability_id} - {self.title}"
+    
+    def save(self, *args, **kwargs):
+        if not self.vulnerability_id:
+            self.vulnerability_id = self.generate_vulnerability_id()
+        super().save(*args, **kwargs)
+    
+    def generate_vulnerability_id(self):
+        """توليد معرف ثغرة فريد"""
+        timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+        vuln_code = self.vulnerability_type[:3].upper()
+        return f"VUL-{vuln_code}-{timestamp}"
+    
+    @property
+    def is_critical(self):
+        """هل الثغرة حرجة"""
+        return self.vulnerability_type == 'CRITICAL'
+    
+    @property
+    def is_overdue(self):
+        """هل الثغرة متأخرة عن موعد الإصلاح"""
+        if self.due_date and self.status not in ['RESOLVED', 'ACCEPTED']:
+            return timezone.now() > self.due_date
+        return False
+    
+    @property
+    def days_open(self):
+        """عدد الأيام مفتوحة"""
+        if self.resolved_date:
+            return (self.resolved_date - self.discovery_date).days
+        return (timezone.now() - self.discovery_date).days
+
+
+class SecurityConfiguration(models.Model):
+    """إعدادات الأمان"""
+    
+    CONFIG_TYPES = [
+        ('FIREWALL', 'جدار الحماية'),
+        ('ACCESS_CONTROL', 'التحكم في الوصول'),
+        ('ENCRYPTION', 'التشفير'),
+        ('AUTHENTICATION', 'المصادقة'),
+        ('LOGGING', 'التسجيل'),
+        ('MONITORING', 'المراقبة'),
+        ('BACKUP', 'النسخ الاحتياطي'),
+        ('NETWORK', 'الشبكة'),
+        ('APPLICATION', 'التطبيق'),
+        ('DATABASE', 'قاعدة البيانات'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات التكوين الأساسية
+    config_name = models.CharField(max_length=200, verbose_name="اسم التكوين")
+    config_type = models.CharField(max_length=20, choices=CONFIG_TYPES,
+                                 verbose_name="نوع التكوين")
+    description = models.TextField(verbose_name="وصف التكوين")
+    
+    # التكوين والقيم
+    configuration_data = models.JSONField(default=dict, verbose_name="بيانات التكوين")
+    default_values = models.JSONField(default=dict, verbose_name="القيم الافتراضية")
+    current_values = models.JSONField(default=dict, verbose_name="القيم الحالية")
+    
+    # الامتثال والمعايير
+    compliance_standards = models.JSONField(default=list, verbose_name="معايير الامتثال")
+    is_compliant = models.BooleanField(default=True, verbose_name="متوافق")
+    compliance_notes = models.TextField(blank=True, verbose_name="ملاحظات الامتثال")
+    
+    # الحالة والتفعيل
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    is_mandatory = models.BooleanField(default=False, verbose_name="إجباري")
+    
+    # المسؤولية والمراجعة
+    owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                            related_name='owned_security_configs',
+                            verbose_name="المسؤول")
+    last_reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                       related_name='reviewed_security_configs',
+                                       verbose_name="آخر مراجع")
+    last_reviewed_date = models.DateTimeField(null=True, blank=True,
+                                            verbose_name="تاريخ آخر مراجعة")
+    review_frequency = models.CharField(max_length=20, default='MONTHLY',
+                                      choices=[
+                                          ('WEEKLY', 'أسبوعي'),
+                                          ('MONTHLY', 'شهري'),
+                                          ('QUARTERLY', 'ربع سنوي'),
+                                          ('ANNUALLY', 'سنوي'),
+                                      ], verbose_name="تكرار المراجعة")
+    
+    # التغييرات والتاريخ
+    change_history = models.JSONField(default=list, verbose_name="تاريخ التغييرات")
+    last_changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                      related_name='changed_security_configs',
+                                      verbose_name="آخر من غيّر")
+    last_changed_date = models.DateTimeField(null=True, blank=True,
+                                           verbose_name="تاريخ آخر تغيير")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "إعداد أمني"
+        verbose_name_plural = "الإعدادات الأمنية"
+        ordering = ['config_type', 'config_name']
+        indexes = [
+            models.Index(fields=['config_type', 'is_active']),
+            models.Index(fields=['is_compliant']),
+            models.Index(fields=['owner']),
+            models.Index(fields=['last_reviewed_date']),
+        ]
+    
+    def __str__(self):
+        return f"{self.config_name} ({self.get_config_type_display()})"
+    
+    @property
+    def needs_review(self):
+        """يحتاج مراجعة"""
+        if not self.last_reviewed_date:
+            return True
+        
+        frequency_days = {
+            'WEEKLY': 7,
+            'MONTHLY': 30,
+            'QUARTERLY': 90,
+            'ANNUALLY': 365,
+        }
+        
+        days_since_review = (timezone.now() - self.last_reviewed_date).days
+        required_days = frequency_days.get(self.review_frequency, 30)
+        
+        return days_since_review >= required_days
+    
+    @property
+    def is_out_of_compliance(self):
+        """خارج الامتثال"""
+        return not self.is_compliant or self.needs_review
 

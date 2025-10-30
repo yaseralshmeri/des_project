@@ -929,3 +929,228 @@ class ChatMessage(models.Model):
         return f"{self.user.get_full_name() if hasattr(self.user, 'get_full_name') else self.user.username} - {self.chatbot.name}"
 
 
+class SmartRecommendation(models.Model):
+    """التوصيات الذكية المتقدمة"""
+    
+    RECOMMENDATION_TYPES = [
+        ('COURSE_SELECTION', 'اختيار مقرر'),
+        ('STUDY_PATH', 'مسار دراسي'),
+        ('CAREER_GUIDANCE', 'توجيه مهني'),
+        ('ACADEMIC_SUPPORT', 'دعم أكاديمي'),
+        ('SKILL_DEVELOPMENT', 'تطوير مهارات'),
+        ('TIME_MANAGEMENT', 'إدارة وقت'),
+        ('RESOURCE_ALLOCATION', 'تخصيص موارد'),
+    ]
+    
+    PRIORITY_LEVELS = [
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'في الانتظار'),
+        ('ACCEPTED', 'مقبول'),
+        ('REJECTED', 'مرفوض'),
+        ('IMPLEMENTED', 'مُنفذ'),
+        ('EXPIRED', 'منتهي الصلاحية'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # المستخدم المستهدف
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                           related_name='smart_recommendations', verbose_name="المستخدم")
+    
+    # نوع التوصية والمحتوى
+    recommendation_type = models.CharField(max_length=20, choices=RECOMMENDATION_TYPES,
+                                         verbose_name="نوع التوصية")
+    title = models.CharField(max_length=200, verbose_name="عنوان التوصية")
+    description = models.TextField(verbose_name="وصف التوصية")
+    detailed_explanation = models.TextField(blank=True, verbose_name="الشرح المفصل")
+    
+    # تفاصيل التوصية
+    recommendation_data = models.JSONField(default=dict, verbose_name="بيانات التوصية")
+    supporting_evidence = models.JSONField(default=list, verbose_name="الأدلة الداعمة")
+    expected_outcomes = models.JSONField(default=list, verbose_name="النتائج المتوقعة")
+    
+    # مقاييس الثقة والأولوية
+    confidence_score = models.DecimalField(max_digits=5, decimal_places=4,
+                                         validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                         verbose_name="مستوى الثقة")
+    priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='MEDIUM',
+                              verbose_name="الأولوية")
+    
+    # الحالة والتتبع
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING',
+                            verbose_name="الحالة")
+    
+    # النموذج المُولد للتوصية
+    ai_model = models.ForeignKey(AIModel, on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name='smart_recommendations', verbose_name="النموذج المستخدم")
+    
+    # التواريخ المهمة
+    valid_from = models.DateTimeField(auto_now_add=True, verbose_name="صالح من")
+    valid_until = models.DateTimeField(null=True, blank=True, verbose_name="صالح حتى")
+    implemented_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ التنفيذ")
+    
+    # ردود الأفعال والتقييم
+    user_feedback = models.TextField(blank=True, verbose_name="تعليق المستخدم")
+    feedback_rating = models.IntegerField(null=True, blank=True,
+                                        validators=[MinValueValidator(1), MaxValueValidator(5)],
+                                        verbose_name="تقييم التوصية")
+    effectiveness_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
+                                            validators=[MinValueValidator(0), MaxValueValidator(100)],
+                                            verbose_name="نقاط الفعالية")
+    
+    # خطوات العمل
+    action_steps = models.JSONField(default=list, verbose_name="خطوات العمل")
+    required_resources = models.JSONField(default=list, verbose_name="الموارد المطلوبة")
+    estimated_completion_time = models.CharField(max_length=50, blank=True,
+                                               verbose_name="الوقت المتوقع للإنجاز")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='created_smart_recommendations',
+                                 verbose_name="أُنشأ بواسطة")
+    
+    class Meta:
+        verbose_name = "توصية ذكية"
+        verbose_name_plural = "التوصيات الذكية"
+        ordering = ['-priority', '-created_at']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['recommendation_type', 'priority']),
+            models.Index(fields=['valid_until']),
+            models.Index(fields=['confidence_score']),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} - {self.user.get_full_name() if hasattr(self.user, 'get_full_name') else self.user.username}"
+    
+    @property
+    def is_valid(self):
+        """هل التوصية سارية المفعول"""
+        if self.valid_until:
+            return timezone.now() <= self.valid_until
+        return True
+    
+    @property
+    def is_high_confidence(self):
+        """توصية عالية الثقة"""
+        return float(self.confidence_score) >= 0.8
+    
+    @property
+    def priority_score(self):
+        """نقاط الأولوية الرقمية"""
+        priority_scores = {
+            'LOW': 1,
+            'MEDIUM': 2,
+            'HIGH': 3,
+            'CRITICAL': 4,
+        }
+        return priority_scores.get(self.priority, 2)
+
+
+class AISecurityAlert(models.Model):
+    """تنبيهات الأمان الذكية"""
+    
+    ALERT_TYPES = [
+        ('SUSPICIOUS_LOGIN', 'تسجيل دخول مشبوه'),
+        ('UNUSUAL_BEHAVIOR', 'سلوك غير طبيعي'),
+        ('DATA_BREACH_RISK', 'خطر تسريب بيانات'),
+        ('SYSTEM_VULNERABILITY', 'ثغرة في النظام'),
+        ('MALICIOUS_ACTIVITY', 'نشاط خبيث'),
+        ('POLICY_VIOLATION', 'انتهاك سياسة'),
+        ('PERFORMANCE_ANOMALY', 'شذوذ في الأداء'),
+    ]
+    
+    SEVERITY_LEVELS = [
+        ('INFO', 'معلوماتي'),
+        ('LOW', 'منخفض'),
+        ('MEDIUM', 'متوسط'),
+        ('HIGH', 'عالي'),
+        ('CRITICAL', 'حرج'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('ACTIVE', 'نشط'),
+        ('ACKNOWLEDGED', 'مُؤكد'),
+        ('INVESTIGATING', 'قيد التحقيق'),
+        ('RESOLVED', 'محلول'),
+        ('FALSE_POSITIVE', 'إنذار كاذب'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات التنبيه
+    alert_type = models.CharField(max_length=25, choices=ALERT_TYPES, verbose_name="نوع التنبيه")
+    title = models.CharField(max_length=200, verbose_name="عنوان التنبيه")
+    description = models.TextField(verbose_name="وصف التنبيه")
+    
+    # المستخدم والنظام المتأثر
+    affected_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='security_alerts_affected',
+                                    verbose_name="المستخدم المتأثر")
+    system_component = models.CharField(max_length=100, blank=True, verbose_name="مكون النظام")
+    
+    # مستوى الخطورة والحالة
+    severity = models.CharField(max_length=10, choices=SEVERITY_LEVELS, default='MEDIUM',
+                              verbose_name="مستوى الخطورة")
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='ACTIVE',
+                            verbose_name="حالة التنبيه")
+    
+    # البيانات التحليلية
+    detection_data = models.JSONField(default=dict, verbose_name="بيانات الاكتشاف")
+    risk_indicators = models.JSONField(default=list, verbose_name="مؤشرات المخاطر")
+    confidence_level = models.DecimalField(max_digits=5, decimal_places=4,
+                                         validators=[MinValueValidator(0), MaxValueValidator(1)],
+                                         verbose_name="مستوى الثقة")
+    
+    # النموذج المُكتشف
+    ai_model = models.ForeignKey(AIModel, on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name='security_alerts', verbose_name="النموذج المستخدم")
+    
+    # الإجراءات الموصى بها
+    recommended_actions = models.JSONField(default=list, verbose_name="الإجراءات الموصى بها")
+    automated_response = models.JSONField(default=dict, verbose_name="الاستجابة التلقائية")
+    
+    # معلومات المعالجة
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='assigned_security_alerts',
+                                  verbose_name="مُعيّن إلى")
+    resolution_notes = models.TextField(blank=True, verbose_name="ملاحظات الحل")
+    resolved_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الحل")
+    
+    # معلومات تقنية
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ التحديث")
+    
+    class Meta:
+        verbose_name = "تنبيه أمني ذكي"
+        verbose_name_plural = "التنبيهات الأمنية الذكية"
+        ordering = ['-severity', '-created_at']
+        indexes = [
+            models.Index(fields=['alert_type', 'severity']),
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['affected_user']),
+            models.Index(fields=['confidence_level']),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} - {self.get_severity_display()}"
+    
+    @property  
+    def is_critical(self):
+        """هل التنبيه حرج"""
+        return self.severity in ['HIGH', 'CRITICAL']
+    
+    @property
+    def needs_immediate_attention(self):
+        """يحتاج انتباه فوري"""
+        return self.severity == 'CRITICAL' and self.status == 'ACTIVE'
+
+

@@ -21,8 +21,9 @@ djangorestframework==3.14.0
 # JWT Authentication
 djangorestframework-simplejwt==5.3.0
 
-# Fix pkg_resources warnings
-setuptools-scm==8.0.4
+# Fix pkg_resources warnings - محسن
+setuptools-scm>=8.0.4
+importlib-metadata>=6.0.0
 
 # Security Enhancements
 django-ratelimit==4.1.0

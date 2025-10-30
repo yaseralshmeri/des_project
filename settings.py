@@ -367,27 +367,61 @@ else:
     DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@university.edu')
 
 # =============================================================================
-# DEVELOPMENT SETTINGS
+# DEVELOPMENT SETTINGS - محسنة
 # =============================================================================
 
 if DEBUG:
+    # Debug toolbar إضافي
     try:
         import debug_toolbar
         INSTALLED_APPS.append('debug_toolbar')
         MIDDLEWARE.insert(-1, 'debug_toolbar.middleware.DebugToolbarMiddleware')
-        INTERNAL_IPS = ['127.0.0.1', '::1']
+        INTERNAL_IPS = ['127.0.0.1', '::1', '0.0.0.0']
+        
+        # إعدادات Debug Toolbar
+        DEBUG_TOOLBAR_CONFIG = {
+            'SHOW_TOOLBAR_CALLBACK': lambda request: DEBUG,
+            'SHOW_COLLAPSED': True,
+        }
     except ImportError:
         pass
+    
+    # إعدادات إضافية للتطوير
+    LOGGING['handlers']['console']['level'] = 'DEBUG'
+    LOGGING['loggers']['django']['level'] = 'DEBUG'
 
 # =============================================================================
-# CUSTOM SETTINGS
+# CUSTOM SETTINGS - محسنة
 # =============================================================================
 
-UNIVERSITY_NAME = 'جامعة المستقبل'
-UNIVERSITY_NAME_EN = 'Future University'
-UNIVERSITY_CODE = 'FU'
-CURRENT_ACADEMIC_YEAR = '2024-2025'
-CURRENT_SEMESTER = '1'
+UNIVERSITY_NAME = config('UNIVERSITY_NAME', default='جامعة المستقبل')
+UNIVERSITY_NAME_EN = config('UNIVERSITY_NAME_EN', default='Future University')
+UNIVERSITY_CODE = config('UNIVERSITY_CODE', default='FU')
+CURRENT_ACADEMIC_YEAR = config('CURRENT_ACADEMIC_YEAR', default='2024-2025')
+CURRENT_SEMESTER = config('CURRENT_SEMESTER', default='1')
+
+# إعدادات الأداء
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+DATA_UPLOAD_MAX_NUMBER_FILES = 20
+
+# إعدادات اللغة المحسنة
+USE_THOUSAND_SEPARATOR = True
+NUMBER_GROUPING = 3
+THOUSAND_SEPARATOR = ','
+DECIMAL_SEPARATOR = '.'
+
+# إعدادات الجلسة المحسنة
+SESSION_COOKIE_NAME = 'university_sessionid'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_HTTPONLY = True
+
+# إعدادات النشر المحسنة
+if not DEBUG:
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+    ADMINS = [('Admin', config('ADMIN_EMAIL', default='admin@university.edu'))]
 
 # =============================================================================
 # CUSTOM CONTEXT PROCESSORS
