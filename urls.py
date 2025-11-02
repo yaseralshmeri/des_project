@@ -88,6 +88,7 @@ urlpatterns = [
     
     # System Management
     path('management/', include('management.urls')),
+    path('monitoring/', include('monitoring.urls')),  # نظام المراقبة
     
     # API Endpoints (v1 - with namespace)
     path('api/v1/', include([

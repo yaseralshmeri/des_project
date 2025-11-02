@@ -20,13 +20,31 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-minimal-2024')
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=Csv())
 
-# Security Headers - محسنة
+# Security Headers - محسنة ومطورة
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True if not DEBUG else False
 SECURE_HSTS_PRELOAD = True if not DEBUG else False
+
+# Advanced Security Settings
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+
+# Content Security Policy (CSP)
+CSP_DEFAULT_SRC = ["'self'"]
+CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://code.jquery.com"]
+CSP_STYLE_SRC = ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"]
+CSP_FONT_SRC = ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"]
+CSP_IMG_SRC = ["'self'", "data:", "https:"]
+CSP_CONNECT_SRC = ["'self'"]
+
+# Rate Limiting
+RATE_LIMIT_ENABLE = True
+RATE_LIMIT_PER_MINUTE = 60
+RATE_LIMIT_PER_HOUR = 1000
+RATE_LIMIT_PER_DAY = 10000
 
 # HTTPS Settings for Production
 if not DEBUG:
@@ -60,7 +78,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'students',
-    'courses',
+    'courses', 
     'academic',
     'finance',
     'hr',
@@ -75,6 +93,7 @@ LOCAL_APPS = [
     'web',
     'mobile_app',
     'management',
+    'monitoring',  # نظام المراقبة المتطور
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -90,9 +109,11 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware', 
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'monitoring.performance_monitor.PerformanceMiddleware',  # مراقبة الأداء
+    'monitoring.error_handler.GlobalExceptionMiddleware',  # معالجة الأخطاء
 ]
 
 # =============================================================================
@@ -132,7 +153,7 @@ TEMPLATES = [
 # WSGI/ASGI CONFIGURATION
 # =============================================================================
 
-WSGI_APPLICATION = 'university_system.wsgi.application'
+WSGI_APPLICATION = 'university_system.wsgi.application'  # يعمل بشكل صحيح
 
 # =============================================================================
 # DATABASE CONFIGURATION
@@ -144,6 +165,19 @@ DATABASES = {
         conn_max_age=600,
     )
 }
+
+# Database optimization settings
+if DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
+    DATABASES['default']['OPTIONS'] = {
+        'timeout': 30,
+        'init_command': [
+            'PRAGMA journal_mode=WAL;',
+            'PRAGMA synchronous=NORMAL;', 
+            'PRAGMA cache_size=10000;',
+            'PRAGMA temp_store=MEMORY;',
+            'PRAGMA mmap_size=268435456;',  # 256MB
+        ]
+    }
 
 # =============================================================================
 # AUTHENTICATION CONFIGURATION
@@ -272,18 +306,46 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG
 # =============================================================================
 
 # =============================================================================
-# CACHE CONFIGURATION - محسنة
+# CACHE CONFIGURATION - محسنة ومطورة
 # =============================================================================
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache' if DEBUG else 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://127.0.0.1:6379/1') if not DEBUG else '',
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 5 minutes
         'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        } if not DEBUG else {},
+            'MAX_ENTRIES': 1000,
+            'CULL_FREQUENCY': 3,
+        }
+    },
+    'session_cache': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'session-cache',
+        'TIMEOUT': 3600,  # 1 hour
+    },
+    'api_cache': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'api-cache', 
+        'TIMEOUT': 600,  # 10 minutes
     }
 }
+
+# Cache configuration based on environment
+if not DEBUG:
+    CACHES['default'] = {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': config('REDIS_URL', default='redis://127.0.0.1:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 50,
+                'retry_on_timeout': True,
+            }
+        },
+        'KEY_PREFIX': 'university',
+        'TIMEOUT': 300,
+    }
 
 # =============================================================================
 # SESSION CONFIGURATION
@@ -308,17 +370,80 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+        'json': {
+            'format': '%(asctime)s %(name)s %(levelname)s %(message)s',
+        },
+    },
     'handlers': {
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
+            'formatter': 'simple' if DEBUG else 'verbose',
+        },
+        'file_general': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'general.log',
+            'maxBytes': 10 * 1024 * 1024,  # 10MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'file_security': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler', 
+            'filename': BASE_DIR / 'logs' / 'security.log',
+            'maxBytes': 10 * 1024 * 1024,
+            'backupCount': 10,
+            'formatter': 'verbose',
+        },
+        'file_performance': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'performance.log', 
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 3,
+            'formatter': 'verbose',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
+            'handlers': ['console', 'file_general'],
+            'level': 'INFO' if DEBUG else 'WARNING',
+            'propagate': False,
         },
+        'django.security': {
+            'handlers': ['file_security', 'console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['file_performance'] if not DEBUG else ['console'],
+            'level': 'DEBUG' if DEBUG else 'WARNING',
+            'propagate': False,
+        },
+        'university': {
+            'handlers': ['console', 'file_general'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'security': {
+            'handlers': ['file_security', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+    'root': {
+        'level': 'INFO',
+        'handlers': ['console'],
     },
 }
 
