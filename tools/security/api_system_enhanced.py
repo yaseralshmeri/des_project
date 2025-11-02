@@ -185,4 +185,315 @@ class AuthenticationViewSet(viewsets.GenericViewSet):
                     'success': True,
                     'access_token': str(refresh.access_token),
                     'refresh_token': str(refresh),
-                    'user': {\n                        'id': user.id,\n                        'username': user.username,\n                        'email': user.email,\n                        'role': getattr(user, 'role', 'STUDENT'),\n                        'full_name': f\"{getattr(user, 'first_name_ar', '')} {getattr(user, 'last_name_ar', '')}\".strip()\n                    },\n                    'expires_in': 7200  # ساعتين\n                })\n            else:\n                return Response({\n                    'error': 'الحساب غير مفعل',\n                    'code': 'ACCOUNT_DISABLED'\n                }, status=status.HTTP_403_FORBIDDEN)\n        \n        # تسجيل محاولة فاشلة\n        log_login_attempt(None, False, client_ip, f'فشل تسجيل دخول لـ {username}')\n        \n        return Response({\n            'error': 'اسم المستخدم أو كلمة المرور غير صحيحة',\n            'code': 'INVALID_CREDENTIALS'\n        }, status=status.HTTP_401_UNAUTHORIZED)\n    \n    @action(detail=False, methods=['post'])\n    def verify_2fa(self, request):\n        \"\"\"التحقق من المصادقة الثنائية\"\"\"\n        temp_session_id = request.data.get('temp_session_id')\n        verification_code = request.data.get('code')\n        \n        if not temp_session_id or not verification_code:\n            return Response({\n                'error': 'رمز الجلسة المؤقت ورمز التحقق مطلوبان',\n                'code': 'MISSING_DATA'\n            }, status=status.HTTP_400_BAD_REQUEST)\n        \n        # الحصول على بيانات الجلسة المؤقتة\n        temp_data = cache.get(f\"temp_login_{temp_session_id}\")\n        if not temp_data:\n            return Response({\n                'error': 'انتهت صلاحية رمز التحقق',\n                'code': 'SESSION_EXPIRED'\n            }, status=status.HTTP_400_BAD_REQUEST)\n        \n        # الحصول على المستخدم\n        from django.contrib.auth import get_user_model\n        User = get_user_model()\n        \n        try:\n            user = User.objects.get(id=temp_data['user_id'])\n        except User.DoesNotExist:\n            return Response({\n                'error': 'مستخدم غير موجود',\n                'code': 'USER_NOT_FOUND'\n            }, status=status.HTTP_404_NOT_FOUND)\n        \n        # التحقق من الرمز\n        is_valid, message = two_factor_auth.verify_code(user, verification_code)\n        \n        if is_valid:\n            # تسجيل الدخول\n            login(request, user)\n            \n            # إنشاء JWT Token\n            from rest_framework_simplejwt.tokens import RefreshToken\n            refresh = RefreshToken.for_user(user)\n            \n            # حذف الجلسة المؤقتة\n            cache.delete(f\"temp_login_{temp_session_id}\")\n            \n            # تسجيل محاولة ناجحة\n            log_login_attempt(user, True, temp_data['ip_address'], 'تسجيل دخول ناجح مع مصادقة ثنائية')\n            \n            return Response({\n                'success': True,\n                'access_token': str(refresh.access_token),\n                'refresh_token': str(refresh),\n                'user': {\n                    'id': user.id,\n                    'username': user.username,\n                    'email': user.email,\n                    'role': getattr(user, 'role', 'STUDENT'),\n                    'full_name': f\"{getattr(user, 'first_name_ar', '')} {getattr(user, 'last_name_ar', '')}\".strip()\n                },\n                'expires_in': 7200\n            })\n        else:\n            return Response({\n                'error': message,\n                'code': 'INVALID_2FA_CODE'\n            }, status=status.HTTP_400_BAD_REQUEST)\n    \n    @action(detail=False, methods=['post'])\n    def logout(self, request):\n        \"\"\"تسجيل الخروج\"\"\"\n        try:\n            # تسجيل في النظام الأمني\n            security_audit.log_security_event(\n                event_type='logout',\n                user=request.user,\n                details='تسجيل خروج',\n                ip_address=self._get_client_ip(request)\n            )\n            \n            logout(request)\n            \n            return Response({\n                'success': True,\n                'message': 'تم تسجيل الخروج بنجاح'\n            })\n        except Exception as e:\n            logger.error(f\"Logout error: {e}\")\n            return Response({\n                'error': 'فشل في تسجيل الخروج',\n                'code': 'LOGOUT_FAILED'\n            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)\n    \n    @action(detail=False, methods=['post'])\n    def change_password(self, request):\n        \"\"\"تغيير كلمة المرور\"\"\"\n        if not request.user.is_authenticated:\n            return Response({\n                'error': 'يجب تسجيل الدخول أولاً',\n                'code': 'AUTHENTICATION_REQUIRED'\n            }, status=status.HTTP_401_UNAUTHORIZED)\n        \n        old_password = request.data.get('old_password')\n        new_password = request.data.get('new_password')\n        \n        if not old_password or not new_password:\n            return Response({\n                'error': 'كلمة المرور الحالية والجديدة مطلوبتان',\n                'code': 'MISSING_PASSWORDS'\n            }, status=status.HTTP_400_BAD_REQUEST)\n        \n        # التحقق من كلمة المرور الحالية\n        if not request.user.check_password(old_password):\n            return Response({\n                'error': 'كلمة المرور الحالية غير صحيحة',\n                'code': 'INVALID_OLD_PASSWORD'\n            }, status=status.HTTP_400_BAD_REQUEST)\n        \n        # فحص قوة كلمة المرور الجديدة\n        password_strength = security_manager.verify_password_strength(new_password)\n        \n        if not password_strength['is_strong']:\n            return Response({\n                'error': 'كلمة المرور ضعيفة',\n                'issues': password_strength['issues'],\n                'code': 'WEAK_PASSWORD'\n            }, status=status.HTTP_400_BAD_REQUEST)\n        \n        # تغيير كلمة المرور\n        request.user.set_password(new_password)\n        request.user.save()\n        \n        # تسجيل في النظام الأمني\n        security_audit.log_security_event(\n            event_type='password_changed',\n            user=request.user,\n            details='تم تغيير كلمة المرور',\n            ip_address=self._get_client_ip(request),\n            severity='medium'\n        )\n        \n        return Response({\n            'success': True,\n            'message': 'تم تغيير كلمة المرور بنجاح'\n        })\n    \n    def _get_client_ip(self, request):\n        \"\"\"الحصول على IP العميل\"\"\"\n        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')\n        if x_forwarded_for:\n            ip = x_forwarded_for.split(',')[0]\n        else:\n            ip = request.META.get('REMOTE_ADDR')\n        return ip\n\n\nclass SystemAPIViewSet(viewsets.GenericViewSet):\n    \"\"\"APIs النظام والمراقبة\"\"\"\n    \n    permission_classes = [permissions.IsAdminUser]\n    authentication_classes = [JWTAuthentication, TokenAuthentication]\n    \n    @action(detail=False, methods=['get'])\n    def system_status(self, request):\n        \"\"\"حالة النظام العامة\"\"\"\n        try:\n            # حالة النظام من المراقب\n            health_status = monitor.get_health_status()\n            \n            # إحصائيات قاعدة البيانات\n            db_stats = monitor.get_database_stats()\n            \n            # إحصائيات الأخطاء\n            error_stats = error_tracker.get_error_statistics(24)\n            \n            return Response({\n                'system_health': health_status,\n                'database': db_stats,\n                'errors': {\n                    'total_24h': error_stats.get('total_errors', 0),\n                    'error_types': error_stats.get('error_types', {})\n                },\n                'timestamp': timezone.now().isoformat()\n            })\n            \n        except Exception as e:\n            logger.error(f\"System status error: {e}\")\n            return Response({\n                'error': 'فشل في الحصول على حالة النظام',\n                'detail': str(e)\n            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)\n    \n    @action(detail=False, methods=['get'])\n    def performance_metrics(self, request):\n        \"\"\"مقاييس الأداء\"\"\"\n        hours = int(request.GET.get('hours', 1))\n        \n        try:\n            metrics = monitor.get_metrics_summary(hours)\n            return Response({\n                'metrics': metrics,\n                'period_hours': hours,\n                'timestamp': timezone.now().isoformat()\n            })\n            \n        except Exception as e:\n            logger.error(f\"Performance metrics error: {e}\")\n            return Response({\n                'error': 'فشل في الحصول على مقاييس الأداء',\n                'detail': str(e)\n            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)\n    \n    @action(detail=False, methods=['get'])\n    def security_events(self, request):\n        \"\"\"الأحداث الأمنية\"\"\"\n        hours = int(request.GET.get('hours', 24))\n        event_type = request.GET.get('type')\n        \n        try:\n            events = security_audit.get_recent_events(event_type, hours)\n            return Response({\n                'events': events,\n                'total': len(events),\n                'period_hours': hours,\n                'timestamp': timezone.now().isoformat()\n            })\n            \n        except Exception as e:\n            logger.error(f\"Security events error: {e}\")\n            return Response({\n                'error': 'فشل في الحصول على الأحداث الأمنية',\n                'detail': str(e)\n            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)\n\n\n@api_view(['GET'])\n@permission_classes([permissions.AllowAny])\ndef api_info(request):\n    \"\"\"معلومات API\"\"\"\n    return Response({\n        'name': 'University Management System API',\n        'version': '2.0.0',\n        'description': 'نظام إدارة الجامعة - واجهة برمجة التطبيقات المتطورة',\n        'features': [\n            'مصادقة آمنة مع JWT',\n            'مصادقة ثنائية',\n            'مراقبة الأداء',\n            'نظام تدقيق الأمان',\n            'حد معدل الطلبات',\n            'تشفير البيانات'\n        ],\n        'endpoints': {\n            'authentication': '/api/auth/',\n            'system': '/api/system/',\n            'students': '/api/students/',\n            'courses': '/api/courses/',\n            'academic': '/api/academic/',\n            'documentation': '/swagger/'\n        },\n        'timestamp': timezone.now().isoformat()\n    })\n\n\n@api_view(['GET'])\n@permission_classes([permissions.AllowAny])\n@method_decorator(cache_page(300))  # كاش لمدة 5 دقائق\ndef public_stats(request):\n    \"\"\"إحصائيات عامة للنظام\"\"\"\n    try:\n        from django.contrib.auth import get_user_model\n        User = get_user_model()\n        \n        # إحصائيات عامة (بدون تفاصيل حساسة)\n        stats = {\n            'total_users': User.objects.filter(is_active=True).count(),\n            'students_count': User.objects.filter(role='STUDENT', is_active=True).count(),\n            'teachers_count': User.objects.filter(role__in=['TEACHER', 'ASSISTANT_TEACHER'], is_active=True).count(),\n            'system_uptime_hours': monitor._get_uptime(),\n            'last_updated': timezone.now().isoformat()\n        }\n        \n        return Response(stats)\n        \n    except Exception as e:\n        logger.error(f\"Public stats error: {e}\")\n        return Response({\n            'error': 'فشل في الحصول على الإحصائيات',\n            'detail': 'خطأ في النظام'\n        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    'user': {
+                        'id': user.id,
+                        'username': user.username,
+                        'email': user.email,
+                        'role': getattr(user, 'role', 'STUDENT'),
+                        'full_name': f\"{getattr(user, 'first_name_ar', '')} {getattr(user, 'last_name_ar', '')}\".strip()
+                    },
+                    'expires_in': 7200  # ساعتين
+                })
+            else:
+                return Response({
+                    'error': 'الحساب غير مفعل',
+                    'code': 'ACCOUNT_DISABLED'
+                }, status=status.HTTP_403_FORBIDDEN)
+        
+        # تسجيل محاولة فاشلة
+        log_login_attempt(None, False, client_ip, f'فشل تسجيل دخول لـ {username}')
+        
+        return Response({
+            'error': 'اسم المستخدم أو كلمة المرور غير صحيحة',
+            'code': 'INVALID_CREDENTIALS'
+        }, status=status.HTTP_401_UNAUTHORIZED)
+    
+    @action(detail=False, methods=['post'])
+    def verify_2fa(self, request):
+        \"\"\"التحقق من المصادقة الثنائية\"\"\"
+        temp_session_id = request.data.get('temp_session_id')
+        verification_code = request.data.get('code')
+        
+        if not temp_session_id or not verification_code:
+            return Response({
+                'error': 'رمز الجلسة المؤقت ورمز التحقق مطلوبان',
+                'code': 'MISSING_DATA'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # الحصول على بيانات الجلسة المؤقتة
+        temp_data = cache.get(f\"temp_login_{temp_session_id}\")
+        if not temp_data:
+            return Response({
+                'error': 'انتهت صلاحية رمز التحقق',
+                'code': 'SESSION_EXPIRED'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # الحصول على المستخدم
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        try:
+            user = User.objects.get(id=temp_data['user_id'])
+        except User.DoesNotExist:
+            return Response({
+                'error': 'مستخدم غير موجود',
+                'code': 'USER_NOT_FOUND'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # التحقق من الرمز
+        is_valid, message = two_factor_auth.verify_code(user, verification_code)
+        
+        if is_valid:
+            # تسجيل الدخول
+            login(request, user)
+            
+            # إنشاء JWT Token
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh = RefreshToken.for_user(user)
+            
+            # حذف الجلسة المؤقتة
+            cache.delete(f\"temp_login_{temp_session_id}\")
+            
+            # تسجيل محاولة ناجحة
+            log_login_attempt(user, True, temp_data['ip_address'], 'تسجيل دخول ناجح مع مصادقة ثنائية')
+            
+            return Response({
+                'success': True,
+                'access_token': str(refresh.access_token),
+                'refresh_token': str(refresh),
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'role': getattr(user, 'role', 'STUDENT'),
+                    'full_name': f\"{getattr(user, 'first_name_ar', '')} {getattr(user, 'last_name_ar', '')}\".strip()
+                },
+                'expires_in': 7200
+            })
+        else:
+            return Response({
+                'error': message,
+                'code': 'INVALID_2FA_CODE'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['post'])
+    def logout(self, request):
+        \"\"\"تسجيل الخروج\"\"\"
+        try:
+            # تسجيل في النظام الأمني
+            security_audit.log_security_event(
+                event_type='logout',
+                user=request.user,
+                details='تسجيل خروج',
+                ip_address=self._get_client_ip(request)
+            )
+            
+            logout(request)
+            
+            return Response({
+                'success': True,
+                'message': 'تم تسجيل الخروج بنجاح'
+            })
+        except Exception as e:
+            logger.error(f\"Logout error: {e}\")
+            return Response({
+                'error': 'فشل في تسجيل الخروج',
+                'code': 'LOGOUT_FAILED'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['post'])
+    def change_password(self, request):
+        \"\"\"تغيير كلمة المرور\"\"\"
+        if not request.user.is_authenticated:
+            return Response({
+                'error': 'يجب تسجيل الدخول أولاً',
+                'code': 'AUTHENTICATION_REQUIRED'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+        
+        if not old_password or not new_password:
+            return Response({
+                'error': 'كلمة المرور الحالية والجديدة مطلوبتان',
+                'code': 'MISSING_PASSWORDS'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # التحقق من كلمة المرور الحالية
+        if not request.user.check_password(old_password):
+            return Response({
+                'error': 'كلمة المرور الحالية غير صحيحة',
+                'code': 'INVALID_OLD_PASSWORD'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # فحص قوة كلمة المرور الجديدة
+        password_strength = security_manager.verify_password_strength(new_password)
+        
+        if not password_strength['is_strong']:
+            return Response({
+                'error': 'كلمة المرور ضعيفة',
+                'issues': password_strength['issues'],
+                'code': 'WEAK_PASSWORD'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # تغيير كلمة المرور
+        request.user.set_password(new_password)
+        request.user.save()
+        
+        # تسجيل في النظام الأمني
+        security_audit.log_security_event(
+            event_type='password_changed',
+            user=request.user,
+            details='تم تغيير كلمة المرور',
+            ip_address=self._get_client_ip(request),
+            severity='medium'
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'تم تغيير كلمة المرور بنجاح'
+        })
+    
+    def _get_client_ip(self, request):
+        \"\"\"الحصول على IP العميل\"\"\"
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
+
+class SystemAPIViewSet(viewsets.GenericViewSet):
+    \"\"\"APIs النظام والمراقبة\"\"\"
+    
+    permission_classes = [permissions.IsAdminUser]
+    authentication_classes = [JWTAuthentication, TokenAuthentication]
+    
+    @action(detail=False, methods=['get'])
+    def system_status(self, request):
+        \"\"\"حالة النظام العامة\"\"\"
+        try:
+            # حالة النظام من المراقب
+            health_status = monitor.get_health_status()
+            
+            # إحصائيات قاعدة البيانات
+            db_stats = monitor.get_database_stats()
+            
+            # إحصائيات الأخطاء
+            error_stats = error_tracker.get_error_statistics(24)
+            
+            return Response({
+                'system_health': health_status,
+                'database': db_stats,
+                'errors': {
+                    'total_24h': error_stats.get('total_errors', 0),
+                    'error_types': error_stats.get('error_types', {})
+                },
+                'timestamp': timezone.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f\"System status error: {e}\")
+            return Response({
+                'error': 'فشل في الحصول على حالة النظام',
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def performance_metrics(self, request):
+        \"\"\"مقاييس الأداء\"\"\"
+        hours = int(request.GET.get('hours', 1))
+        
+        try:
+            metrics = monitor.get_metrics_summary(hours)
+            return Response({
+                'metrics': metrics,
+                'period_hours': hours,
+                'timestamp': timezone.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f\"Performance metrics error: {e}\")
+            return Response({
+                'error': 'فشل في الحصول على مقاييس الأداء',
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def security_events(self, request):
+        \"\"\"الأحداث الأمنية\"\"\"
+        hours = int(request.GET.get('hours', 24))
+        event_type = request.GET.get('type')
+        
+        try:
+            events = security_audit.get_recent_events(event_type, hours)
+            return Response({
+                'events': events,
+                'total': len(events),
+                'period_hours': hours,
+                'timestamp': timezone.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f\"Security events error: {e}\")
+            return Response({
+                'error': 'فشل في الحصول على الأحداث الأمنية',
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def api_info(request):
+    \"\"\"معلومات API\"\"\"
+    return Response({
+        'name': 'University Management System API',
+        'version': '2.0.0',
+        'description': 'نظام إدارة الجامعة - واجهة برمجة التطبيقات المتطورة',
+        'features': [
+            'مصادقة آمنة مع JWT',
+            'مصادقة ثنائية',
+            'مراقبة الأداء',
+            'نظام تدقيق الأمان',
+            'حد معدل الطلبات',
+            'تشفير البيانات'
+        ],
+        'endpoints': {
+            'authentication': '/api/auth/',
+            'system': '/api/system/',
+            'students': '/api/students/',
+            'courses': '/api/courses/',
+            'academic': '/api/academic/',
+            'documentation': '/swagger/'
+        },
+        'timestamp': timezone.now().isoformat()
+    })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+@method_decorator(cache_page(300))  # كاش لمدة 5 دقائق
+def public_stats(request):
+    \"\"\"إحصائيات عامة للنظام\"\"\"
+    try:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        # إحصائيات عامة (بدون تفاصيل حساسة)
+        stats = {
+            'total_users': User.objects.filter(is_active=True).count(),
+            'students_count': User.objects.filter(role='STUDENT', is_active=True).count(),
+            'teachers_count': User.objects.filter(role__in=['TEACHER', 'ASSISTANT_TEACHER'], is_active=True).count(),
+            'system_uptime_hours': monitor._get_uptime(),
+            'last_updated': timezone.now().isoformat()
+        }
+        
+        return Response(stats)
+        
+    except Exception as e:
+        logger.error(f\"Public stats error: {e}\")
+        return Response({
+            'error': 'فشل في الحصول على الإحصائيات',
+            'detail': 'خطأ في النظام'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

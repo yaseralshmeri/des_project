@@ -27,9 +27,18 @@ class UserViewSet(viewsets.ModelViewSet):
     FIX: Added performance optimizations and better error handling
     """
     serializer_class = UserSerializer
-    queryset = User.objects.select_related().prefetch_related(
+    queryset = User.objects.select_related(
+        'student_profile__college',
+        'student_profile__department',
+        'student_profile__major',
+        'teacher_profile__college',
+        'teacher_profile__department'
+    ).prefetch_related(
         'student_profile',
-        'headed_departments'
+        'teacher_profile',
+        'headed_departments',
+        'documents',
+        'preferences'
     ).order_by('-date_joined')
     
     def get_queryset(self):
