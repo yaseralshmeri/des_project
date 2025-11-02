@@ -568,3 +568,64 @@ def api_dashboard_stats(request):
     except Exception as e:
         logger.error(f"API dashboard stats error: {e}")
         return JsonResponse({'error': 'حدث خطأ في جلب إحصائيات لوحة التحكم'}, status=500)
+
+
+# =============================================================================
+# ERROR HANDLERS - معالجات الأخطاء
+# =============================================================================
+
+def handler400(request, exception):
+    """Custom 400 Bad Request Handler"""
+    context = {
+        'error_code': 400,
+        'error_title': 'طلب غير صحيح',
+        'error_message': 'البيانات المرسلة غير صحيحة أو غير مكتملة.',
+        'suggestions': [
+            'تأكد من صحة البيانات المدخلة',
+            'تحقق من صيغة الطلب',
+            'حاول إعادة تحميل الصفحة'
+        ]
+    }
+    return render(request, 'web/errors/error.html', context, status=400)
+
+def handler403(request, exception):
+    """Custom 403 Forbidden Handler"""
+    context = {
+        'error_code': 403,
+        'error_title': 'الوصول مرفوض',
+        'error_message': 'ليس لديك الصلاحية للوصول إلى هذه الصفحة.',
+        'suggestions': [
+            'تأكد من تسجيل الدخول',
+            'تحقق من صلاحياتك',
+            'تواصل مع الإدارة للحصول على الصلاحيات'
+        ]
+    }
+    return render(request, 'web/errors/error.html', context, status=403)
+
+def handler404(request, exception):
+    """Custom 404 Not Found Handler"""
+    context = {
+        'error_code': 404,
+        'error_title': 'الصفحة غير موجودة',
+        'error_message': 'الصفحة التي تبحث عنها غير موجودة أو تم نقلها.',
+        'suggestions': [
+            'تحقق من صحة الرابط',
+            'استخدم شريط البحث',
+            'العودة إلى الصفحة الرئيسية'
+        ]
+    }
+    return render(request, 'web/errors/error.html', context, status=404)
+
+def handler500(request):
+    """Custom 500 Internal Server Error Handler"""
+    context = {
+        'error_code': 500,
+        'error_title': 'خطأ في الخادم',
+        'error_message': 'حدث خطأ داخلي في الخادم. يرجى المحاولة لاحقاً.',
+        'suggestions': [
+            'أعد المحاولة بعد قليل',
+            'تواصل مع الدعم الفني إذا استمر الخطأ',
+            'حاول تحديث الصفحة'
+        ]
+    }
+    return render(request, 'web/errors/error.html', context, status=500)

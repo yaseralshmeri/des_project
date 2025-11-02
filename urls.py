@@ -86,18 +86,21 @@ urlpatterns = [
     path('web/', include('web.urls')),
     path('mobile/', include('mobile_app.urls')),
     
-    # API Endpoints
+    # System Management
+    path('management/', include('management.urls')),
+    
+    # API Endpoints (v1 - with namespace)
     path('api/v1/', include([
-        path('students/', include('students.urls')),
-        path('courses/', include('courses.urls')),
-        path('academic/', include('academic.urls')),
-        path('finance/', include('finance.urls')),
-        path('hr/', include('hr.urls')),
-        path('ai/', include('ai.urls')),
-        path('security/', include('cyber_security.urls')),
-        path('attendance/', include('attendance_qr.urls')),
-        path('notifications/', include('notifications.urls')),
-        path('reports/', include('reports.urls')),
+        path('students/', include(('students.urls', 'students'), namespace='api_students')),
+        path('courses/', include(('courses.urls', 'courses'), namespace='api_courses')),
+        path('academic/', include(('academic.urls', 'academic'), namespace='api_academic')),
+        path('finance/', include(('finance.urls', 'finance'), namespace='api_finance')),
+        path('hr/', include(('hr.urls', 'hr'), namespace='api_hr')),
+        path('ai/', include(('ai.urls', 'ai'), namespace='api_ai')),
+        path('security/', include(('cyber_security.urls', 'cyber_security'), namespace='api_security')),
+        path('attendance/', include(('attendance_qr.urls', 'attendance_qr'), namespace='api_attendance')),
+        path('notifications/', include(('notifications.urls', 'notifications'), namespace='api_notifications')),
+        path('reports/', include(('reports.urls', 'reports'), namespace='api_reports')),
     ])),
     
     # System Utilities

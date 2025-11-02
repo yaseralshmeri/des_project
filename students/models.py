@@ -535,5 +535,71 @@ class UserPreferences(models.Model):
         return f"تفضيلات {self.user.display_name}"
 
 
+class StudentDocument(models.Model):
+    """نموذج وثائق الطلاب - معزز"""
+    
+    DOCUMENT_TYPES = [
+        ('ID', 'بطاقة هوية'),
+        ('PASSPORT', 'جواز سفر'),
+        ('BIRTH_CERT', 'شهادة ميلاد'),
+        ('ACADEMIC_CERT', 'شهادة أكاديمية'),
+        ('MEDICAL_REPORT', 'تقرير طبي'),
+        ('FINANCIAL_DOC', 'وثيقة مالية'),
+        ('OTHER', 'أخرى'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey(User, on_delete=models.CASCADE, 
+                               limit_choices_to={'role': 'STUDENT'},
+                               related_name='documents', verbose_name="الطالب")
+    
+    document_type = models.CharField(max_length=20, choices=DOCUMENT_TYPES,
+                                   verbose_name="نوع الوثيقة")
+    title = models.CharField(max_length=200, verbose_name="عنوان الوثيقة")
+    description = models.TextField(blank=True, verbose_name="الوصف")
+    
+    file = models.FileField(upload_to='student_documents/%Y/%m/', verbose_name="الملف")
+    file_size = models.IntegerField(default=0, verbose_name="حجم الملف")
+    
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                   related_name='uploaded_documents', verbose_name="تم الرفع بواسطة")
+    
+    is_verified = models.BooleanField(default=False, verbose_name="موثق")
+    verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name='verified_documents', verbose_name="تم التوثيق بواسطة")
+    verified_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ التوثيق")
+    
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الرفع")
+    
+    class Meta:
+        verbose_name = "وثيقة طالب"
+        verbose_name_plural = "وثائق الطلاب"
+        ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['student', 'document_type']),
+            models.Index(fields=['is_verified']),
+            models.Index(fields=['uploaded_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.student.student_id} - {self.title}"
+    
+    def save(self, *args, **kwargs):
+        """حفظ مخصص لحساب حجم الملف"""
+        if self.file:
+            self.file_size = self.file.size
+        super().save(*args, **kwargs)
+    
+    @property
+    def file_size_human(self):
+        """عرض حجم الملف بشكل مقروء"""
+        if self.file_size < 1024:
+            return f"{self.file_size} بايت"
+        elif self.file_size < 1024 * 1024:
+            return f"{self.file_size / 1024:.1f} كيلوبايت"
+        else:
+            return f"{self.file_size / (1024 * 1024):.1f} ميجابايت"
+
+
 # Legacy compatibility - Student model alias
 Student = StudentProfile
