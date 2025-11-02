@@ -1,0 +1,25 @@
+{
+  "timestamp": "2025-11-02T20:39:33.807668",
+  "system": {
+    "cpu_usage_percent": 1.5,
+    "cpu_cores": 2,
+    "memory_usage_percent": 74.6,
+    "memory_available_gb": 0.24,
+    "disk_usage_percent": 23.26,
+    "disk_free_gb": 19.72,
+    "network_bytes_sent": 4168397,
+    "network_bytes_recv": 38558179
+  },
+  "database": {
+    "error": "no such table: auth_user"
+  },
+  "application": {
+    "process_count": 1,
+    "memory_usage_mb": 67.74,
+    "open_files": 1,
+    "cache_response_time_ms": 0.08,
+    "installed_apps": 29
+  },
+  "recommendations": [],
+  "performance_score": 100
+}

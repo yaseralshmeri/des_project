@@ -8,7 +8,8 @@ from django.utils import timezone
 from .models import (
     SecurityEvent, SecurityThreat, SecurityIncident, SecurityAuditLog,
     SecurityPolicy, ThreatIntelligence, SecurityRule, SecurityDashboard,
-    UserBehaviorProfile, SecurityConfiguration, VulnerabilityAssessment
+    UserBehaviorProfile, SecurityConfiguration, VulnerabilityAssessment,
+    BehaviorAnalysis
 )
 
 
@@ -208,16 +209,16 @@ class VulnerabilityAssessmentAdmin(admin.ModelAdmin):
     
     list_display = [
         'vulnerability_id', 'title', 'vulnerability_type',
-        'severity_level', 'cvss_score', 'status', 'due_date'
+        'cvss_score', 'status', 'created_at'
     ]
     list_filter = [
-        'vulnerability_type', 'severity_level', 'status', 
-        'affected_system', 'discovered_date'
+        'vulnerability_type', 'status', 
+        'affected_system', 'created_at'
     ]
     search_fields = [
         'vulnerability_id', 'title', 'description', 'affected_system'
     ]
-    readonly_fields = ['id', 'vulnerability_id', 'discovered_date', 'created_at', 'updated_at']
+    readonly_fields = ['id', 'vulnerability_id', 'created_at', 'updated_at']
 
 
 # تخصيص موقع الإدارة
@@ -241,6 +242,46 @@ def deactivate_items(modeladmin, request, queryset):
     """إلغاء تفعيل العناصر المحددة"""
     queryset.update(is_active=False)
 deactivate_items.short_description = "إلغاء تفعيل المحدد"
+
+@admin.register(ThreatIntelligence)
+class ThreatIntelligenceAdmin(admin.ModelAdmin):
+    """إدارة معلومات التهديدات"""
+    list_display = ['title', 'intel_type', 'threat_score', 'source', 'created_at']
+    list_filter = ['intel_type', 'confidence_level', 'source']
+    search_fields = ['title', 'description']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+
+@admin.register(SecurityRule)
+class SecurityRuleAdmin(admin.ModelAdmin):
+    """إدارة قواعد الأمان"""
+    list_display = ['name', 'rule_type', 'is_active', 'created_at']
+    list_filter = ['rule_type', 'is_active']
+    search_fields = ['name', 'description']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+
+@admin.register(UserBehaviorProfile)
+class UserBehaviorProfileAdmin(admin.ModelAdmin):
+    """إدارة ملفات سلوك المستخدمين"""
+    list_display = ['user', 'risk_score', 'updated_at', 'created_at']
+    list_filter = ['risk_score', 'updated_at']
+    search_fields = ['user__username', 'user__email']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+
+@admin.register(SecurityDashboard)
+class SecurityDashboardAdmin(admin.ModelAdmin):
+    """إدارة لوحة معلومات الأمان"""
+    list_display = ['name', 'owner', 'is_active', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['name']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+
+@admin.register(BehaviorAnalysis)
+class BehaviorAnalysisAdmin(admin.ModelAdmin):
+    """إدارة تحليل السلوك"""
+    list_display = ['user', 'behavior_type', 'anomaly_level', 'created_at']
+    list_filter = ['behavior_type', 'anomaly_level']
+    search_fields = ['user__username']
+    readonly_fields = ['id', 'created_at', 'updated_at']
 
 # إضافة الإجراءات للنماذج المناسبة
 SecurityEventAdmin.actions = [mark_as_resolved]
