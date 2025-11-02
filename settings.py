@@ -157,25 +157,32 @@ THIRD_PARTY_APPS = [
 # Local Apps - Core applications only for now
 LOCAL_APPS = [
     # Core functional apps
-    'students',
-    'courses', 
-    'academic',
-    'finance',
-    'hr',
+    'students.apps.StudentsConfig',
+    'courses.apps.CoursesConfig', 
+    'academic.apps.AcademicConfig',
+    'finance.apps.FinanceConfig',
+    'hr.apps.HrConfig',
+    'admin_control.apps.AdminControlConfig',
+    
+    # Additional apps
     'reports',
-    'notifications',
+    'notifications', 
     'web',
     'management',
+    'api',
     
-    # Advanced apps (disabled temporarily until dependencies are resolved)
+    # Advanced apps (enabled - core functionality)
+    'tools',
+    'utils',
+    
+    # AI and advanced features (optional)
     # 'ai',
     # 'smart_ai', 
     # 'cyber_security',
-    # 'attendance_qr',  # Requires qrcode
-    # 'admin_control',
+    # 'attendance_qr',
     # 'roles_permissions', 
     # 'mobile_app',
-    # 'monitoring',  # Enable after testing core functionality
+    # 'monitoring',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -264,7 +271,9 @@ if DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
 # AUTHENTICATION CONFIGURATION
 # =============================================================================
 
-AUTH_USER_MODEL = 'students.User'
+# AUTH_USER_MODEL = 'students.User'  # Temporarily disabled until students app is properly configured
+# Using default Django User model for now
+# AUTH_USER_MODEL = 'auth.User'
 LOGIN_URL = '/web/login/'
 LOGIN_REDIRECT_URL = '/web/dashboard/'
 LOGOUT_REDIRECT_URL = '/web/'

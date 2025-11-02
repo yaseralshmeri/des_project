@@ -1,10 +1,11 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth import get_user_model
-from courses.models import Course
-from students.models import Student
+from django.contrib.auth.models import User as AuthUser
 
-User = get_user_model()
+# Use string references instead of direct imports to avoid circular imports
+# Course and Student models will be referenced as strings
+User = get_user_model
 
 
 class AcademicYear(models.Model):
