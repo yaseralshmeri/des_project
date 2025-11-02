@@ -1,0 +1,941 @@
+{
+  "start_time": "2025-11-02T20:51:02.111714",
+  "database_optimization": {
+    "status": "completed",
+    "details": [
+      {
+        "name": "academic_calendar",
+        "rows": 0,
+        "columns": 8
+      },
+      {
+        "name": "academic_programs",
+        "rows": 0,
+        "columns": 11
+      },
+      {
+        "name": "academic_years",
+        "rows": 0,
+        "columns": 5
+      },
+      {
+        "name": "admin_actions",
+        "rows": 0,
+        "columns": 9
+      },
+      {
+        "name": "admin_dashboard_widgets",
+        "rows": 0,
+        "columns": 15
+      },
+      {
+        "name": "attendance",
+        "rows": 0,
+        "columns": 7
+      },
+      {
+        "name": "attendance_qr_attendanceexception",
+        "rows": 0,
+        "columns": 14
+      },
+      {
+        "name": "attendance_qr_attendancerecord",
+        "rows": 0,
+        "columns": 23
+      },
+      {
+        "name": "attendance_qr_attendancereport",
+        "rows": 0,
+        "columns": 15
+      },
+      {
+        "name": "attendance_qr_attendancereport_course_offerings",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "attendance_qr_attendancereport_instructors",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "attendance_qr_attendancereport_students",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "attendance_qr_attendancesession",
+        "rows": 0,
+        "columns": 25
+      },
+      {
+        "name": "attendance_qr_attendancesettings",
+        "rows": 0,
+        "columns": 17
+      },
+      {
+        "name": "attendance_qr_qrcode",
+        "rows": 0,
+        "columns": 14
+      },
+      {
+        "name": "attendance_qr_qrscanlog",
+        "rows": 0,
+        "columns": 8
+      },
+      {
+        "name": "auth_group",
+        "rows": 0,
+        "columns": 2
+      },
+      {
+        "name": "auth_group_permissions",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "auth_permission",
+        "rows": 496,
+        "columns": 4
+      },
+      {
+        "name": "backup_logs",
+        "rows": 0,
+        "columns": 9
+      },
+      {
+        "name": "course_analytics",
+        "rows": 0,
+        "columns": 9
+      },
+      {
+        "name": "course_recommendations",
+        "rows": 0,
+        "columns": 8
+      },
+      {
+        "name": "courses_academicyear",
+        "rows": 0,
+        "columns": 8
+      },
+      {
+        "name": "courses_assignment",
+        "rows": 0,
+        "columns": 21
+      },
+      {
+        "name": "courses_classroom",
+        "rows": 0,
+        "columns": 19
+      },
+      {
+        "name": "courses_college",
+        "rows": 0,
+        "columns": 20
+      },
+      {
+        "name": "courses_course",
+        "rows": 0,
+        "columns": 34
+      },
+      {
+        "name": "courses_course_corequisites",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "courses_course_prerequisites",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "courses_courseinstructor",
+        "rows": 0,
+        "columns": 8
+      },
+      {
+        "name": "courses_courseoffering",
+        "rows": 0,
+        "columns": 23
+      },
+      {
+        "name": "courses_department",
+        "rows": 0,
+        "columns": 19
+      },
+      {
+        "name": "courses_enrollment",
+        "rows": 0,
+        "columns": 19
+      },
+      {
+        "name": "courses_major",
+        "rows": 0,
+        "columns": 16
+      },
+      {
+        "name": "courses_majorcourse",
+        "rows": 0,
+        "columns": 9
+      },
+      {
+        "name": "courses_semester",
+        "rows": 0,
+        "columns": 18
+      },
+      {
+        "name": "courses_university",
+        "rows": 0,
+        "columns": 17
+      },
+      {
+        "name": "cyber_security_behavioranalysis",
+        "rows": 0,
+        "columns": 19
+      },
+      {
+        "name": "cyber_security_securityauditlog",
+        "rows": 0,
+        "columns": 13
+      },
+      {
+        "name": "cyber_security_securityconfiguration",
+        "rows": 0,
+        "columns": 21
+      },
+      {
+        "name": "cyber_security_securitydashboard",
+        "rows": 0,
+        "columns": 20
+      },
+      {
+        "name": "cyber_security_securitydashboard_viewers",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "cyber_security_securityevent",
+        "rows": 0,
+        "columns": 17
+      },
+      {
+        "name": "cyber_security_securityincident",
+        "rows": 0,
+        "columns": 24
+      },
+      {
+        "name": "cyber_security_securityincident_affected_users",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "cyber_security_securityincident_related_threats",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "cyber_security_securityincident_response_team",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "cyber_security_securitypolicy",
+        "rows": 0,
+        "columns": 25
+      },
+      {
+        "name": "cyber_security_securitypolicy_applies_to_users",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "cyber_security_securityrule",
+        "rows": 0,
+        "columns": 13
+      },
+      {
+        "name": "cyber_security_securitythreat",
+        "rows": 0,
+        "columns": 28
+      },
+      {
+        "name": "cyber_security_threatintelligence",
+        "rows": 0,
+        "columns": 28
+      },
+      {
+        "name": "cyber_security_userbehaviorprofile",
+        "rows": 0,
+        "columns": 12
+      },
+      {
+        "name": "cyber_security_vulnerabilityassessment",
+        "rows": 0,
+        "columns": 29
+      },
+      {
+        "name": "django_admin_log",
+        "rows": 0,
+        "columns": 8
+      },
+      {
+        "name": "django_content_type",
+        "rows": 124,
+        "columns": 3
+      },
+      {
+        "name": "django_migrations",
+        "rows": 47,
+        "columns": 4
+      },
+      {
+        "name": "django_session",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "employee_attendance",
+        "rows": 0,
+        "columns": 9
+      },
+      {
+        "name": "employees",
+        "rows": 0,
+        "columns": 11
+      },
+      {
+        "name": "enrollment_statistics",
+        "rows": 0,
+        "columns": 10
+      },
+      {
+        "name": "enrollments",
+        "rows": 0,
+        "columns": 7
+      },
+      {
+        "name": "finance_academicyear",
+        "rows": 0,
+        "columns": 10
+      },
+      {
+        "name": "finance_feestructure",
+        "rows": 0,
+        "columns": 19
+      },
+      {
+        "name": "finance_feetype",
+        "rows": 0,
+        "columns": 21
+      },
+      {
+        "name": "finance_financialreport",
+        "rows": 0,
+        "columns": 16
+      },
+      {
+        "name": "finance_payment",
+        "rows": 0,
+        "columns": 19
+      },
+      {
+        "name": "finance_paymentallocation",
+        "rows": 0,
+        "columns": 5
+      },
+      {
+        "name": "finance_scholarship",
+        "rows": 0,
+        "columns": 25
+      },
+      {
+        "name": "finance_scholarshipapplication",
+        "rows": 0,
+        "columns": 21
+      },
+      {
+        "name": "finance_studentaccount",
+        "rows": 0,
+        "columns": 20
+      },
+      {
+        "name": "finance_studentcharge",
+        "rows": 0,
+        "columns": 20
+      },
+      {
+        "name": "finance_studentfee",
+        "rows": 0,
+        "columns": 19
+      },
+      {
+        "name": "grade_scales",
+        "rows": 0,
+        "columns": 6
+      },
+      {
+        "name": "grades",
+        "rows": 0,
+        "columns": 13
+      },
+      {
+        "name": "leaves",
+        "rows": 0,
+        "columns": 11
+      },
+      {
+        "name": "maintenance_mode",
+        "rows": 0,
+        "columns": 12
+      },
+      {
+        "name": "maintenance_mode_allowed_users",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "notification_channels_enhanced",
+        "rows": 0,
+        "columns": 15
+      },
+      {
+        "name": "notification_templates_enhanced",
+        "rows": 0,
+        "columns": 20
+      },
+      {
+        "name": "notifications_inappnotification",
+        "rows": 0,
+        "columns": 15
+      },
+      {
+        "name": "notifications_notification",
+        "rows": 0,
+        "columns": 15
+      },
+      {
+        "name": "notifications_notificationdelivery",
+        "rows": 0,
+        "columns": 12
+      },
+      {
+        "name": "notifications_notificationlog",
+        "rows": 0,
+        "columns": 15
+      },
+      {
+        "name": "notifications_notificationpreference",
+        "rows": 0,
+        "columns": 18
+      },
+      {
+        "name": "notifications_notificationtype",
+        "rows": 0,
+        "columns": 12
+      },
+      {
+        "name": "notifications_schedulednotification",
+        "rows": 0,
+        "columns": 13
+      },
+      {
+        "name": "notifications_userdevicetoken",
+        "rows": 0,
+        "columns": 11
+      },
+      {
+        "name": "notifications_usernotificationpreference",
+        "rows": 0,
+        "columns": 12
+      },
+      {
+        "name": "notifications_usertelegramaccount",
+        "rows": 0,
+        "columns": 10
+      },
+      {
+        "name": "performance_predictions",
+        "rows": 0,
+        "columns": 9
+      },
+      {
+        "name": "prerequisites",
+        "rows": 0,
+        "columns": 4
+      },
+      {
+        "name": "roles_permissions_accesslog",
+        "rows": 0,
+        "columns": 16
+      },
+      {
+        "name": "roles_permissions_organizationalunit",
+        "rows": 0,
+        "columns": 11
+      },
+      {
+        "name": "roles_permissions_permission",
+        "rows": 0,
+        "columns": 17
+      },
+      {
+        "name": "roles_permissions_role",
+        "rows": 0,
+        "columns": 20
+      },
+      {
+        "name": "roles_permissions_rolepermission",
+        "rows": 0,
+        "columns": 16
+      },
+      {
+        "name": "roles_permissions_securitypolicy",
+        "rows": 0,
+        "columns": 15
+      },
+      {
+        "name": "roles_permissions_securitypolicy_applies_to_roles",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "roles_permissions_unitmembership",
+        "rows": 0,
+        "columns": 7
+      },
+      {
+        "name": "roles_permissions_userrole",
+        "rows": 0,
+        "columns": 18
+      },
+      {
+        "name": "roles_permissions_userrole_additional_permissions",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "salaries",
+        "rows": 0,
+        "columns": 11
+      },
+      {
+        "name": "schedules",
+        "rows": 0,
+        "columns": 9
+      },
+      {
+        "name": "semesters",
+        "rows": 0,
+        "columns": 8
+      },
+      {
+        "name": "smart_ai_aianalyticsmodel",
+        "rows": 0,
+        "columns": 15
+      },
+      {
+        "name": "smart_ai_aichatbot",
+        "rows": 0,
+        "columns": 12
+      },
+      {
+        "name": "smart_ai_aichatbot_developers",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "smart_ai_aichatbot_maintainers",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "smart_ai_aimodel",
+        "rows": 0,
+        "columns": 29
+      },
+      {
+        "name": "smart_ai_airecommendation",
+        "rows": 0,
+        "columns": 16
+      },
+      {
+        "name": "smart_ai_aisecurityalert",
+        "rows": 0,
+        "columns": 19
+      },
+      {
+        "name": "smart_ai_chatmessage",
+        "rows": 0,
+        "columns": 8
+      },
+      {
+        "name": "smart_ai_conversationlog",
+        "rows": 0,
+        "columns": 16
+      },
+      {
+        "name": "smart_ai_learninganalytics",
+        "rows": 0,
+        "columns": 16
+      },
+      {
+        "name": "smart_ai_predictiveanalytics",
+        "rows": 0,
+        "columns": 19
+      },
+      {
+        "name": "smart_ai_smartassistant",
+        "rows": 0,
+        "columns": 20
+      },
+      {
+        "name": "smart_ai_smartrecommendation",
+        "rows": 0,
+        "columns": 25
+      },
+      {
+        "name": "smart_ai_studentaiprofile",
+        "rows": 0,
+        "columns": 26
+      },
+      {
+        "name": "smart_ai_studentperformanceprediction",
+        "rows": 0,
+        "columns": 9
+      },
+      {
+        "name": "smart_ai_teacheraiprofile",
+        "rows": 0,
+        "columns": 20
+      },
+      {
+        "name": "student_performance_reports",
+        "rows": 0,
+        "columns": 14
+      },
+      {
+        "name": "students_studentprofile",
+        "rows": 0,
+        "columns": 31
+      },
+      {
+        "name": "students_teacherprofile",
+        "rows": 0,
+        "columns": 30
+      },
+      {
+        "name": "students_user",
+        "rows": 1,
+        "columns": 50
+      },
+      {
+        "name": "students_user_groups",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "students_user_user_permissions",
+        "rows": 0,
+        "columns": 3
+      },
+      {
+        "name": "students_useractivity",
+        "rows": 0,
+        "columns": 9
+      },
+      {
+        "name": "students_userpreferences",
+        "rows": 0,
+        "columns": 13
+      },
+      {
+        "name": "study_patterns",
+        "rows": 0,
+        "columns": 10
+      },
+      {
+        "name": "system_alerts",
+        "rows": 0,
+        "columns": 10
+      },
+      {
+        "name": "system_configurations",
+        "rows": 0,
+        "columns": 9
+      },
+      {
+        "name": "system_metrics",
+        "rows": 0,
+        "columns": 6
+      },
+      {
+        "name": "teachers",
+        "rows": 0,
+        "columns": 10
+      },
+      {
+        "name": "user_activities",
+        "rows": 0,
+        "columns": 10
+      }
+    ],
+    "execution_time": 1.14
+  },
+  "performance_optimization": {
+    "status": "completed",
+    "details": {
+      "cpu_usage": 2.0,
+      "memory_usage": 72.0,
+      "disk_usage": 23.3
+    },
+    "execution_time": 1.21
+  },
+  "security_optimization": {
+    "status": "completed",
+    "issues": [
+      "ALLOWED_HOSTS يجب تحديدها للإنتاج",
+      "DEBUG يجب تعطيله للإنتاج"
+    ],
+    "vulnerabilities": [
+      "ملف .env لديه صلاحيات غير آمنة: 644",
+      "ملف db.sqlite3 لديه صلاحيات غير آمنة: 644"
+    ],
+    "execution_time": 1.2
+  },
+  "code_quality": {
+    "status": "completed",
+    "duplicates": 1,
+    "unused_imports": 0,
+    "complexity_issues": 0,
+    "execution_time": 0.01
+  },
+  "system_monitoring": {
+    "status": "completed",
+    "database": {
+      "size_mb": 3.16,
+      "databases": 1,
+      "connection_status": "active"
+    },
+    "performance": {
+      "response_time": 0.16,
+      "memory_usage": 78.6,
+      "active_connections": 1
+    },
+    "apps": {
+      "django.contrib.admin": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "django.contrib.auth": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "django.contrib.contenttypes": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "django.contrib.sessions": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "django.contrib.messages": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "django.contrib.staticfiles": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "django.contrib.humanize": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "rest_framework": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "rest_framework_simplejwt": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "drf_yasg": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "corsheaders": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "django_filters": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "django_extensions": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "students": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "courses": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "academic": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "finance": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "hr": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "reports": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "notifications": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "ai": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "smart_ai": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "cyber_security": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "attendance_qr": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "admin_control": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "roles_permissions": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "web": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "mobile_app": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      },
+      "management": {
+        "status": "error",
+        "error": "object of type 'generator' has no len()"
+      }
+    },
+    "execution_time": 0.0
+  },
+  "recommendations": [
+    {
+      "title": "Django Settings",
+      "description": "تعطيل وضع التطوير DEBUG للإنتاج",
+      "priority": "high",
+      "timestamp": "2025-11-02T20:51:03.465424"
+    }
+  ],
+  "improvements_applied": [
+    {
+      "category": "database",
+      "description": "تم تشغيل المايجريشن بنجاح",
+      "impact": "medium",
+      "timestamp": "2025-11-02T20:51:02.924127"
+    },
+    {
+      "category": "database",
+      "description": "إنشاء فهرس: students_user(role)",
+      "impact": "medium",
+      "timestamp": "2025-11-02T20:51:03.079917"
+    },
+    {
+      "category": "database",
+      "description": "إنشاء فهرس: students_user(status)",
+      "impact": "medium",
+      "timestamp": "2025-11-02T20:51:03.083342"
+    },
+    {
+      "category": "database",
+      "description": "إنشاء فهرس: students_user(email)",
+      "impact": "medium",
+      "timestamp": "2025-11-02T20:51:03.086854"
+    },
+    {
+      "category": "database",
+      "description": "إنشاء فهرس: courses_course(code)",
+      "impact": "medium",
+      "timestamp": "2025-11-02T20:51:03.090841"
+    },
+    {
+      "category": "database",
+      "description": "تم ضغط قاعدة البيانات",
+      "impact": "medium",
+      "timestamp": "2025-11-02T20:51:03.240816"
+    },
+    {
+      "category": "database",
+      "description": "تم تحديث إحصائيات الجداول",
+      "impact": "medium",
+      "timestamp": "2025-11-02T20:51:03.254482"
+    },
+    {
+      "category": "database",
+      "description": "تحسين قاعدة البيانات اكتمل في 1.14 ثانية",
+      "impact": "high",
+      "timestamp": "2025-11-02T20:51:03.254713"
+    },
+    {
+      "category": "performance",
+      "description": "تم تحسين الملفات الثابتة",
+      "impact": "medium",
+      "timestamp": "2025-11-02T20:51:03.464488"
+    },
+    {
+      "category": "performance",
+      "description": "تم تنظيف الذاكرة المؤقتة",
+      "impact": "medium",
+      "timestamp": "2025-11-02T20:51:03.465387"
+    },
+    {
+      "category": "performance",
+      "description": "تحسين الأداء اكتمل في 1.21 ثانية",
+      "impact": "high",
+      "timestamp": "2025-11-02T20:51:04.466365"
+    },
+    {
+      "category": "security",
+      "description": "فحص الأمان اكتمل في 1.20 ثانية",
+      "impact": "high",
+      "timestamp": "2025-11-02T20:51:05.662456"
+    },
+    {
+      "category": "code_quality",
+      "description": "تحليل جودة الكود اكتمل في 0.01 ثانية",
+      "impact": "medium",
+      "timestamp": "2025-11-02T20:51:05.671856"
+    },
+    {
+      "category": "monitoring",
+      "description": "مراقبة النظام اكتملت في 0.00 ثانية",
+      "impact": "medium",
+      "timestamp": "2025-11-02T20:51:05.673178"
+    }
+  ],
+  "overall_score": 90,
+  "execution_time": 3.56,
+  "end_time": "2025-11-02T20:51:05.673211"
+}

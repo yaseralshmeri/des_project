@@ -1,0 +1,162 @@
+{
+  "scan_time": "2025-11-02T20:51:13.323993",
+  "issues": [
+    {
+      "level": "critical",
+      "message": "DEBUG=True في الإنتاج - يكشف معلومات حساسة",
+      "details": {
+        "recommendation": "تعيين DEBUG=False في الإنتاج"
+      },
+      "timestamp": "2025-11-02T20:51:13.324613"
+    },
+    {
+      "level": "critical",
+      "message": "SECRET_KEY غير آمن أو افتراضي",
+      "details": {
+        "recommendation": "استخدام SECRET_KEY قوي ومعقد"
+      },
+      "timestamp": "2025-11-02T20:51:13.324884"
+    },
+    {
+      "level": "warning",
+      "message": "ALLOWED_HOSTS يسمح بجميع النطاقات",
+      "details": {
+        "recommendation": "تحديد نطاقات محددة في ALLOWED_HOSTS"
+      },
+      "timestamp": "2025-11-02T20:51:13.324990"
+    },
+    {
+      "level": "warning",
+      "message": "إعادة توجيه HTTPS غير مفعل",
+      "details": {
+        "recommendation": "تفعيل SECURE_SSL_REDIRECT للإنتاج"
+      },
+      "timestamp": "2025-11-02T20:51:13.325064"
+    },
+    {
+      "level": "warning",
+      "message": "HSTS Headers غير مفعل",
+      "details": {
+        "recommendation": "تفعيل SECURE_HSTS_SECONDS للإنتاج"
+      },
+      "timestamp": "2025-11-02T20:51:13.325123"
+    },
+    {
+      "level": "warning",
+      "message": "Secure Session Cookies غير مفعل",
+      "details": {
+        "recommendation": "تفعيل SESSION_COOKIE_SECURE للإنتاج"
+      },
+      "timestamp": "2025-11-02T20:51:13.325179"
+    },
+    {
+      "level": "warning",
+      "message": "Secure CSRF Cookies غير مفعل",
+      "details": {
+        "recommendation": "تفعيل CSRF_COOKIE_SECURE للإنتاج"
+      },
+      "timestamp": "2025-11-02T20:51:13.325260"
+    },
+    {
+      "level": "warning",
+      "message": "ملف db.sqlite3 لديه صلاحيات غير آمنة: 644",
+      "details": {
+        "expected": "600",
+        "current": "644"
+      },
+      "timestamp": "2025-11-02T20:51:16.434664"
+    },
+    {
+      "level": "warning",
+      "message": "ملف .env لديه صلاحيات غير آمنة: 644",
+      "details": {
+        "expected": "600",
+        "current": "644"
+      },
+      "timestamp": "2025-11-02T20:51:16.434760"
+    },
+    {
+      "level": "warning",
+      "message": "ملفات حساسة مكشوفة: *.log",
+      "details": {
+        "count": 2,
+        "files": [
+          "django.log",
+          "security.log"
+        ]
+      },
+      "timestamp": "2025-11-02T20:51:16.442711"
+    },
+    {
+      "level": "warning",
+      "message": "ملفات حساسة مكشوفة: *backup*",
+      "details": {
+        "count": 17,
+        "files": [
+          "enhanced_models.py.backup",
+          "enhanced_models.py.backup",
+          "enhanced_models.py.backup",
+          "models_backup.py",
+          "enhanced_models.py.backup"
+        ]
+      },
+      "timestamp": "2025-11-02T20:51:16.471754"
+    }
+  ],
+  "improvements": [
+    {
+      "level": "info",
+      "message": "حماية CSRF مفعلة",
+      "details": {},
+      "timestamp": "2025-11-02T20:51:13.325346"
+    },
+    {
+      "level": "info",
+      "message": "عدد المديرين مناسب: 1",
+      "details": {},
+      "timestamp": "2025-11-02T20:51:16.434421"
+    },
+    {
+      "level": "info",
+      "message": "تحليل 1 مستخدم اكتمل",
+      "details": {},
+      "timestamp": "2025-11-02T20:51:16.434519"
+    },
+    {
+      "level": "info",
+      "message": "جداول المصادقة موجودة: 3",
+      "details": {},
+      "timestamp": "2025-11-02T20:51:16.472729"
+    },
+    {
+      "level": "info",
+      "message": "تم إنتاج SECRET_KEY جديد آمن",
+      "details": {
+        "file": "/home/user/des_project/new_secret_key.txt"
+      },
+      "timestamp": "2025-11-02T20:51:16.479358"
+    },
+    {
+      "level": "info",
+      "message": "تم إنشاء توصيات أمان الجلسات",
+      "details": {
+        "file": "/home/user/des_project/security_recommendations.txt"
+      },
+      "timestamp": "2025-11-02T20:51:16.479809"
+    }
+  ],
+  "recommendations": [],
+  "user_analysis": {
+    "total_users": 1,
+    "active_users": 1,
+    "admin_users": 1,
+    "inactive_users": 0
+  },
+  "system_status": {},
+  "threat_level": "critical",
+  "security_score": 15,
+  "critical_issues": 2,
+  "warning_issues": 9,
+  "end_time": "2025-11-02T20:51:16.479918",
+  "execution_time": 3.16
+}
