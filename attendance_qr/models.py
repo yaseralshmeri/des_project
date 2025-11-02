@@ -651,4 +651,53 @@ class AttendanceSettings(models.Model):
         verbose_name_plural = "إعدادات الحضور والغياب"
     
     def __str__(self):
-        return "إعدادات نظام الحضور والغياب"
+        return "إعدادات نظام الحضور والغياب"# QRScanLog Model - ملف مؤقت
+from django.db import models
+from django.contrib.auth import get_user_model
+import uuid
+
+User = get_user_model()
+
+class QRScanLog(models.Model):
+    """سجل مسح رموز QR"""
+    
+    SCAN_RESULTS = [
+        ('SUCCESS', 'نجح'),
+        ('FAILED', 'فشل'),
+        ('EXPIRED', 'منتهي الصلاحية'),
+        ('INVALID', 'غير صحيح'),
+        ('DUPLICATE', 'مكرر'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # معلومات المسح
+    qr_code = models.ForeignKey('QRCode', on_delete=models.CASCADE,
+                               related_name='scan_logs', verbose_name="رمز QR")
+    scanned_by = models.ForeignKey(User, on_delete=models.CASCADE,
+                                 related_name='qr_scans', verbose_name="مُسح بواسطة")
+    
+    # نتيجة المسح
+    scan_result = models.CharField(max_length=15, choices=SCAN_RESULTS,
+                                 verbose_name="نتيجة المسح")
+    
+    # معلومات إضافية
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="عنوان IP")
+    user_agent = models.TextField(blank=True, verbose_name="متصفح المستخدم")
+    location_data = models.JSONField(default=dict, blank=True, verbose_name="بيانات الموقع")
+    
+    # التوقيت
+    scanned_at = models.DateTimeField(auto_now_add=True, verbose_name="وقت المسح")
+    
+    class Meta:
+        verbose_name = "سجل مسح QR"
+        verbose_name_plural = "سجلات مسح QR"
+        ordering = ['-scanned_at']
+        indexes = [
+            models.Index(fields=['qr_code', '-scanned_at']),
+            models.Index(fields=['scanned_by', '-scanned_at']),
+            models.Index(fields=['scan_result']),
+        ]
+    
+    def __str__(self):
+        return f"{self.qr_code.code_id} - {self.scanned_by.username} - {self.get_scan_result_display()}"

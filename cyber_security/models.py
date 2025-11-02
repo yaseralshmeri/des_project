@@ -466,103 +466,6 @@ class BehaviorAnalysis(models.Model):
         return self.anomaly_level in ['ANOMALOUS', 'CRITICAL'] or float(self.anomaly_score) > 0.7
 
 
-class SecurityAuditLog(models.Model):
-    """سجل التدقيق الأمني"""
-    
-    EVENT_TYPES = [
-        ('AUTHENTICATION', 'مصادقة'),
-        ('AUTHORIZATION', 'تفويض'),
-        ('DATA_ACCESS', 'الوصول للبيانات'),
-        ('DATA_MODIFICATION', 'تعديل البيانات'),
-        ('SYSTEM_ACCESS', 'الوصول للنظام'),
-        ('CONFIGURATION_CHANGE', 'تغيير إعدادات'),
-        ('PRIVILEGE_ESCALATION', 'رفع صلاحيات'),
-        ('SECURITY_VIOLATION', 'انتهاك أمني'),
-        ('POLICY_VIOLATION', 'انتهاك سياسة'),
-        ('SUSPICIOUS_ACTIVITY', 'نشاط مشبوه'),
-    ]
-    
-    SEVERITY_LEVELS = [
-        ('INFO', 'معلوماتي'),
-        ('LOW', 'منخفض'),
-        ('MEDIUM', 'متوسط'),
-        ('HIGH', 'عالي'),
-        ('CRITICAL', 'حرج'),
-    ]
-    
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
-    # معلومات الحدث
-    event_id = models.CharField(max_length=50, unique=True, verbose_name="معرف الحدث")
-    event_type = models.CharField(max_length=25, choices=EVENT_TYPES,
-                                verbose_name="نوع الحدث")
-    event_description = models.CharField(max_length=500, verbose_name="وصف الحدث")
-    severity = models.CharField(max_length=10, choices=SEVERITY_LEVELS, default='INFO',
-                              verbose_name="الخطورة")
-    
-    # المستخدم والجلسة
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
-                           related_name='security_audit_logs', verbose_name="المستخدم")
-    session_id = models.CharField(max_length=100, blank=True, verbose_name="معرف الجلسة")
-    
-    # معلومات الطلب
-    ip_address = models.GenericIPAddressField(verbose_name="عنوان IP")
-    user_agent = models.TextField(blank=True, verbose_name="متصفح المستخدم")
-    request_method = models.CharField(max_length=10, blank=True, verbose_name="طريقة الطلب")
-    request_path = models.CharField(max_length=500, blank=True, verbose_name="مسار الطلب")
-    request_data = models.JSONField(default=dict, verbose_name="بيانات الطلب")
-    
-    # النتيجة والاستجابة
-    was_successful = models.BooleanField(verbose_name="نجح الحدث")
-    response_code = models.IntegerField(null=True, blank=True, verbose_name="رمز الاستجابة")
-    error_message = models.TextField(blank=True, verbose_name="رسالة الخطأ")
-    
-    # الموارد المتأثرة
-    affected_objects = models.JSONField(default=list, verbose_name="الكائنات المتأثرة")
-    content_type = models.ForeignKey(ContentType, on_delete=models.SET_NULL, null=True, blank=True)
-    object_id = models.PositiveIntegerField(null=True, blank=True)
-    content_object = GenericForeignKey('content_type', 'object_id')
-    
-    # معلومات إضافية
-    additional_data = models.JSONField(default=dict, verbose_name="بيانات إضافية")
-    risk_score = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,
-                                   validators=[MinValueValidator(0), MaxValueValidator(100)],
-                                   verbose_name="نقاط المخاطر")
-    
-    # التحليل التلقائي
-    automated_analysis = models.JSONField(default=dict, verbose_name="التحليل التلقائي")
-    threat_indicators = models.JSONField(default=list, verbose_name="مؤشرات التهديد")
-    
-    # التوقيت
-    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="الوقت")
-    
-    class Meta:
-        verbose_name = "سجل تدقيق أمني"
-        verbose_name_plural = "سجلات التدقيق الأمني"
-        ordering = ['-timestamp']
-        indexes = [
-            models.Index(fields=['event_type', 'severity']),
-            models.Index(fields=['user', '-timestamp']),
-            models.Index(fields=['ip_address']),
-            models.Index(fields=['was_successful']),
-            models.Index(fields=['risk_score']),
-            models.Index(fields=['timestamp']),
-        ]
-    
-    def __str__(self):
-        return f"{self.event_id} - {self.event_description}"
-    
-    def save(self, *args, **kwargs):
-        if not self.event_id:
-            self.event_id = self.generate_event_id()
-        super().save(*args, **kwargs)
-    
-    def generate_event_id(self):
-        """توليد معرف حدث فريد"""
-        timestamp = timezone.now().strftime('%Y%m%d%H%M%S%f')
-        event_hash = hashlib.md5(f"{self.event_type}{timestamp}".encode()).hexdigest()[:8]
-        return f"EVT-{event_hash.upper()}"
-
 
 class SecurityPolicy(models.Model):
     """سياسات الأمان"""
@@ -1015,14 +918,14 @@ class SecurityAuditLog(models.Model):
     session_id = models.CharField(max_length=100, blank=True, verbose_name="معرف الجلسة")
     
     # نوع العملية والنتيجة
-    action_type = models.CharField(max_length=20, choices=ACTION_TYPES,
+    action_type = models.CharField(max_length=20, choices=ACTION_TYPES, default='DATA_ACCESS',
                                  verbose_name="نوع العملية")
-    action_description = models.TextField(verbose_name="وصف العملية")
-    result = models.CharField(max_length=10, choices=RESULT_TYPES,
+    action_description = models.TextField(default='', verbose_name="وصف العملية")
+    result = models.CharField(max_length=10, choices=RESULT_TYPES, default='SUCCESS',
                             verbose_name="نتيجة العملية")
     
     # معلومات الوصول
-    ip_address = models.GenericIPAddressField(verbose_name="عنوان IP")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="عنوان IP")
     user_agent = models.TextField(blank=True, verbose_name="متصفح المستخدم")
     geolocation = models.JSONField(default=dict, verbose_name="الموقع الجغرافي")
     
